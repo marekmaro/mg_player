@@ -1,0 +1,42 @@
+package pl.mgplayer.data
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+
+data class Station(val name: String, val url: String, val country: String)
+
+/** Wyszukiwarka stacji: darmowe, otwarte API radio-browser.info. */
+object RadioRepository {
+
+    private const val BASE = "https://all.api.radio-browser.info/json/stations/search"
+
+    suspend fun search(query: String): List<Station> = withContext(Dispatchers.IO) {
+        val common = "order=clickcount&reverse=true&hidebroken=true&limit=60"
+        val url = if (query.isBlank()) {
+            "$BASE?countrycode=PL&$common"
+        } else {
+            "$BASE?name=${URLEncoder.encode(query.trim(), "UTF-8")}&$common"
+        }
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.setRequestProperty("User-Agent", "MgPlayer/0.1")
+        conn.connectTimeout = 10_000
+        conn.readTimeout = 10_000
+        try {
+            val text = conn.inputStream.bufferedReader().use { it.readText() }
+            val arr = JSONArray(text)
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.getJSONObject(i)
+                val stream = o.optString("url_resolved").ifBlank { o.optString("url") }
+                val name = o.optString("name").trim()
+                if (stream.isBlank() || name.isBlank()) null
+                else Station(name = name, url = stream, country = o.optString("country"))
+            }.distinctBy { it.url }
+        } finally {
+            conn.disconnect()
+        }
+    }
+}

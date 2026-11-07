@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Pierścień (tło) -->
+    <path
+        android:pathData="M54,30 A24,24 0 1,1 53.99,30"
+        android:strokeWidth="5"
+        android:strokeColor="#FF3A3D42"
+        android:fillColor="#00000000" />
+    <!-- Pierścień postępu -->
+    <path
+        android:pathData="M54,30 A24,24 0 1,1 30,54"
+        android:strokeWidth="5"
+        android:strokeColor="#FFFF7A2F"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Środek -->
+    <path
+        android:pathData="M54,46 A8,8 0 1,1 53.99,46 Z"
+        android:fillColor="#FFEDEAE4" />
+</vector>
