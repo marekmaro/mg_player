@@ -1,12 +1,10 @@
-package pl.mgplayer
+package io.github.marekmaro.sundial
 
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.media.AudioManager
 import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -26,18 +25,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import pl.mgplayer.data.Book
-import pl.mgplayer.data.Facts
-import pl.mgplayer.data.FactsRepository
-import pl.mgplayer.data.MediaRepository
-import pl.mgplayer.data.Prefs
-import pl.mgplayer.data.RadioRepository
-import pl.mgplayer.data.Station
-import pl.mgplayer.data.Track
-import pl.mgplayer.data.toMediaItem
+import io.github.marekmaro.sundial.data.Book
+import io.github.marekmaro.sundial.data.Facts
+import io.github.marekmaro.sundial.data.FactsRepository
+import io.github.marekmaro.sundial.data.MediaRepository
+import io.github.marekmaro.sundial.data.Prefs
+import io.github.marekmaro.sundial.data.RadioRepository
+import io.github.marekmaro.sundial.data.Station
+import io.github.marekmaro.sundial.data.Track
+import io.github.marekmaro.sundial.data.toMediaItem
 import java.time.LocalDate
-
-enum class Kind { MUSIC, BOOK, RADIO }
 
 /** Co robi obrót pierścienia na ekranie „Teraz gra”. */
 enum class RingMode(val label: String, val stepDegrees: Float, val hint: String) {
@@ -54,6 +51,7 @@ data class NowPlaying(
     val durationMs: Long = 0,
     val kind: Kind? = null,
     val speed: Float = 1f,
+    val error: String? = null,
 )
 
 data class SessionsUi(
@@ -93,25 +91,24 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var radioLoading by mutableStateOf(false); private set
     var radioError by mutableStateOf<String?>(null); private set
 
-    private var currentKind: Kind? = null
-    private var currentBookKey: String? = null
-
-    private var sleepEndAt: Long? = null
-    private var sleepAfterItem = false
-
-    private var stopwatchDurations: List<Long>? = null
     private var stopwatchMinutes = 25
+    private var playerError: String? = null
+
+    /** Ekran odświeżamy tylko, gdy aplikacja jest widoczna (oszczędza baterię). */
+    var visible = true
 
     private val listener = object : Player.Listener {
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && sleepAfterItem) {
-                controller?.pause()
-                sleepAfterItem = false
+        override fun onPlayerError(error: PlaybackException) {
+            playerError = when (Core.kind) {
+                Kind.RADIO -> "Nie mogę połączyć się ze stacją. Sprawdź internet albo wybierz inną."
+                else -> "Nie mogę odtworzyć tego pliku."
             }
+            tickNow()
         }
     }
 
     init {
+        Core.chime = chime
         connect()
         radioFavorites = prefs.favorites()
         startTicker()
@@ -125,6 +122,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         future.addListener({
             try {
                 controller = future.get().also { it.addListener(listener) }
+                tickNow()
             } catch (e: Exception) {
                 // serwis niedostępny – spróbujemy przy następnym uruchomieniu
             }
@@ -166,9 +164,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playTracks(list: List<Track>, start: Int) {
         val c = controller ?: return
-        stopwatchDurations = null
-        currentKind = Kind.MUSIC
-        currentBookKey = null
+        Core.stopwatchDurations = null
+        Core.kind = Kind.MUSIC
+        Core.bookKey = null
+        playerError = null
         c.setMediaItems(list.map { it.toMediaItem() }, start, 0L)
         c.setPlaybackSpeed(1f)
         c.prepare()
@@ -177,9 +176,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playBook(book: Book) {
         val c = controller ?: return
-        stopwatchDurations = null
-        currentKind = Kind.BOOK
-        currentBookKey = book.key
+        Core.stopwatchDurations = null
+        Core.kind = Kind.BOOK
+        Core.bookKey = book.key
+        playerError = null
         val idx = prefs.bookChapter(book.key).coerceIn(0, book.chapters.lastIndex)
         // cofamy o 5 s, żeby łatwiej złapać wątek
         val pos = (prefs.bookPosition(book.key) - 5_000).coerceAtLeast(0)
@@ -191,9 +191,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun playStation(s: Station) {
         val c = controller ?: return
-        stopwatchDurations = null
-        currentKind = Kind.RADIO
-        currentBookKey = null
+        Core.stopwatchDurations = null
+        Core.kind = Kind.RADIO
+        Core.bookKey = null
+        playerError = null
         val item = MediaItem.Builder()
             .setMediaId("radio:${s.url}")
             .setUri(s.url)
@@ -220,14 +221,14 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun seekBy(deltaMs: Long) {
         val c = controller ?: return
-        if (currentKind == Kind.RADIO) return
+        if (Core.kind == Kind.RADIO) return
         val dur = c.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
         c.seekTo((c.currentPosition + deltaMs).coerceIn(0L, dur))
     }
 
     /** Jeden krok pierścienia, zależnie od wybranego trybu. */
     fun ringStep(d: Int) {
-        val mode = if (currentKind == Kind.RADIO && ringMode == RingMode.SEEK) RingMode.VOLUME else ringMode
+        val mode = if (Core.kind == Kind.RADIO && ringMode == RingMode.SEEK) RingMode.VOLUME else ringMode
         when (mode) {
             RingMode.SEEK -> seekBy(d * 10_000L)
             RingMode.TRACKS -> if (d > 0) controller?.seekToNextMediaItem() else controller?.seekToPreviousMediaItem()
@@ -246,26 +247,28 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSpeed(speed: Float) {
         controller?.setPlaybackSpeed(speed)
-        if (currentKind == Kind.BOOK) prefs.bookSpeed = speed
+        if (Core.kind == Kind.BOOK) prefs.bookSpeed = speed
     }
 
     // ---------------------------------------------------------------- Sesje
 
     fun setSleep(minutes: Int) {
-        sleepAfterItem = false
-        sleepEndAt = System.currentTimeMillis() + minutes * 60_000L
+        Core.sleepAfterItem = false
+        Core.sleepEndAt = System.currentTimeMillis() + minutes * 60_000L
+        controller?.volume = 1f
         tickNow()
     }
 
     fun setSleepAfterItem() {
-        sleepEndAt = null
-        sleepAfterItem = true
+        Core.sleepEndAt = null
+        Core.sleepAfterItem = true
+        controller?.volume = 1f
         tickNow()
     }
 
     fun cancelSleep() {
-        sleepEndAt = null
-        sleepAfterItem = false
+        Core.sleepEndAt = null
+        Core.sleepAfterItem = false
         controller?.volume = 1f
         tickNow()
     }
@@ -286,29 +289,23 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun startStopwatch(): Boolean {
         val target = stopwatchMinutes * 60_000L
-        val pool = tracks.filter { it.durationMs in 60_000L..target }.shuffled()
-        val picked = mutableListOf<Track>()
-        var total = 0L
-        for (t in pool) {
-            if (total + t.durationMs <= target + 20_000L) {
-                picked += t
-                total += t.durationMs
-            }
-            if (target - total < 60_000L) break
-        }
-        if (picked.isEmpty()) return false
+        val idx = pickForDuration(tracks.map { it.durationMs }, target)
+        if (idx.isEmpty()) return false
+        val picked = idx.map { tracks[it] }
+        val total = picked.sumOf { it.durationMs }
         playTracks(picked, 0)
-        stopwatchDurations = picked.map { it.durationMs }
-        sessions = sessions.copy(
-            stopwatchDone = false,
-            stopwatchInfo = "${picked.size} utw. · ${fmt(total)}",
-        )
+        Core.stopwatchDurations = picked.map { it.durationMs }
+        Core.stopwatchDone = false
+        Core.stopwatchInfo = "${picked.size} utw. · ${fmt(total)}"
+        tickNow()
         return true
     }
 
     fun stopStopwatch() {
-        stopwatchDurations = null
-        sessions = sessions.copy(stopwatchRemainingMs = null, stopwatchDone = false, stopwatchInfo = null)
+        Core.stopwatchDurations = null
+        Core.stopwatchDone = false
+        Core.stopwatchInfo = null
+        tickNow()
     }
 
     // ---------------------------------------------------------------- Radio
@@ -399,7 +396,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             while (isActive) {
                 delay(500)
                 val now = SystemClock.elapsedRealtime()
-                tick(now - last)
+                if (visible) tick(now - last)
                 last = now
             }
         }
@@ -407,7 +404,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun tickNow() = tick(0)
 
-    private fun tick(dtMs: Long) {
+    private fun tick(@Suppress("UNUSED_PARAMETER") dtMs: Long) {
         val c = controller
         if (c != null) {
             val item = c.currentMediaItem
@@ -419,98 +416,45 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 isPlaying = c.isPlaying,
                 positionMs = c.currentPosition.coerceAtLeast(0),
                 durationMs = if (dur == C.TIME_UNSET || dur < 0) 0 else dur,
-                kind = if (item == null) null else (currentKind ?: Kind.MUSIC),
+                kind = if (item == null) null else (Core.kind ?: Kind.MUSIC),
                 speed = c.playbackParameters.speed,
+                error = playerError,
             )
-
             updateFacts(nowPlaying)
-
-            // Audiobook: zapisuj pozycję i licz minuty do wyzwania
-            if (c.isPlaying && currentKind == Kind.BOOK) {
-                prefs.addListened(LocalDate.now(), dtMs)
-                currentBookKey?.let { prefs.saveBook(it, c.currentMediaItemIndex, c.currentPosition) }
-            }
-
-            // Timer snu z płynnym ściszaniem w ostatnich 15 s
-            sleepEndAt?.let { end ->
-                val rem = end - System.currentTimeMillis()
-                if (rem <= 0) {
-                    c.pause()
-                    c.volume = 1f
-                    sleepEndAt = null
-                } else if (rem < 15_000) {
-                    c.volume = rem / 15_000f
-                }
-            }
         }
 
-        // Stoper muzyczny
+        // Stoper muzyczny: ile zostało do końca ułożonej muzyki
         var swRemaining: Long? = null
-        var swDone = sessions.stopwatchDone
-        val durations = stopwatchDurations
-        if (durations != null && c != null) {
+        val durations = Core.stopwatchDurations
+        if (durations != null && c != null && durations.isNotEmpty()) {
             val idx = c.currentMediaItemIndex.coerceIn(0, durations.lastIndex)
             swRemaining = (durations.drop(idx).sum() - c.currentPosition).coerceAtLeast(0)
-            if (c.playbackState == Player.STATE_ENDED) {
-                stopwatchDurations = null
-                swRemaining = null
-                swDone = true
-                vibrate()
-                playEndSignal()
-            }
         }
 
-        val sleepRem = sleepEndAt?.let { (it - System.currentTimeMillis()).coerceAtLeast(0) }
+        val today = LocalDate.now()
         sessions = sessions.copy(
-            sleepRemainingMs = sleepRem,
-            sleepAfterItem = sleepAfterItem,
-            todayMs = prefs.listened(LocalDate.now()),
+            sleepRemainingMs = Core.sleepEndAt?.let { (it - System.currentTimeMillis()).coerceAtLeast(0) },
+            sleepAfterItem = Core.sleepAfterItem,
+            todayMs = prefs.listened(today) + Core.pendingListenMs,
             goalMinutes = prefs.goalMinutes,
             streak = prefs.streak(),
             stopwatchMinutes = stopwatchMinutes,
             stopwatchRemainingMs = swRemaining,
-            stopwatchDone = swDone,
-            stopwatchInfo = if (swRemaining == null && !swDone) null else sessions.stopwatchInfo,
+            stopwatchDone = Core.stopwatchDone,
+            stopwatchInfo = Core.stopwatchInfo,
         )
     }
 
     /** Sygnał końca stopera: wybrana melodia (zob. [Chime]). */
-    private fun playEndSignal() {
-        viewModelScope.launch {
-            var track: android.media.AudioTrack? = null
-            try {
-                val c = chime
-                track = c.play()
-                delay(c.durationMs + 300)
-            } catch (e: Exception) {
-            } finally {
-                try { track?.release() } catch (e: Exception) {}
-            }
-        }
-    }
+    private fun playEndSignal() = viewModelScope.playChime(chime)
 
     /** Odsłuchanie sygnału z ekranu Sesje. */
     fun previewEndSignal() = playEndSignal()
 
     fun selectChime(c: Chime) {
         chime = c
+        Core.chime = c
         prefs.chime = c.name
         playEndSignal()
     }
-
-    private fun vibrate() {
-        try {
-            val v = getApplication<Application>().getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            v?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 150, 300), -1))
-        } catch (e: Exception) {
-        }
-    }
-}
-
-fun fmt(ms: Long): String {
-    val total = (ms / 1000).coerceAtLeast(0)
-    val h = total / 3600
-    val m = (total % 3600) / 60
-    val s = total % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
 }

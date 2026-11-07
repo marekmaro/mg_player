@@ -1,4 +1,4 @@
-package pl.mgplayer
+package io.github.marekmaro.sundial
 
 import android.media.AudioAttributes
 import android.media.AudioFormat

@@ -1,4 +1,4 @@
-package pl.mgplayer
+package io.github.marekmaro.sundial
 
 import android.Manifest
 import android.os.Build
@@ -14,13 +14,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import pl.mgplayer.ui.BooksScreen
-import pl.mgplayer.ui.HomeScreen
-import pl.mgplayer.ui.MgTheme
-import pl.mgplayer.ui.MusicScreen
-import pl.mgplayer.ui.PlayingScreen
-import pl.mgplayer.ui.RadioScreen
-import pl.mgplayer.ui.SessionsScreen
+import io.github.marekmaro.sundial.ui.BooksScreen
+import io.github.marekmaro.sundial.ui.HomeScreen
+import io.github.marekmaro.sundial.ui.SundialTheme
+import io.github.marekmaro.sundial.ui.MusicScreen
+import io.github.marekmaro.sundial.ui.PlayingScreen
+import io.github.marekmaro.sundial.ui.RadioScreen
+import io.github.marekmaro.sundial.ui.SessionsScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -30,11 +30,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MgTheme {
+            SundialTheme {
                 PermissionRequest(onDone = { vm.loadLibrary() })
                 App(vm)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        vm.visible = true
+    }
+
+    override fun onStop() {
+        vm.visible = false
+        super.onStop()
     }
 }
 

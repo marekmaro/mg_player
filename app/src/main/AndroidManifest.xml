@@ -16,7 +16,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MgPlayer"
+        android:theme="@style/Theme.Sundial"
         android:usesCleartextTraffic="true">
 
         <activity

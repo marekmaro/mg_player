@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "mg_player"
+rootProject.name = "sundial"
 include(":app")

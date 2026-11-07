@@ -1,4 +1,4 @@
-package pl.mgplayer.ui
+package io.github.marekmaro.sundial.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

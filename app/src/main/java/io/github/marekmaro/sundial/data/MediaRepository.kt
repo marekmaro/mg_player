@@ -1,4 +1,4 @@
-package pl.mgplayer.data
+package io.github.marekmaro.sundial.data
 
 import android.content.ContentUris
 import android.content.Context

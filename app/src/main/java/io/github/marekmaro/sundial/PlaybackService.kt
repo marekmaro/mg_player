@@ -1,0 +1,140 @@
+package io.github.marekmaro.sundial
+
+import android.content.Intent
+import android.os.SystemClock
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
+import io.github.marekmaro.sundial.data.Prefs
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+
+/**
+ * Serwis odtwarzania w tle. Media3 sam pokazuje powiadomienie z kontrolkami
+ * i obsługuje ekran blokady, słuchawki Bluetooth i Android Auto.
+ *
+ * Tu działają też sesje (timer snu, stoper, wyzwanie, zapis pozycji
+ * audiobooka), żeby nie zależały od tego, czy aplikacja jest otwarta.
+ */
+class PlaybackService : MediaSessionService() {
+
+    private var session: MediaSession? = null
+    private val scope = MainScope()
+    private lateinit var prefs: Prefs
+
+    private val listener = object : Player.Listener {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Core.sleepAfterItem) {
+                session?.player?.pause()
+                Core.sleepAfterItem = false
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (!isPlaying) persist()
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_ENDED && Core.stopwatchDurations != null) {
+                // Stoper: muzyka ucichła, więc czas minął
+                Core.stopwatchDurations = null
+                Core.stopwatchDone = true
+                vibrateFinish(this@PlaybackService)
+                scope.playChime(Core.chime)
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        prefs = Prefs(this)
+        Core.chime = Chime.entries.firstOrNull { it.name == prefs.chime } ?: Chime.CHIP
+
+        val player = ExoPlayer.Builder(this)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                /* handleAudioFocus = */ true
+            )
+            .setHandleAudioBecomingNoisy(true) // pauza po wyjęciu słuchawek
+            .build()
+        player.addListener(listener)
+        session = MediaSession.Builder(this, player).build()
+        startTicker()
+    }
+
+    private fun startTicker() {
+        scope.launch {
+            var last = SystemClock.elapsedRealtime()
+            var ticks = 0
+            while (isActive) {
+                delay(500)
+                val now = SystemClock.elapsedRealtime()
+                val dt = now - last
+                last = now
+                val player = session?.player ?: continue
+
+                // Wyzwanie: licz minuty audiobooka; zapis na dysk co ~5 s
+                if (player.isPlaying && Core.kind == Kind.BOOK) {
+                    Core.pendingListenMs += dt
+                    if (++ticks % 10 == 0) persist()
+                }
+
+                // Timer snu z płynnym ściszaniem w ostatnich 15 s
+                Core.sleepEndAt?.let { end ->
+                    val rem = end - System.currentTimeMillis()
+                    if (rem <= 0) {
+                        player.pause()
+                        player.volume = 1f
+                        Core.sleepEndAt = null
+                    } else if (rem < 15_000) {
+                        player.volume = rem / 15_000f
+                    }
+                }
+            }
+        }
+    }
+
+    /** Zapisuje pozycję audiobooka i zaległe minuty wyzwania. */
+    private fun persist() {
+        val player = session?.player ?: return
+        if (Core.kind == Kind.BOOK) {
+            Core.bookKey?.let { prefs.saveBook(it, player.currentMediaItemIndex, player.currentPosition) }
+        }
+        if (Core.pendingListenMs > 0) {
+            prefs.addListened(LocalDate.now(), Core.pendingListenMs)
+            Core.pendingListenMs = 0
+        }
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val player = session?.player
+        if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
+            stopSelf()
+        }
+    }
+
+    override fun onDestroy() {
+        persist()
+        scope.cancel()
+        session?.run {
+            player.removeListener(listener)
+            player.release()
+            release()
+        }
+        session = null
+        super.onDestroy()
+    }
+}

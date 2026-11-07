@@ -1,4 +1,4 @@
-package pl.mgplayer.ui
+package io.github.marekmaro.sundial.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -54,12 +54,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import pl.mgplayer.Chime
-import pl.mgplayer.Kind
-import pl.mgplayer.PlayerViewModel
-import pl.mgplayer.RingMode
-import pl.mgplayer.fmt
-import pl.mgplayer.data.Facts
+import io.github.marekmaro.sundial.Chime
+import io.github.marekmaro.sundial.Kind
+import io.github.marekmaro.sundial.PlayerViewModel
+import io.github.marekmaro.sundial.RingMode
+import io.github.marekmaro.sundial.fmt
+import io.github.marekmaro.sundial.data.Facts
 import androidx.compose.runtime.mutableIntStateOf
 
 // ================================================================== Słuchaj (menu główne)
@@ -84,7 +84,7 @@ fun HomeScreen(
     )
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
-        title = "MG PLAYER",
+        title = "SUNDIAL",
         smallTitle = true,
         rows = rows,
         onBack = null,
@@ -360,6 +360,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
                 color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
             )
             Text(mode.hint, color = Pal.Muted, fontSize = 11.sp)
+            np.error?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, textAlign = TextAlign.Center) }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (isBook) 10.dp else 20.dp)) {

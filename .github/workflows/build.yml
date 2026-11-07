@@ -19,12 +19,56 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK
+      - name: Unit tests, lint, debug APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mg-player-debug-apk
+          name: sundial-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+
+  # Test na prawdziwym emulatorze Androida: instalacja, pliki testowe,
+  # przejście po ekranach, zrzuty ekranu i sprawdzenie, czy nic się nie wywraca.
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sundial-debug-apk
+          path: apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: bash .github/scripts/smoke.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshots
+          path: smoke/

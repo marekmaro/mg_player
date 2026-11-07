@@ -1,4 +1,4 @@
-package pl.mgplayer.data
+package io.github.marekmaro.sundial.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,7 +43,7 @@ data class Facts(
 
 object FactsRepository {
 
-    private const val USER_AGENT = "MgPlayer/0.1 (https://github.com/marekmaro/mg_player)"
+    private const val USER_AGENT = "Sundial/0.2 (https://github.com/marekmaro/mg_player)"
 
     // Słowa potwierdzające, że znaleziona strona dotyczy muzyka / pisarza,
     // a nie np. miasta albo filmu o tej samej nazwie.
@@ -123,7 +123,7 @@ object FactsRepository {
         return null
     }
 
-    private fun splitSentences(text: String): List<String> =
+    internal fun splitSentences(text: String): List<String> =
         text.split(Regex("""(?<=[.!?])\s+(?=[A-ZĄĆĘŁŃÓŚŹŻ0-9„"])"""))
             .map { it.trim() }
             .filter { it.length >= 25 }

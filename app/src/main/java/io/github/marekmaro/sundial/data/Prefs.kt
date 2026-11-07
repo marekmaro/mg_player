@@ -1,4 +1,4 @@
-package pl.mgplayer.data
+package io.github.marekmaro.sundial.data
 
 import android.content.Context
 import org.json.JSONArray
@@ -8,7 +8,7 @@ import java.time.LocalDate
 /** Proste trwałe ustawienia: postępy audiobooków, wyzwanie, ulubione stacje. */
 class Prefs(context: Context) {
 
-    private val sp = context.getSharedPreferences("mg_player", Context.MODE_PRIVATE)
+    private val sp = context.getSharedPreferences("sundial", Context.MODE_PRIVATE)
 
     // --- Audiobooki: zapamiętana pozycja dla każdej książki ---
     fun saveBook(key: String, chapterIndex: Int, positionMs: Long) {
