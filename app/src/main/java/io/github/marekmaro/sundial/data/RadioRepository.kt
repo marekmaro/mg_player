@@ -35,6 +35,8 @@ object RadioRepository {
                 if (stream.isBlank() || name.isBlank()) null
                 else Station(name = name, url = stream, country = o.optString("country"))
             }.distinctBy { it.url }
+                // ta sama stacja bywa w bazie kilka razy (różne strumienie) – zostaw najpopularniejszą
+                .distinctBy { it.name.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "") }
         } finally {
             conn.disconnect()
         }

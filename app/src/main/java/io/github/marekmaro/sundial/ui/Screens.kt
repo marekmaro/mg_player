@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -264,151 +265,211 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
 
 // ================================================================== Teraz gra
 
+/**
+ * Ekran odtwarzania w trzech układach:
+ * - zwykły telefon: wszystko w jednej kolumnie,
+ * - szeroki ekran (rozłożony składak, tablet, poziomo): pierścień po lewej, reszta po prawej,
+ * - składak w trybie „namiotu” (zgięty poziomo): pierścień nad zgięciem, sterowanie pod nim.
+ */
 @Composable
 fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Unit) {
+    val np = vm.nowPlaying
+    val cfg = LocalConfiguration.current
+    val posture = LocalPosture.current
+    val wide = isWide()
+
+    val title = when (np.kind) {
+        Kind.BOOK -> "AUDIOBOOK"
+        Kind.RADIO -> "RADIO"
+        else -> "TERAZ GRA"
+    }
+    val base = Modifier
+        .fillMaxSize()
+        .background(Pal.Bg)
+        .systemBarsPadding()
+        .padding(horizontal = 20.dp, vertical = 12.dp)
+
+    if (np.kind == null) {
+        Column(base, horizontalAlignment = Alignment.CenterHorizontally) {
+            TopBar(title, onBack, small = true)
+            Spacer(Modifier.height(200.dp))
+            Text("Nic teraz nie gra.", color = Pal.Muted, fontSize = 16.sp)
+        }
+        return
+    }
+
+    when {
+        posture == Posture.TABLETOP -> Column(base) {
+            TopBar(title, onBack, small = true)
+            // górna połowa: pierścień (ekran stoi jak laptop)
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                val size = ((cfg.screenHeightDp / 2) * 0.8f).toInt().coerceIn(160, 300).dp
+                PlayerRing(vm, size)
+            }
+            Spacer(Modifier.height(24.dp)) // miejsce na zgięcie
+            Column(
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                PlayerDetails(vm, onSessions)
+            }
+        }
+
+        wide -> Row(base, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                TopBar(title, onBack, small = true)
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    val size = minOf(cfg.screenWidthDp / 2 - 40, cfg.screenHeightDp - 140).coerceIn(160, 360).dp
+                    PlayerRing(vm, size)
+                }
+            }
+            Column(
+                Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+            ) {
+                Spacer(Modifier.height(8.dp))
+                PlayerDetails(vm, onSessions)
+            }
+        }
+
+        else -> Column(
+            base.verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            TopBar(title, onBack, small = true)
+            val size = minOf(cfg.screenWidthDp - 40, (cfg.screenHeightDp * 0.45f).toInt()).coerceIn(200, 290).dp
+            PlayerRing(vm, size)
+            PlayerDetails(vm, onSessions)
+        }
+    }
+}
+
+/** Pierścień postępu = pokrętło. Środek: dotknij = pauza, 2× = następny, przytrzymaj = poprzedni. */
+@Composable
+private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.Dp) {
+    val np = vm.nowPlaying
+    val isRadio = np.kind == Kind.RADIO
+    val mode = vm.effectiveRingMode
+    RotaryKnob(
+        Modifier.size(ringSize),
+        stepDegrees = mode.stepDegrees,
+        onStep = { d -> vm.ringStep(d) },
+    ) { _ ->
+        val frac = if (np.durationMs > 0) np.positionMs.toFloat() / np.durationMs else 0f
+        Canvas(Modifier.fillMaxSize()) {
+            drawTicks(60, 5, minor = Pal.Line, major = Pal.Tick)
+            val sw = 6.dp.toPx()
+            val inset = 22.dp.toPx()
+            val arc = Size(size.width - inset * 2, size.height - inset * 2)
+            drawArc(Pal.Surface2, 0f, 360f, false, Offset(inset, inset), arc, style = Stroke(sw))
+            if (!isRadio) {
+                drawArc(Pal.Accent, -90f, 360f * frac.coerceIn(0f, 1f), false, Offset(inset, inset), arc, style = Stroke(sw, cap = StrokeCap.Round))
+            } else if (np.isPlaying) {
+                drawArc(Pal.Accent, -90f, 360f, false, Offset(inset, inset), arc, style = Stroke(sw))
+            }
+            drawCircle(Pal.Surface, radius = size.minDimension / 2f - 40.dp.toPx())
+        }
+        Box(
+            Modifier
+                .size(ringSize * 0.58f)
+                .clip(CircleShape)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { vm.togglePlay() },
+                        onDoubleTap = { vm.next() },
+                        onLongPress = { vm.previous() },
+                    )
+                }
+                .semantics { contentDescription = if (np.isPlaying) "Pauza" else "Odtwórz" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, (ringSize * 0.19f).coerceAtMost(56.dp))
+                // W miejscu okładki: krótki opis wykonawcy / autora
+                Text(
+                    vm.facts?.headline?.takeIf { it.isNotBlank() } ?: "2× dalej · przytrzymaj wstecz",
+                    color = Pal.Muted, fontSize = 11.sp, lineHeight = 14.sp,
+                    textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Tytuł, tryby pierścienia, przyciski, prędkość, ciekawostki i sesje. */
+@Composable
+private fun PlayerDetails(vm: PlayerViewModel, onSessions: () -> Unit) {
     val np = vm.nowPlaying
     val s = vm.sessions
     val isRadio = np.kind == Kind.RADIO
     val isBook = np.kind == Kind.BOOK
+    val mode = vm.effectiveRingMode
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(Pal.Bg)
-            .systemBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        TopBar(
-            when (np.kind) {
-                Kind.BOOK -> "AUDIOBOOK"
-                Kind.RADIO -> "RADIO"
-                else -> "TERAZ GRA"
-            },
-            onBack, small = true,
-        )
-
-        if (np.kind == null) {
-            Spacer(Modifier.height(200.dp))
-            Text("Nic teraz nie gra.", color = Pal.Muted, fontSize = 16.sp)
-            return@Column
-        }
-
-        // Pierścień postępu = pokrętło. Tryb wybierasz pod spodem.
-        val mode = if (isRadio && vm.ringMode == RingMode.SEEK) RingMode.VOLUME else vm.ringMode
-        val cfg = LocalConfiguration.current
-        val ringSize = (minOf(cfg.screenWidthDp - 40, (cfg.screenHeightDp * 0.45f).toInt()))
-            .coerceIn(200, 290).dp
-        RotaryKnob(
-            Modifier.size(ringSize),
-            stepDegrees = mode.stepDegrees,
-            onStep = { d -> vm.ringStep(d) },
-        ) { _ ->
-            val frac = if (np.durationMs > 0) np.positionMs.toFloat() / np.durationMs else 0f
-            Canvas(Modifier.fillMaxSize()) {
-                drawTicks(60, 5, minor = Pal.Line, major = Pal.Tick)
-                val sw = 6.dp.toPx()
-                val inset = 22.dp.toPx()
-                val arc = Size(size.width - inset * 2, size.height - inset * 2)
-                drawArc(Pal.Surface2, 0f, 360f, false, Offset(inset, inset), arc, style = Stroke(sw))
-                if (!isRadio) {
-                    drawArc(Pal.Accent, -90f, 360f * frac.coerceIn(0f, 1f), false, Offset(inset, inset), arc, style = Stroke(sw, cap = StrokeCap.Round))
-                } else if (np.isPlaying) {
-                    drawArc(Pal.Accent, -90f, 360f, false, Offset(inset, inset), arc, style = Stroke(sw))
-                }
-                drawCircle(Pal.Surface, radius = size.minDimension / 2f - 40.dp.toPx())
-            }
-            // Środek: dotknij = pauza/odtwarzanie, 2× = następny, przytrzymaj = poprzedni
-            Box(
-                Modifier
-                    .size(ringSize * 0.58f)
-                    .clip(CircleShape)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { vm.togglePlay() },
-                            onDoubleTap = { vm.next() },
-                            onLongPress = { vm.previous() },
-                        )
-                    }
-                    .semantics { contentDescription = if (np.isPlaying) "Pauza" else "Odtwórz" },
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, 56.dp)
-                    // W miejscu okładki: krótki opis wykonawcy / autora
-                    Text(
-                        vm.facts?.headline?.takeIf { it.isNotBlank() } ?: "2× dalej · przytrzymaj wstecz",
-                        color = Pal.Muted, fontSize = 11.sp, lineHeight = 14.sp,
-                        textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        RingMode.entries.forEach { m ->
+            if (!(isRadio && m != RingMode.VOLUME)) {
+                Chip(m.label, modifier = Modifier.weight(1f), selected = m == mode) { vm.ringMode = m }
             }
         }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            RingMode.entries.forEach { m ->
-                if (!(isRadio && m != RingMode.VOLUME)) {
-                    Chip(m.label, selected = m == mode) { vm.ringMode = m }
-                }
-            }
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(np.title, color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
-            Text(np.subtitle, color = Pal.Muted, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
-                color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
-            )
-            Text(mode.hint, color = Pal.Muted, fontSize = 11.sp)
-            np.error?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, textAlign = TextAlign.Center) }
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (isBook) 10.dp else 20.dp)) {
-            if (isBook) {
-                Chip("−30") { vm.seekBy(-30_000) }
-            }
-            CircleButton("Poprzedni", { vm.previous() }, size = 52.dp) { GlyphIcon(Glyph.Prev, Pal.Text, 24.dp) }
-            CircleButton(if (np.isPlaying) "Pauza" else "Odtwórz", { vm.togglePlay() }, size = 76.dp, filled = true) {
-                GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Bg, 30.dp)
-            }
-            CircleButton("Następny", { vm.next() }, size = 52.dp) { GlyphIcon(Glyph.Next, Pal.Text, 24.dp) }
-            if (isBook) {
-                Chip("+30") { vm.seekBy(30_000) }
-            }
-        }
-
-        if (isBook) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(0.8f, 1f, 1.25f, 1.5f, 2f).forEach { v ->
-                    Chip(
-                        text = "${if (v % 1f == 0f) v.toInt().toString() else v.toString()}×",
-                        selected = kotlin.math.abs(np.speed - v) < 0.01f,
-                    ) { vm.setSpeed(v) }
-                }
-            }
-        }
-
-        if (!isRadio) {
-            FactsCard(
-                facts = vm.facts,
-                enabled = vm.factsEnabled,
-                onToggle = { vm.setFactsOn(!vm.factsEnabled) },
-            )
-        }
-
-        val sleepText = when {
-            s.sleepRemainingMs != null -> "Sen ${fmt(s.sleepRemainingMs)}"
-            s.sleepAfterItem -> "Sen: po rozdziale"
-            s.stopwatchRemainingMs != null -> "Stoper ${fmt(s.stopwatchRemainingMs)}"
-            else -> "Sesje: sen · stoper"
-        }
-        val active = s.sleepRemainingMs != null || s.sleepAfterItem || s.stopwatchRemainingMs != null
-        Chip(sleepText, selected = active, modifier = Modifier.fillMaxWidth(), onClick = onSessions)
     }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(np.title, color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
+        Text(np.subtitle, color = Pal.Muted, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
+            color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
+        )
+        Text(mode.hint, color = Pal.Muted, fontSize = 11.sp)
+        np.error?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, textAlign = TextAlign.Center) }
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        CircleButton("Poprzedni", { vm.previous() }, size = 52.dp) { GlyphIcon(Glyph.Prev, Pal.Text, 24.dp) }
+        CircleButton(if (np.isPlaying) "Pauza" else "Odtwórz", { vm.togglePlay() }, size = 72.dp, filled = true) {
+            GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Bg, 28.dp)
+        }
+        CircleButton("Następny", { vm.next() }, size = 52.dp) { GlyphIcon(Glyph.Next, Pal.Text, 24.dp) }
+    }
+
+    if (isBook) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip("−30 s", modifier = Modifier.weight(1f)) { vm.seekBy(-30_000) }
+            Chip("+30 s", modifier = Modifier.weight(1f)) { vm.seekBy(30_000) }
+        }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            listOf(0.8f, 1f, 1.25f, 1.5f, 2f).forEach { v ->
+                Chip(
+                    text = "${if (v % 1f == 0f) v.toInt().toString() else v.toString()}×",
+                    selected = kotlin.math.abs(np.speed - v) < 0.01f,
+                ) { vm.setSpeed(v) }
+            }
+        }
+    }
+
+    if (!isRadio) {
+        FactsCard(
+            facts = vm.facts,
+            enabled = vm.factsEnabled,
+            onToggle = { vm.setFactsOn(!vm.factsEnabled) },
+        )
+    }
+
+    val sleepText = when {
+        s.sleepRemainingMs != null -> "Sen ${fmt(s.sleepRemainingMs)}"
+        s.sleepAfterItem -> "Sen: po rozdziale"
+        s.stopwatchRemainingMs != null -> "Stoper ${fmt(s.stopwatchRemainingMs)}"
+        else -> "Sesje: sen · stoper"
+    }
+    val active = s.sleepRemainingMs != null || s.sleepAfterItem || s.stopwatchRemainingMs != null
+    Chip(sleepText, modifier = Modifier.fillMaxWidth(), selected = active, onClick = onSessions)
 }
 
 // ================================================================== Ciekawostki

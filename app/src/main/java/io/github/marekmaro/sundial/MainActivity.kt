@@ -11,9 +11,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.toMutableStateList
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.window.layout.FoldingFeature
+import androidx.window.layout.WindowInfoTracker
+import kotlinx.coroutines.launch
+import io.github.marekmaro.sundial.ui.LocalPosture
+import io.github.marekmaro.sundial.ui.Posture
 import io.github.marekmaro.sundial.ui.BooksScreen
 import io.github.marekmaro.sundial.ui.HomeScreen
 import io.github.marekmaro.sundial.ui.SundialTheme
@@ -25,14 +37,36 @@ import io.github.marekmaro.sundial.ui.SessionsScreen
 class MainActivity : ComponentActivity() {
 
     private val vm: PlayerViewModel by viewModels()
+    private val posture = mutableStateOf(Posture.FLAT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        watchFold()
         setContent {
             SundialTheme {
-                PermissionRequest(onDone = { vm.loadLibrary() })
-                App(vm)
+                CompositionLocalProvider(LocalPosture provides posture.value) {
+                    PermissionRequest(onDone = { vm.loadLibrary() })
+                    App(vm)
+                }
+            }
+        }
+    }
+
+    /** Śledzi zgięcie składaka: „namiot” (zgięcie poziome) albo „książka” (pionowe). */
+    private fun watchFold() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                WindowInfoTracker.getOrCreate(this@MainActivity)
+                    .windowLayoutInfo(this@MainActivity)
+                    .collect { info ->
+                        val fold = info.displayFeatures.filterIsInstance<FoldingFeature>().firstOrNull()
+                        posture.value = when {
+                            fold == null || fold.state != FoldingFeature.State.HALF_OPENED -> Posture.FLAT
+                            fold.orientation == FoldingFeature.Orientation.HORIZONTAL -> Posture.TABLETOP
+                            else -> Posture.BOOK
+                        }
+                    }
             }
         }
     }
@@ -63,18 +97,14 @@ private fun PermissionRequest(onDone: () -> Unit) {
     }
 }
 
-sealed interface Screen {
-    data object Home : Screen
-    data object Music : Screen
-    data object Books : Screen
-    data object Radio : Screen
-    data object Sessions : Screen
-    data object Playing : Screen
-}
+enum class Screen { Home, Music, Books, Radio, Sessions, Playing }
 
 @Composable
 private fun App(vm: PlayerViewModel) {
-    val stack = remember { mutableStateListOf<Screen>(Screen.Home) }
+    // Stos ekranów przetrwa obrót i złożenie/rozłożenie telefonu
+    val stack = rememberSaveable(
+        saver = listSaver<SnapshotStateList<Screen>, String>(save = { s -> s.map { it.name } }, restore = { names -> names.map { Screen.valueOf(it) }.toMutableStateList() }),
+    ) { mutableListOf(Screen.Home).toMutableStateList() }
 
     fun go(s: Screen) {
         // nie dubluj ekranu „Teraz gra” na stosie

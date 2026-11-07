@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +61,20 @@ import kotlinx.coroutines.launch
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+
+// ------------------------------------------------------------------ Układ: składaki i szerokie ekrany
+
+/** Ułożenie telefonu składanego. */
+enum class Posture { FLAT, TABLETOP, BOOK }
+
+val LocalPosture = staticCompositionLocalOf { Posture.FLAT }
+
+/** Szeroki ekran: rozłożony składak, tablet, telefon w poziomie albo składak „jak książka”. */
+@Composable
+fun isWide(): Boolean {
+    val c = LocalConfiguration.current
+    return c.screenWidthDp >= 600 || c.screenWidthDp > c.screenHeightDp || LocalPosture.current == Posture.BOOK
+}
 
 // ------------------------------------------------------------------ Ikony
 
@@ -119,7 +134,7 @@ fun CircleButton(
 }
 
 @Composable
-fun Chip(text: String, selected: Boolean = false, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun Chip(text: String, modifier: Modifier = Modifier, selected: Boolean = false, onClick: () -> Unit) {
     Box(
         modifier
             .height(44.dp)
@@ -137,6 +152,7 @@ fun Chip(text: String, selected: Boolean = false, modifier: Modifier = Modifier,
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -331,8 +347,8 @@ fun KnobListScreen(
     // Pokrętło dopasowuje się do ekranu: na małych telefonach jest mniejsze,
     // a w poziomie stoi obok listy.
     val cfg = LocalConfiguration.current
-    val landscape = cfg.screenWidthDp > cfg.screenHeightDp
-    val knobSize = if (landscape) (cfg.screenHeightDp * 0.62f).coerceIn(140f, 220f).dp
+    val landscape = isWide()
+    val knobSize = if (landscape) minOf(cfg.screenHeightDp * 0.62f, cfg.screenWidthDp * 0.4f).coerceIn(140f, 260f).dp
     else (cfg.screenHeightDp * 0.27f).coerceIn(150f, 210f).dp
 
     val list: @Composable ColumnScope.() -> Unit = {

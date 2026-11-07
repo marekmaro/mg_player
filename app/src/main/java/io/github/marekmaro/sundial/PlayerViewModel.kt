@@ -38,7 +38,7 @@ import java.time.LocalDate
 
 /** Co robi obrót pierścienia na ekranie „Teraz gra”. */
 enum class RingMode(val label: String, val stepDegrees: Float, val hint: String) {
-    SEEK("Przewijanie", 15f, "kręć: ±10 s"),
+    SEEK("Przewiń", 15f, "kręć: ±10 s"),
     TRACKS("Utwory", 60f, "kręć: następny / poprzedni"),
     VOLUME("Głośność", 20f, "kręć: głośniej / ciszej"),
 }
@@ -227,9 +227,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Jeden krok pierścienia, zależnie od wybranego trybu. */
+    /** Przy radiu nie da się przewijać, więc pierścień działa wtedy jako głośność. */
+    val effectiveRingMode: RingMode
+        get() = if (nowPlaying.kind == Kind.RADIO && ringMode != RingMode.VOLUME) RingMode.VOLUME else ringMode
+
     fun ringStep(d: Int) {
-        val mode = if (Core.kind == Kind.RADIO && ringMode == RingMode.SEEK) RingMode.VOLUME else ringMode
-        when (mode) {
+        when (effectiveRingMode) {
             RingMode.SEEK -> seekBy(d * 10_000L)
             RingMode.TRACKS -> if (d > 0) controller?.seekToNextMediaItem() else controller?.seekToPreviousMediaItem()
             RingMode.VOLUME -> adjustVolume(d)

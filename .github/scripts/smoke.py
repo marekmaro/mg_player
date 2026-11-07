@@ -69,7 +69,9 @@ def find_scroll(text, exact=False, desc=False):
     pos = find(text, exact, desc)
     tries = 0
     while not pos and tries < 3:
-        adb("shell", "input", "swipe", str(W // 2), str(int(H * 0.50)), str(W // 2), str(int(H * 0.22)), "400")
+        # przewijanie przy lewej krawędzi, żeby nie kręcić pokrętłem
+        x = str(int(W * 0.04))
+        adb("shell", "input", "swipe", x, str(int(H * 0.55)), x, str(int(H * 0.25)), "400")
         time.sleep(1)
         pos = find(text, exact, desc)
         tries += 1
@@ -195,6 +197,27 @@ adb("shell", "settings", "put", "system", "user_rotation", "1")
 time.sleep(3)
 shot("14-poziomo")
 adb("shell", "settings", "put", "system", "user_rotation", "0")
+time.sleep(2)
+expect("SUNDIAL", "po obrocie ekranu")
+
+# 9. Symulacja rozłożonego składaka (ok. 700x840 dp): układ dwupanelowy
+adb("shell", "wm", "size", "1840x2208")
+adb("shell", "wm", "density", "420")
+time.sleep(4)
+shot("15-skladak-menu")
+tap("Muzyka", exact=True)
+tap("Nocny przystanek")
+time.sleep(2)
+shot("16-skladak-teraz-gra")
+expect("TERAZ GRA", "składak: teraz gra")
+# obrót = zmiana konfiguracji jak przy rozkładaniu: ekran ma zostać ten sam
+adb("shell", "settings", "put", "system", "user_rotation", "1")
+time.sleep(3)
+shot("17-skladak-poziomo")
+expect("TERAZ GRA", "składak: ekran zachowany po zmianie konfiguracji")
+adb("shell", "settings", "put", "system", "user_rotation", "0")
+adb("shell", "wm", "size", "reset")
+adb("shell", "wm", "density", "reset")
 time.sleep(2)
 
 hits, logs = crashed()
