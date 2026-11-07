@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.media.AudioManager
-import android.media.ToneGenerator
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -474,26 +473,22 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /**
-     * Sygnał końca stopera: 3 krótkie piknięcia na kanale alarmu,
-     * więc słychać je nawet przy ściszonej muzyce.
-     */
+    /** Sygnał końca stopera: melodyjne „pik-pik” (zob. [EndChime]). */
     private fun playEndSignal() {
         viewModelScope.launch {
-            var tone: ToneGenerator? = null
+            var track: android.media.AudioTrack? = null
             try {
-                tone = ToneGenerator(AudioManager.STREAM_ALARM, 90)
-                repeat(3) {
-                    tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 350)
-                    delay(650)
-                }
-                delay(400)
+                track = EndChime.play()
+                delay(EndChime.durationMs + 300)
             } catch (e: Exception) {
             } finally {
-                tone?.release()
+                try { track?.release() } catch (e: Exception) {}
             }
         }
     }
+
+    /** Odsłuchanie sygnału z ekranu Sesje. */
+    fun previewEndSignal() = playEndSignal()
 
     private fun vibrate() {
         try {

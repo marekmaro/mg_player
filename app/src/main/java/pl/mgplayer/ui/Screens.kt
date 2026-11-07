@@ -524,7 +524,10 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
 
         // --- Stoper muzyczny
         Card {
-            Text("Stoper muzyczny", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Stoper muzyczny", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Chip("♪ sygnał") { vm.previewEndSignal() }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     when {
