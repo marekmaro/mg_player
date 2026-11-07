@@ -18,6 +18,12 @@ data class Note(val freq: Double, val startMs: Int, val lenMs: Int)
 
 enum class Chime(val label: String, val timbre: Timbre, val notes: List<Note>) {
 
+    /** Mała fanfara w stylu starych konsol 8-bit. */
+    CHIP("Fanfara 8-bit", Timbre.CHIP, seq(
+        G5 to 90, R to 20, C6 to 90, R to 20, E6 to 90, R to 20, G6 to 180, R to 90,
+        E6 to 90, R to 20, G6 to 480,
+    )),
+
     /** Klasyczne „pik-pik” z zegarka, ułożone w akord: mi–sol–DO ×2, potem sol–do–MI. */
     CLASSIC("Klasyczny", Timbre.DIGITAL, seq(
         E6 to 90, R to 50, G6 to 90, R to 50, C7 to 170, R to 280,
@@ -28,12 +34,6 @@ enum class Chime(val label: String, val timbre: Timbre, val notes: List<Note>) {
     /** Wznoszący się arpeggio jak dzwonki rurowe; dźwięki nakładają się i wybrzmiewają. */
     BELL("Dzwonek", Timbre.BELL, listOf(
         Note(C6, 0, 1100), Note(E6, 180, 1100), Note(G6, 360, 1100), Note(C7, 540, 1800),
-    )),
-
-    /** Mała fanfara w stylu starych konsol 8-bit. */
-    CHIP("Fanfara 8-bit", Timbre.CHIP, seq(
-        G5 to 90, R to 20, C6 to 90, R to 20, E6 to 90, R to 20, G6 to 180, R to 90,
-        E6 to 90, R to 20, G6 to 480,
     )),
 
     /** Spokojne „ding-dong”, jak sygnał na dworcu. Dobre po sesji nauki. */

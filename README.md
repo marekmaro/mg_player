@@ -13,7 +13,7 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 - **Sesje**:
   - **Sen**: 15/30/60 min albo „po rozdziale”, z płynnym ściszaniem
   - **Wyzwanie**: X minut audiobooka dziennie, licznik dni z rzędu
-  - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec melodyjny sygnał do wyboru (Klasyczny, Dzwonek, Fanfara 8-bit, Delikatny; kanał alarmu, słychać go nawet przy ściszonej muzyce) i wibracja. Próbki są w `docs/`.
+  - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec melodyjny sygnał do wyboru (domyślnie Fanfara 8-bit, w menu pod czasem także Klasyczny, Dzwonek i Delikatny; kanał alarmu, słychać go nawet przy ściszonej muzyce) i wibracja. Próbki są w `docs/`.
 - **Ciekawostki zamiast okładki**: krótki opis wykonawcy (albo autora audiobooka) w środku pierścienia i karta z faktami z Wikipedii. Dotknięcie pokazuje następny fakt. Najpierw szukam w polskiej Wikipedii, potem w angielskiej. Wyniki są zapisywane w telefonie. Do Wikipedii wysyłana jest tylko nazwa wykonawcy. Można to wyłączyć przyciskiem „Ukryj”.
 - Odtwarzanie w tle, powiadomienie z kontrolkami, ekran blokady, słuchawki Bluetooth (Media3).
 

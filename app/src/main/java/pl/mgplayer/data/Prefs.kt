@@ -51,7 +51,7 @@ class Prefs(context: Context) {
 
     // --- Sygnał końca stopera ---
     var chime: String
-        get() = sp.getString("chime", "CLASSIC") ?: "CLASSIC"
+        get() = sp.getString("chime", "CHIP") ?: "CHIP"
         set(v) = sp.edit().putString("chime", v).apply()
 
     // --- Ciekawostki o wykonawcach i autorach ---

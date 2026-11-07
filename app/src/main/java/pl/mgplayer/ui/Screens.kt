@@ -24,6 +24,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -528,7 +530,6 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Stoper muzyczny", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Chip("♪ odsłuchaj") { vm.previewEndSignal() }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -547,6 +548,7 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
                     }
                 }
             }
+            ChimePicker(selected = vm.chime, onSelect = { vm.selectChime(it) })
             Text(
                 when {
                     s.stopwatchDone -> "Czas minął! Muzyka ucichła."
@@ -556,15 +558,6 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
                 },
                 color = if (s.stopwatchDone) Pal.Accent else Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
             )
-            Text("Sygnał na koniec", color = Pal.Muted, fontSize = 12.sp)
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Chime.entries.forEach { c ->
-                    Chip(c.label, selected = c == vm.chime) { vm.selectChime(c) }
-                }
-            }
             if (s.stopwatchRemainingMs == null) {
                 Box(
                     Modifier
@@ -585,6 +578,48 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
             }
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Subtelne rozwijane menu sygnału pod czasem stopera: 1–4, wybór od razu odtwarza próbkę. */
+@Composable
+private fun ChimePicker(selected: Chime, onSelect: (Chime) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val number = Chime.entries.indexOf(selected) + 1
+    Box {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { open = true }
+                .padding(vertical = 8.dp, horizontal = 4.dp)
+                .semantics { contentDescription = "Sygnał końca: ${selected.label}. Dotknij, aby zmienić." },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("♪ sygnał $number · ${selected.label}", color = Pal.Muted, fontSize = 12.sp, fontFamily = Mono)
+            Text(if (open) "▴" else "▾", color = Pal.Muted, fontSize = 12.sp)
+        }
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = Pal.Surface2,
+        ) {
+            Chime.entries.forEachIndexed { i, c ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "${i + 1}  ${c.label}",
+                            color = if (c == selected) Pal.Accent else Pal.Text,
+                            fontFamily = Mono, fontSize = 14.sp,
+                        )
+                    },
+                    onClick = {
+                        onSelect(c) // wybiera i od razu odtwarza próbkę
+                        open = false
+                    },
+                )
+            }
+        }
     }
 }
 
