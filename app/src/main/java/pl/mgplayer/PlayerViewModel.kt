@@ -3,6 +3,8 @@ package pl.mgplayer
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -34,6 +36,13 @@ import pl.mgplayer.data.toMediaItem
 import java.time.LocalDate
 
 enum class Kind { MUSIC, BOOK, RADIO }
+
+/** Co robi obrót pierścienia na ekranie „Teraz gra”. */
+enum class RingMode(val label: String, val stepDegrees: Float, val hint: String) {
+    SEEK("Przewijanie", 15f, "kręć: ±10 s"),
+    TRACKS("Utwory", 60f, "kręć: następny / poprzedni"),
+    VOLUME("Głośność", 20f, "kręć: głośniej / ciszej"),
+}
 
 data class NowPlaying(
     val title: String = "",
@@ -68,6 +77,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var libraryLoaded by mutableStateOf(false); private set
     var nowPlaying by mutableStateOf(NowPlaying()); private set
     var sessions by mutableStateOf(SessionsUi()); private set
+    var ringMode by mutableStateOf(RingMode.SEEK)
 
     var radioResults by mutableStateOf<List<Station>>(emptyList()); private set
     var radioFavorites by mutableStateOf<List<Station>>(emptyList()); private set
@@ -204,6 +214,25 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         if (currentKind == Kind.RADIO) return
         val dur = c.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
         c.seekTo((c.currentPosition + deltaMs).coerceIn(0L, dur))
+    }
+
+    /** Jeden krok pierścienia, zależnie od wybranego trybu. */
+    fun ringStep(d: Int) {
+        val mode = if (currentKind == Kind.RADIO && ringMode == RingMode.SEEK) RingMode.VOLUME else ringMode
+        when (mode) {
+            RingMode.SEEK -> seekBy(d * 10_000L)
+            RingMode.TRACKS -> if (d > 0) controller?.seekToNextMediaItem() else controller?.seekToPreviousMediaItem()
+            RingMode.VOLUME -> adjustVolume(d)
+        }
+    }
+
+    fun adjustVolume(d: Int) {
+        val am = getApplication<Application>().getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        am.adjustStreamVolume(
+            AudioManager.STREAM_MUSIC,
+            if (d > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+            AudioManager.FLAG_SHOW_UI,
+        )
     }
 
     fun setSpeed(speed: Float) {
@@ -369,6 +398,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 swRemaining = null
                 swDone = true
                 vibrate()
+                playEndSignal()
             }
         }
 
@@ -384,6 +414,27 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             stopwatchDone = swDone,
             stopwatchInfo = if (swRemaining == null && !swDone) null else sessions.stopwatchInfo,
         )
+    }
+
+    /**
+     * Sygnał końca stopera: 3 krótkie piknięcia na kanale alarmu,
+     * więc słychać je nawet przy ściszonej muzyce.
+     */
+    private fun playEndSignal() {
+        viewModelScope.launch {
+            var tone: ToneGenerator? = null
+            try {
+                tone = ToneGenerator(AudioManager.STREAM_ALARM, 90)
+                repeat(3) {
+                    tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 350)
+                    delay(650)
+                }
+                delay(400)
+            } catch (e: Exception) {
+            } finally {
+                tone?.release()
+            }
+        }
     }
 
     private fun vibrate() {

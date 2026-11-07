@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -47,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pl.mgplayer.Kind
 import pl.mgplayer.PlayerViewModel
+import pl.mgplayer.RingMode
 import pl.mgplayer.fmt
 
 // ================================================================== Słuchaj (menu główne)
@@ -70,6 +76,7 @@ fun HomeScreen(
         ListRow("Sesje", "${s.todayMs / 60_000}/${s.goalMinutes} min"),
     )
     KnobListScreen(
+        onLongOk = { vm.togglePlay() },
         title = "MG PLAYER",
         smallTitle = true,
         rows = rows,
@@ -130,6 +137,7 @@ private fun MiniRing(progress: Float) {
 fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) {
     val tracks = vm.tracks
     KnobListScreen(
+        onLongOk = { vm.togglePlay() },
         title = "Muzyka",
         rows = tracks.map { ListRow(it.title, fmt(it.durationMs)) },
         onBack = onBack,
@@ -148,6 +156,7 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
 fun BooksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) {
     val books = vm.books
     KnobListScreen(
+        onLongOk = { vm.togglePlay() },
         title = "Audiobooki",
         rows = books.map { ListRow(it.title, "${(vm.bookProgress(it) * 100).toInt()}%") },
         onBack = onBack,
@@ -180,6 +189,7 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
     }
 
     KnobListScreen(
+        onLongOk = { vm.togglePlay() },
         title = "Radio",
         rows = rows,
         onBack = onBack,
@@ -278,11 +288,12 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             return@Column
         }
 
-        // Pierścień postępu = pokrętło: kręcenie przewija o 10 s
+        // Pierścień postępu = pokrętło. Tryb wybierasz pod spodem.
+        val mode = if (isRadio && vm.ringMode == RingMode.SEEK) RingMode.VOLUME else vm.ringMode
         RotaryKnob(
-            Modifier.size(300.dp),
-            stepDegrees = 15f,
-            onStep = { d -> vm.seekBy(d * 10_000L) },
+            Modifier.size(290.dp),
+            stepDegrees = mode.stepDegrees,
+            onStep = { d -> vm.ringStep(d) },
         ) { _ ->
             val frac = if (np.durationMs > 0) np.positionMs.toFloat() / np.durationMs else 0f
             Canvas(Modifier.fillMaxSize()) {
@@ -298,10 +309,34 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
                 }
                 drawCircle(Pal.Surface, radius = size.minDimension / 2f - 40.dp.toPx())
             }
-            Text(
-                np.title.take(1).uppercase(),
-                color = Pal.Accent, fontSize = 88.sp, fontWeight = FontWeight.Bold,
-            )
+            // Środek: dotknij = pauza/odtwarzanie, 2× = następny, przytrzymaj = poprzedni
+            Box(
+                Modifier
+                    .size(170.dp)
+                    .clip(CircleShape)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { vm.togglePlay() },
+                            onDoubleTap = { vm.next() },
+                            onLongPress = { vm.previous() },
+                        )
+                    }
+                    .semantics { contentDescription = if (np.isPlaying) "Pauza" else "Odtwórz" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, 56.dp)
+                    Text("2× dalej · przytrzymaj wstecz", color = Pal.Muted, fontSize = 10.sp)
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RingMode.entries.forEach { m ->
+                if (!(isRadio && m != RingMode.VOLUME)) {
+                    Chip(m.label, selected = m == mode) { vm.ringMode = m }
+                }
+            }
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -311,7 +346,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
                 if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
                 color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
             )
-            if (!isRadio) Text("kręć pierścieniem: ±10 s", color = Pal.Muted, fontSize = 11.sp)
+            Text(mode.hint, color = Pal.Muted, fontSize = 11.sp)
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {

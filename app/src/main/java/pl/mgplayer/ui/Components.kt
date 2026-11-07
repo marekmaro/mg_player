@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -252,7 +253,9 @@ fun DrawScope.drawTicks(count: Int, every: Int, minor: Color = Pal.Tick, major: 
 }
 
 @Composable
-fun MenuKnob(onStep: (Int) -> Unit, onOk: () -> Unit, size: Dp = 210.dp) {
+fun MenuKnob(onStep: (Int) -> Unit, onOk: () -> Unit, onLongOk: () -> Unit = {}, size: Dp = 210.dp) {
+    val ok by rememberUpdatedState(onOk)
+    val longOk by rememberUpdatedState(onLongOk)
     RotaryKnob(Modifier.size(size), onStep = onStep) { rot ->
         Canvas(Modifier.fillMaxSize()) {
             drawTicks(48, 6)
@@ -273,8 +276,9 @@ fun MenuKnob(onStep: (Int) -> Unit, onOk: () -> Unit, size: Dp = 210.dp) {
                 .clip(CircleShape)
                 .background(Pal.Bg)
                 .border(1.dp, Pal.Tick, CircleShape)
-                .clickable(onClick = onOk)
-                .semantics { contentDescription = "Wybierz" },
+                // dotknięcie = wybierz, przytrzymanie = pauza / odtwarzanie
+                .pointerInput(Unit) { detectTapGestures(onTap = { ok() }, onLongPress = { longOk() }) }
+                .semantics { contentDescription = "Wybierz. Przytrzymaj, aby wstrzymać lub wznowić" },
             contentAlignment = Alignment.Center,
         ) {
             Text("OK", color = Pal.Text, fontFamily = Mono, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)
@@ -303,6 +307,7 @@ fun KnobListScreen(
     onOpen: (Int) -> Unit,
     emptyText: String = "",
     smallTitle: Boolean = false,
+    onLongOk: () -> Unit = {},
     header: @Composable ColumnScope.() -> Unit = {},
 ) {
     var sel by remember(rows.size) { mutableIntStateOf(0) }
@@ -351,7 +356,7 @@ fun KnobListScreen(
             }
         }
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            MenuKnob(onStep = { move(it) }, onOk = { if (rows.isNotEmpty()) onOpen(sel) })
+            MenuKnob(onStep = { move(it) }, onOk = { if (rows.isNotEmpty()) onOpen(sel) }, onLongOk = onLongOk)
         }
     }
 }

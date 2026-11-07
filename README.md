@@ -8,11 +8,12 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
 - **Audiobooki**: jeden folder lub album to jedna książka. Aplikacja pamięta rozdział i pozycję każdej książki, a po wznowieniu cofa o 5 s. Prędkość 0.8–2×, przyciski ±30 s.
 - **Radio**: wyszukiwarka tysięcy stacji (radio-browser.info), na start popularne polskie stacje. Ulubione (★) i dodawanie własnego linku do strumienia.
-- **Teraz gra**: pierścień postępu działa jak pokrętło, obrót przewija o ±10 s.
+- **Teraz gra**: pierścień działa jak pokrętło, w trzech trybach do wyboru: **Przewijanie** (±10 s), **Utwory** (następny/poprzedni) i **Głośność**. Środek pierścienia: dotknięcie = pauza/odtwarzanie, 2× = następny, przytrzymanie = poprzedni.
+- Na każdej liście przytrzymanie „OK” wstrzymuje lub wznawia odtwarzanie, bez wychodzenia z listy.
 - **Sesje**:
   - **Sen**: 15/30/60 min albo „po rozdziale”, z płynnym ściszaniem
   - **Wyzwanie**: X minut audiobooka dziennie, licznik dni z rzędu
-  - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął.
+  - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec 3 sygnały dźwiękowe (kanał alarmu, słychać je nawet przy ściszonej muzyce) i wibracja.
 - Odtwarzanie w tle, powiadomienie z kontrolkami, ekran blokady, słuchawki Bluetooth (Media3).
 
 Audiobooki są rozpoznawane po folderze, którego ścieżka zawiera np. `Audiobooks`, `Audiobooki`, `Książki`, albo po znaczniku audiobooka w pliku.
