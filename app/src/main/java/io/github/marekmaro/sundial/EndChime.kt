@@ -131,7 +131,7 @@ private fun voice(timbre: Timbre, f: Double, t: Double, k: Int, n: Int, last: Bo
             // prawie prostokąt (nieparzyste harmoniczne), płaska obwiednia jak w konsoli
             body = sin(w) + sin(3 * w) / 3 + sin(5 * w) / 5 + sin(7 * w) / 7
             attack = (k / (RATE * 0.002)).coerceAtMost(1.0)
-            env = if (last) exp(-t * 2.5) else 1.0
+            env = if (last) exp(-t * 4.5) else 1.0
         }
         Timbre.SOFT -> {
             body = sin(w) + 0.2 * sin(2 * w) * exp(-t * 4)

@@ -74,6 +74,8 @@ class LogicTest {
             // koniec sygnału wygaszony (bez trzasku)
             val tail = pcm.takeLast(200).maxOf { abs(it.toInt()) }
             assertTrue("${c.name}: tail $tail", tail < 3_000)
+            val end = pcm.takeLast(20).maxOf { abs(it.toInt()) }
+            assertTrue("${c.name}: end $end", end < 1_000)
         }
     }
 }
