@@ -49,6 +49,17 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Ciekawostki o wykonawcach i autorach ---
+    var factsEnabled: Boolean
+        get() = sp.getBoolean("facts_on", true)
+        set(v) = sp.edit().putBoolean("facts_on", v).apply()
+
+    fun cachedFacts(key: String): Facts? = sp.getString("facts_$key", null)?.let { Facts.fromJson(it) }
+
+    fun cacheFacts(key: String, facts: Facts) {
+        sp.edit().putString("facts_$key", facts.toJson()).apply()
+    }
+
     // --- Radio: ulubione stacje ---
     fun favorites(): List<Station> {
         val arr = JSONArray(sp.getString("radio_fav", "[]"))

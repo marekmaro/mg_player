@@ -22,11 +22,14 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.mgplayer.data.Book
+import pl.mgplayer.data.Facts
+import pl.mgplayer.data.FactsRepository
 import pl.mgplayer.data.MediaRepository
 import pl.mgplayer.data.Prefs
 import pl.mgplayer.data.RadioRepository
@@ -78,6 +81,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var nowPlaying by mutableStateOf(NowPlaying()); private set
     var sessions by mutableStateOf(SessionsUi()); private set
     var ringMode by mutableStateOf(RingMode.SEEK)
+
+    var facts by mutableStateOf<Facts?>(null); private set
+    var factsEnabled by mutableStateOf(prefs.factsEnabled); private set
+    private var factsKey: String? = null
+    private var factsJob: Job? = null
+    private val factsMisses = mutableSetOf<String>()
 
     var radioResults by mutableStateOf<List<Station>>(emptyList()); private set
     var radioFavorites by mutableStateOf<List<Station>>(emptyList()); private set
@@ -335,6 +344,53 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         return true
     }
 
+    // ---------------------------------------------------------------- Ciekawostki
+
+    fun setFactsOn(on: Boolean) {
+        prefs.factsEnabled = on
+        factsEnabled = on
+        factsKey = null
+        factsJob?.cancel()
+        facts = null
+        if (on) updateFacts(nowPlaying)
+    }
+
+    /** Wywoływane co tick: gdy zmienił się wykonawca/autor, szukamy ciekawostek. */
+    private fun updateFacts(np: NowPlaying) {
+        if (!factsEnabled) return
+        val kind = np.kind
+        val isBook = kind == Kind.BOOK
+        val name = if (kind == Kind.MUSIC || isBook) FactsRepository.primaryName(np.subtitle) else ""
+        val key = if (name.isBlank() || name == "Nieznany wykonawca") "" else "${if (isBook) "b" else "m"}:${name.lowercase()}"
+        if (key == factsKey) return
+
+        factsKey = key
+        factsJob?.cancel()
+        facts = null
+        if (key.isEmpty() || key in factsMisses) return
+
+        prefs.cachedFacts(key)?.let {
+            facts = it
+            return
+        }
+        factsJob = viewModelScope.launch {
+            try {
+                val found = FactsRepository.find(name, isBook)
+                if (factsKey != key) return@launch
+                if (found != null) {
+                    facts = found
+                    prefs.cacheFacts(key, found)
+                } else {
+                    factsMisses += key // nie znaleziono – nie pytamy ponownie w tej sesji
+                }
+            } catch (e: Exception) {
+                // brak internetu: spróbuj ponownie za 30 s (jeśli wciąż gra ten sam wykonawca)
+                delay(30_000)
+                if (factsKey == key) factsKey = null
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- Zegar
 
     private fun startTicker() {
@@ -366,6 +422,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 kind = if (item == null) null else (currentKind ?: Kind.MUSIC),
                 speed = c.playbackParameters.speed,
             )
+
+            updateFacts(nowPlaying)
 
             // Audiobook: zapisuj pozycję i licz minuty do wyzwania
             if (c.isPlaying && currentKind == Kind.BOOK) {

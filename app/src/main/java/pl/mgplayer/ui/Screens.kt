@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
@@ -54,6 +55,8 @@ import pl.mgplayer.Kind
 import pl.mgplayer.PlayerViewModel
 import pl.mgplayer.RingMode
 import pl.mgplayer.fmt
+import pl.mgplayer.data.Facts
+import androidx.compose.runtime.mutableIntStateOf
 
 // ================================================================== Słuchaj (menu główne)
 
@@ -268,6 +271,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             .fillMaxSize()
             .background(Pal.Bg)
             .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -282,9 +286,8 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
         )
 
         if (np.kind == null) {
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(200.dp))
             Text("Nic teraz nie gra.", color = Pal.Muted, fontSize = 16.sp)
-            Spacer(Modifier.weight(1f))
             return@Column
         }
 
@@ -326,7 +329,13 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, 56.dp)
-                    Text("2× dalej · przytrzymaj wstecz", color = Pal.Muted, fontSize = 10.sp)
+                    // W miejscu okładki: krótki opis wykonawcy / autora
+                    Text(
+                        vm.facts?.headline?.takeIf { it.isNotBlank() } ?: "2× dalej · przytrzymaj wstecz",
+                        color = Pal.Muted, fontSize = 11.sp, lineHeight = 14.sp,
+                        textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
             }
         }
@@ -349,7 +358,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             Text(mode.hint, color = Pal.Muted, fontSize = 11.sp)
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (isBook) 10.dp else 20.dp)) {
             if (isBook) {
                 Chip("−30") { vm.seekBy(-30_000) }
             }
@@ -374,7 +383,13 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        if (!isRadio) {
+            FactsCard(
+                facts = vm.facts,
+                enabled = vm.factsEnabled,
+                onToggle = { vm.setFactsOn(!vm.factsEnabled) },
+            )
+        }
 
         val sleepText = when {
             s.sleepRemainingMs != null -> "Sen ${fmt(s.sleepRemainingMs)}"
@@ -384,6 +399,59 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
         }
         val active = s.sleepRemainingMs != null || s.sleepAfterItem || s.stopwatchRemainingMs != null
         Chip(sleepText, selected = active, modifier = Modifier.fillMaxWidth(), onClick = onSessions)
+    }
+}
+
+// ================================================================== Ciekawostki
+
+@Composable
+private fun FactsCard(facts: Facts?, enabled: Boolean, onToggle: () -> Unit) {
+    if (!enabled) {
+        Chip("ⓘ Pokaż ciekawostki o wykonawcy", modifier = Modifier.fillMaxWidth(), onClick = onToggle)
+        return
+    }
+    if (facts == null) return
+
+    val uri = LocalUriHandler.current
+    var index by remember(facts.pageUrl) { mutableIntStateOf(0) }
+    val count = facts.sentences.size
+
+    Card(
+        Modifier
+            .clickable { index = (index + 1) % count }
+            .semantics { contentDescription = "Ciekawostka. Dotknij, aby zobaczyć następną." },
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "CIEKAWOSTKA · ${index + 1}/$count",
+                color = Pal.Accent, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.5.sp, modifier = Modifier.weight(1f),
+            )
+            Text(
+                "Ukryj",
+                color = Pal.Muted, fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+            )
+        }
+        Text(facts.name, color = Pal.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(facts.sentences[index.coerceIn(0, count - 1)], color = Pal.Text, fontSize = 14.sp, lineHeight = 21.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (count > 1) "dotknij, by czytać dalej" else "",
+                color = Pal.Muted, fontSize = 11.sp, modifier = Modifier.weight(1f),
+            )
+            Text(
+                "Wikipedia · CC BY-SA ›",
+                color = Pal.Muted, fontSize = 11.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { try { uri.openUri(facts.pageUrl) } catch (e: Exception) {} }
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+            )
+        }
     }
 }
 

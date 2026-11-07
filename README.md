@@ -14,6 +14,7 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
   - **Sen**: 15/30/60 min albo „po rozdziale”, z płynnym ściszaniem
   - **Wyzwanie**: X minut audiobooka dziennie, licznik dni z rzędu
   - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec 3 sygnały dźwiękowe (kanał alarmu, słychać je nawet przy ściszonej muzyce) i wibracja.
+- **Ciekawostki zamiast okładki**: krótki opis wykonawcy (albo autora audiobooka) w środku pierścienia i karta z faktami z Wikipedii. Dotknięcie pokazuje następny fakt. Najpierw szukam w polskiej Wikipedii, potem w angielskiej. Wyniki są zapisywane w telefonie. Do Wikipedii wysyłana jest tylko nazwa wykonawcy. Można to wyłączyć przyciskiem „Ukryj”.
 - Odtwarzanie w tle, powiadomienie z kontrolkami, ekran blokady, słuchawki Bluetooth (Media3).
 
 Audiobooki są rozpoznawane po folderze, którego ścieżka zawiera np. `Audiobooks`, `Audiobooki`, `Książki`, albo po znaczniku audiobooka w pliku.
