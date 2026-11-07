@@ -80,6 +80,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var nowPlaying by mutableStateOf(NowPlaying()); private set
     var sessions by mutableStateOf(SessionsUi()); private set
     var ringMode by mutableStateOf(RingMode.SEEK)
+    var chime by mutableStateOf(Chime.entries.firstOrNull { it.name == prefs.chime } ?: Chime.CLASSIC); private set
 
     var facts by mutableStateOf<Facts?>(null); private set
     var factsEnabled by mutableStateOf(prefs.factsEnabled); private set
@@ -473,13 +474,14 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /** Sygnał końca stopera: melodyjne „pik-pik” (zob. [EndChime]). */
+    /** Sygnał końca stopera: wybrana melodia (zob. [Chime]). */
     private fun playEndSignal() {
         viewModelScope.launch {
             var track: android.media.AudioTrack? = null
             try {
-                track = EndChime.play()
-                delay(EndChime.durationMs + 300)
+                val c = chime
+                track = c.play()
+                delay(c.durationMs + 300)
             } catch (e: Exception) {
             } finally {
                 try { track?.release() } catch (e: Exception) {}
@@ -489,6 +491,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Odsłuchanie sygnału z ekranu Sesje. */
     fun previewEndSignal() = playEndSignal()
+
+    fun selectChime(c: Chime) {
+        chime = c
+        prefs.chime = c.name
+        playEndSignal()
+    }
 
     private fun vibrate() {
         try {

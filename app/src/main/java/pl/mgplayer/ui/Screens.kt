@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import pl.mgplayer.Chime
 import pl.mgplayer.Kind
 import pl.mgplayer.PlayerViewModel
 import pl.mgplayer.RingMode
@@ -526,7 +528,7 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Stoper muzyczny", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Chip("♪ sygnał") { vm.previewEndSignal() }
+                Chip("♪ odsłuchaj") { vm.previewEndSignal() }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -554,6 +556,15 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
                 },
                 color = if (s.stopwatchDone) Pal.Accent else Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
             )
+            Text("Sygnał na koniec", color = Pal.Muted, fontSize = 12.sp)
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Chime.entries.forEach { c ->
+                    Chip(c.label, selected = c == vm.chime) { vm.selectChime(c) }
+                }
+            }
             if (s.stopwatchRemainingMs == null) {
                 Box(
                     Modifier

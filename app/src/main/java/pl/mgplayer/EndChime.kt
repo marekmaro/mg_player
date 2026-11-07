@@ -8,59 +8,62 @@ import kotlin.math.exp
 import kotlin.math.sin
 
 /**
- * Sygnał końca stopera: klasyczne „pik-pik” jak w zegarku elektronicznym,
- * ale ułożone w melodię (akord C-dur: mi – sol – do). Dwa razy krótki motyw,
- * na końcu wznosząca kodka z dłużej wybrzmiewającym, najwyższym dźwiękiem.
- *
- * Dźwięk jest generowany w kodzie (bez plików audio) i grany kanałem
- * alarmu, więc słychać go nawet przy ściszonej muzyce.
+ * Sygnały końca stopera. Generowane w kodzie (bez plików audio) i grane
+ * kanałem alarmu, więc słychać je nawet przy ściszonej muzyce.
  */
-object EndChime {
+enum class Timbre { DIGITAL, BELL, CHIP, SOFT }
 
-    private const val RATE = 44_100
+/** Jedna nuta: częstotliwość, start i długość (z wybrzmieniem) w ms. */
+data class Note(val freq: Double, val startMs: Int, val lenMs: Int)
 
-    private const val E6 = 1318.51
-    private const val G6 = 1567.98
-    private const val C7 = 2093.00
-    private const val E7 = 2637.02
-    private const val REST = 0.0
+enum class Chime(val label: String, val timbre: Timbre, val notes: List<Note>) {
 
-    /** (częstotliwość w Hz, czas w ms). 0 Hz = cisza. */
-    private val pattern = listOf(
-        E6 to 90, REST to 50, G6 to 90, REST to 50, C7 to 170, REST to 280,
-        E6 to 90, REST to 50, G6 to 90, REST to 50, C7 to 170, REST to 280,
-        G6 to 80, REST to 40, C7 to 80, REST to 40, E7 to 520,
-    )
+    /** Klasyczne „pik-pik” z zegarka, ułożone w akord: mi–sol–DO ×2, potem sol–do–MI. */
+    CLASSIC("Klasyczny", Timbre.DIGITAL, seq(
+        E6 to 90, R to 50, G6 to 90, R to 50, C7 to 170, R to 280,
+        E6 to 90, R to 50, G6 to 90, R to 50, C7 to 170, R to 280,
+        G6 to 80, R to 40, C7 to 80, R to 40, E7 to 520,
+    )),
 
-    val durationMs: Long = pattern.sumOf { it.second }.toLong()
+    /** Wznoszący się arpeggio jak dzwonki rurowe; dźwięki nakładają się i wybrzmiewają. */
+    BELL("Dzwonek", Timbre.BELL, listOf(
+        Note(C6, 0, 1100), Note(E6, 180, 1100), Note(G6, 360, 1100), Note(C7, 540, 1800),
+    )),
+
+    /** Mała fanfara w stylu starych konsol 8-bit. */
+    CHIP("Fanfara 8-bit", Timbre.CHIP, seq(
+        G5 to 90, R to 20, C6 to 90, R to 20, E6 to 90, R to 20, G6 to 180, R to 90,
+        E6 to 90, R to 20, G6 to 480,
+    )),
+
+    /** Spokojne „ding-dong”, jak sygnał na dworcu. Dobre po sesji nauki. */
+    SOFT("Delikatny", Timbre.SOFT, listOf(
+        Note(E6, 0, 1300), Note(C6, 650, 1800),
+    ));
+
+    val durationMs: Long get() = notes.maxOf { it.startMs + it.lenMs }.toLong()
 
     fun render(): ShortArray {
-        val total = pattern.sumOf { it.second } * RATE / 1000
-        val out = ShortArray(total)
-        var pos = 0
-        pattern.forEachIndexed { i, (freq, ms) ->
-            val n = ms * RATE / 1000
-            val last = i == pattern.lastIndex
+        val total = (durationMs * RATE / 1000).toInt()
+        val mix = DoubleArray(total)
+        notes.forEachIndexed { i, note ->
+            if (note.freq <= 0.0) return@forEachIndexed
+            val start = note.startMs * RATE / 1000
+            val n = note.lenMs * RATE / 1000
+            val last = i == notes.lastIndex
             for (k in 0 until n) {
-                if (freq > 0.0) {
-                    val t = k.toDouble() / RATE
-                    // miękki „cyfrowy” ton: sinus + nieparzyste harmoniczne (zaokrąglony prostokąt)
-                    val w = 2 * PI * freq * t
-                    val tone = sin(w) + 0.30 * sin(3 * w) / 3 + 0.15 * sin(5 * w) / 5
-                    // szybki atak, wybrzmienie jak w małym dzwonku
-                    val attack = (k / (RATE * 0.004)).coerceAtMost(1.0)
-                    val decay = exp(-t * if (last) 5.0 else 14.0)
-                    val release = ((n - k) / (RATE * 0.006)).coerceAtMost(1.0)
-                    val v = 0.55 * tone * attack * decay * release
-                    out[pos + k] = (v * Short.MAX_VALUE).toInt().coerceIn(-32767, 32767).toShort()
-                }
+                val idx = start + k
+                if (idx >= total) break
+                val t = k.toDouble() / RATE
+                mix[idx] += voice(timbre, note.freq, t, k, n, last)
             }
-            pos += n
         }
-        return out
+        // normalizacja do bezpiecznej głośności
+        val peak = mix.maxOf { kotlin.math.abs(it) }.coerceAtLeast(1e-9)
+        val gain = 0.8 / peak
+        return ShortArray(total) { (mix[it] * gain * Short.MAX_VALUE).toInt().coerceIn(-32767, 32767).toShort() }
     }
 
-    /** Odtwarza sygnał. Zwraca odtwarzacz, który trzeba zwolnić po [durationMs]. */
     fun play(): AudioTrack {
         val pcm = render()
         val track = AudioTrack.Builder()
@@ -84,4 +87,58 @@ object EndChime {
         track.play()
         return track
     }
+}
+
+private const val RATE = 44_100
+
+private const val R = 0.0
+private const val G5 = 783.99
+private const val C6 = 1046.50
+private const val E6 = 1318.51
+private const val G6 = 1567.98
+private const val C7 = 2093.00
+private const val E7 = 2637.02
+
+/** Nuty jedna po drugiej: (częstotliwość, czas w ms); 0 Hz = pauza. */
+private fun seq(vararg steps: Pair<Double, Int>): List<Note> {
+    var t = 0
+    val out = mutableListOf<Note>()
+    for ((f, ms) in steps) {
+        if (f > 0.0) out += Note(f, t, ms)
+        t += ms
+    }
+    return out
+}
+
+private fun voice(timbre: Timbre, f: Double, t: Double, k: Int, n: Int, last: Boolean): Double {
+    val w = 2 * PI * f * t
+    val attack: Double
+    val body: Double
+    val env: Double
+    when (timbre) {
+        Timbre.DIGITAL -> {
+            body = sin(w) + 0.30 * sin(3 * w) / 3 + 0.15 * sin(5 * w) / 5
+            attack = (k / (RATE * 0.004)).coerceAtMost(1.0)
+            env = exp(-t * if (last) 5.0 else 14.0)
+        }
+        Timbre.BELL -> {
+            // nieharmoniczne alikwoty dają brzmienie dzwonu; wyższe gasną szybciej
+            body = sin(w) + 0.5 * sin(2.76 * w) * exp(-t * 6) + 0.25 * sin(5.40 * w) * exp(-t * 10)
+            attack = (k / (RATE * 0.002)).coerceAtMost(1.0)
+            env = exp(-t * if (last) 2.2 else 3.2)
+        }
+        Timbre.CHIP -> {
+            // prawie prostokąt (nieparzyste harmoniczne), płaska obwiednia jak w konsoli
+            body = sin(w) + sin(3 * w) / 3 + sin(5 * w) / 5 + sin(7 * w) / 7
+            attack = (k / (RATE * 0.002)).coerceAtMost(1.0)
+            env = if (last) exp(-t * 2.5) else 1.0
+        }
+        Timbre.SOFT -> {
+            body = sin(w) + 0.2 * sin(2 * w) * exp(-t * 4)
+            attack = (k / (RATE * 0.012)).coerceAtMost(1.0)
+            env = exp(-t * 2.4)
+        }
+    }
+    val release = ((n - k) / (RATE * 0.008)).coerceAtMost(1.0)
+    return body * attack * env * release
 }
