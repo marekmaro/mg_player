@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -326,14 +328,14 @@ fun KnobListScreen(
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(Pal.Bg)
-            .systemBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    // Pokrętło dopasowuje się do ekranu: na małych telefonach jest mniejsze,
+    // a w poziomie stoi obok listy.
+    val cfg = LocalConfiguration.current
+    val landscape = cfg.screenWidthDp > cfg.screenHeightDp
+    val knobSize = if (landscape) (cfg.screenHeightDp * 0.62f).coerceIn(140f, 220f).dp
+    else (cfg.screenHeightDp * 0.27f).coerceIn(150f, 210f).dp
+
+    val list: @Composable ColumnScope.() -> Unit = {
         TopBar(title, onBack, small = smallTitle)
         header()
         if (rows.isEmpty()) {
@@ -355,8 +357,31 @@ fun KnobListScreen(
                 }
             }
         }
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            MenuKnob(onStep = { move(it) }, onOk = { if (rows.isNotEmpty()) onOpen(sel) }, onLongOk = onLongOk)
+    }
+    val knob: @Composable () -> Unit = {
+        MenuKnob(
+            onStep = { move(it) },
+            onOk = { if (rows.isNotEmpty()) onOpen(sel) },
+            onLongOk = onLongOk,
+            size = knobSize,
+        )
+    }
+
+    val base = Modifier
+        .fillMaxSize()
+        .background(Pal.Bg)
+        .systemBarsPadding()
+        .padding(horizontal = 20.dp, vertical = 12.dp)
+
+    if (landscape) {
+        Row(base, horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp), content = list)
+            knob()
+        }
+    } else {
+        Column(base, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            list()
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { knob() }
         }
     }
 }

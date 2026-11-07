@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -297,8 +298,11 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
 
         // Pierścień postępu = pokrętło. Tryb wybierasz pod spodem.
         val mode = if (isRadio && vm.ringMode == RingMode.SEEK) RingMode.VOLUME else vm.ringMode
+        val cfg = LocalConfiguration.current
+        val ringSize = (minOf(cfg.screenWidthDp - 40, (cfg.screenHeightDp * 0.45f).toInt()))
+            .coerceIn(200, 290).dp
         RotaryKnob(
-            Modifier.size(290.dp),
+            Modifier.size(ringSize),
             stepDegrees = mode.stepDegrees,
             onStep = { d -> vm.ringStep(d) },
         ) { _ ->
@@ -319,7 +323,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             // Środek: dotknij = pauza/odtwarzanie, 2× = następny, przytrzymaj = poprzedni
             Box(
                 Modifier
-                    .size(170.dp)
+                    .size(ringSize * 0.58f)
                     .clip(CircleShape)
                     .pointerInput(Unit) {
                         detectTapGestures(

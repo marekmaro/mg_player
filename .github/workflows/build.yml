@@ -24,6 +24,22 @@ jobs:
           chmod +x gradlew
           ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --stacktrace
 
+      - name: Lint summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, collections, os
+          p = "app/build/reports/lint-results-debug.xml"
+          if not os.path.exists(p):
+              print("brak raportu lint"); raise SystemExit
+          issues = ET.parse(p).getroot().findall("issue")
+          print(f"LINT: {len(issues)} uwag")
+          for i in issues:
+              loc = i.find("location")
+              where = f'{loc.get("file","").split("/app/")[-1]}:{loc.get("line","")}' if loc is not None else ""
+              print(f'LINT {i.get("severity")} {i.get("id")} {where} :: {i.get("message")}')
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: sundial-debug-apk

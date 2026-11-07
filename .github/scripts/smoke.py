@@ -59,8 +59,25 @@ def find(text, exact=False, desc=False):
     return None
 
 
-def tap(text, exact=False, desc=False, required=True):
+SIZE = re.findall(r"(\d+)x(\d+)", adb("shell", "wm", "size"))
+W, H = (int(SIZE[-1][0]), int(SIZE[-1][1])) if SIZE else (1080, 1920)
+note(f"ekran: {W}x{H}  gęstość: {adb('shell', 'wm', 'density').strip()}")
+
+
+def find_scroll(text, exact=False, desc=False):
+    """Szuka napisu; jeśli go nie widać, przewija listę w górę (maks. 3 razy)."""
     pos = find(text, exact, desc)
+    tries = 0
+    while not pos and tries < 3:
+        adb("shell", "input", "swipe", str(W // 2), str(int(H * 0.50)), str(W // 2), str(int(H * 0.22)), "400")
+        time.sleep(1)
+        pos = find(text, exact, desc)
+        tries += 1
+    return pos
+
+
+def tap(text, exact=False, desc=False, required=True):
+    pos = find_scroll(text, exact, desc)
     if not pos:
         if required:
             problems.append(f"nie znaleziono: {text!r}")
@@ -73,7 +90,7 @@ def tap(text, exact=False, desc=False, required=True):
 
 
 def expect(text, step):
-    if find(text):
+    if find_scroll(text):
         note(f"OK [{step}]: widać {text!r}")
     else:
         problems.append(f"[{step}] brak napisu {text!r}")
@@ -184,6 +201,11 @@ hits, logs = crashed()
 open(f"{OUT}/logcat.txt", "w", encoding="utf-8").write(logs)
 if hits:
     problems.append("AWARIA aplikacji: " + " | ".join(hits[:5]))
+
+# zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
+import base64, glob
+for f in sorted(glob.glob(f"{OUT}/*.png")):
+    print("SHOT " + f.split("/")[-1] + " " + base64.b64encode(open(f, "rb").read()).decode())
 
 note("\n=== WYNIK ===")
 if problems:
