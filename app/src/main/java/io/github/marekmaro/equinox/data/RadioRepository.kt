@@ -22,7 +22,7 @@ object RadioRepository {
             "$BASE?name=${URLEncoder.encode(query.trim(), "UTF-8")}&$common"
         }
         val conn = URL(url).openConnection() as HttpURLConnection
-        conn.setRequestProperty("User-Agent", "Equinox/0.3")
+        conn.setRequestProperty("User-Agent", "Equinox/0.4")
         conn.connectTimeout = 10_000
         conn.readTimeout = 10_000
         try {

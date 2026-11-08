@@ -27,6 +27,13 @@ import androidx.window.layout.WindowInfoTracker
 import kotlinx.coroutines.launch
 import io.github.marekmaro.equinox.ui.LocalPosture
 import io.github.marekmaro.equinox.ui.Posture
+import io.github.marekmaro.equinox.ui.LayoutEditorScreen
+import io.github.marekmaro.equinox.ui.WelcomeIntro
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import io.github.marekmaro.equinox.ui.ThemeMode
 import io.github.marekmaro.equinox.ui.ThemeState
 import io.github.marekmaro.equinox.data.Prefs
@@ -56,12 +63,19 @@ class MainActivity : ComponentActivity() {
         ThemeState.mode = ThemeMode.entries.firstOrNull { it.name == Prefs(this).themeMode } ?: ThemeMode.AUTO
         watchFold()
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
-        if (savedInstanceState == null) vm.handleOpen(intent?.getStringExtra(EXTRA_OPEN))
+        val openExtra = intent?.getStringExtra(EXTRA_OPEN)
+        if (savedInstanceState == null) vm.handleOpen(openExtra)
+        // powitanie tylko przy zwykłym uruchomieniu (nie z widżetu/kafelka, nie po obrocie)
+        val playIntro = savedInstanceState == null && openExtra == null
         setContent {
             EquinoxTheme {
                 CompositionLocalProvider(LocalPosture provides posture.value) {
-                    PermissionRequest(onDone = { vm.loadLibrary() })
-                    App(vm)
+                    var showIntro by rememberSaveable { mutableStateOf(playIntro) }
+                    Box(Modifier.fillMaxSize()) {
+                        PermissionRequest(onDone = { vm.loadLibrary() })
+                        App(vm)
+                        if (showIntro) WelcomeIntro(onDone = { showIntro = false })
+                    }
                 }
             }
         }
@@ -94,6 +108,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         vm.visible = true
+        vm.onVisible()
     }
 
     override fun onStop() {
@@ -117,7 +132,7 @@ private fun PermissionRequest(onDone: () -> Unit) {
     }
 }
 
-enum class Screen { Home, Music, Books, Radio, Sessions, Playing }
+enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout }
 
 @Composable
 private fun App(vm: PlayerViewModel) {
@@ -159,6 +174,7 @@ private fun App(vm: PlayerViewModel) {
         Screen.Books -> BooksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Radio -> RadioScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Sessions -> SessionsScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
-        Screen.Playing -> PlayingScreen(vm, onBack = ::back, onSessions = { go(Screen.Sessions) })
+        Screen.Playing -> PlayingScreen(vm, onBack = ::back, onSessions = { go(Screen.Sessions) }, onEditLayout = { go(Screen.Layout) })
+        Screen.Layout -> LayoutEditorScreen(vm, onBack = ::back)
     }
 }

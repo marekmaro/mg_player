@@ -2,7 +2,14 @@ package io.github.marekmaro.equinox
 
 import android.app.Application
 import android.content.ComponentName
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.database.ContentObserver
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
 import android.media.AudioManager
 import android.os.SystemClock
 import androidx.compose.runtime.getValue
@@ -92,6 +99,44 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var radioError by mutableStateOf<String?>(null); private set
 
     private var playerError: String? = null
+    private var connectAttempts = 0
+    private var tickCount = 0
+    private var cachedStreak = 0
+
+    /** Czy aplikacja ma dostęp do plików audio (do pokazania przycisku „Zezwól”). */
+    var permissionGranted by mutableStateOf(hasAudioPermission()); private set
+
+    // Biblioteka odświeża się sama, gdy na telefonie pojawią się lub znikną pliki
+    private val mediaObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) = scheduleReload()
+    }
+    private var reloadJob: Job? = null
+
+    // ---------------------------------------------------------------- Klocki ekranu odtwarzania
+
+    var layout by mutableStateOf(Block.parse(prefs.playerLayout)); private set
+
+    /** Tytuły trzech następnych pozycji w kolejce (klocek „Następne”). */
+    var upNext by mutableStateOf<List<String>>(emptyList()); private set
+
+    fun toggleBlock(b: Block) {
+        if (b.required) return
+        saveLayout(if (b in layout) layout - b else layout + b)
+    }
+
+    fun moveBlock(b: Block, delta: Int) {
+        val i = layout.indexOf(b)
+        val j = i + delta
+        if (i < 0 || j !in layout.indices) return
+        saveLayout(layout.toMutableList().apply { add(j, removeAt(i)) })
+    }
+
+    fun resetLayout() = saveLayout(Block.defaultLayout)
+
+    private fun saveLayout(l: List<Block>) {
+        layout = l
+        prefs.playerLayout = Block.serialize(l)
+    }
 
     /** Prośba o przejście do ekranu (z widżetu, kafelka). Obsługuje ją nawigacja w MainActivity. */
     var navRequest by mutableStateOf<Screen?>(null)
@@ -125,6 +170,11 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         Core.chime = chime
+        try {
+            app.contentResolver.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, mediaObserver)
+        } catch (e: Exception) {
+        }
+        cachedStreak = prefs.streak()
         connect()
         radioFavorites = prefs.favorites()
         startTicker()
@@ -140,12 +190,14 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 controller = future.get().also { it.addListener(listener) }
                 tickNow()
             } catch (e: Exception) {
-                // serwis niedostępny – spróbujemy przy następnym uruchomieniu
+                // serwis chwilowo niedostępny – spróbuj ponownie (maks. 5 razy)
+                if (connectAttempts++ < 5) viewModelScope.launch { delay(1_500L * connectAttempts); connect() }
             }
         }, ContextCompat.getMainExecutor(ctx))
     }
 
     override fun onCleared() {
+        try { getApplication<Application>().contentResolver.unregisterContentObserver(mediaObserver) } catch (e: Exception) {}
         controller?.removeListener(listener)
         controllerFuture?.let { MediaController.releaseFuture(it) }
         super.onCleared()
@@ -153,7 +205,28 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- Biblioteka
 
+    private fun hasAudioPermission(): Boolean {
+        val perm = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
+        return ContextCompat.checkSelfPermission(getApplication(), perm) == PackageManager.PERMISSION_GRANTED
+    }
+
+    /** Po powrocie do aplikacji: jeśli użytkownik właśnie nadał uprawnienia, wczytaj bibliotekę. */
+    fun onVisible() {
+        val granted = hasAudioPermission()
+        if (granted && (!permissionGranted || !libraryLoaded)) loadLibrary()
+        permissionGranted = granted
+    }
+
+    private fun scheduleReload() {
+        reloadJob?.cancel()
+        reloadJob = viewModelScope.launch {
+            delay(2_000) // kopiowanie wielu plików = wiele zdarzeń; czekamy, aż się uspokoi
+            loadLibrary()
+        }
+    }
+
     fun loadLibrary() {
+        permissionGranted = hasAudioPermission()
         viewModelScope.launch {
             val all = withContext(Dispatchers.IO) { MediaRepository.load(getApplication()) }
             tracks = all.filter { !it.isBook }
@@ -445,8 +518,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 speed = c.playbackParameters.speed,
                 error = playerError,
             )
+            if (c.isPlaying) playerError = null
             updateFacts(nowPlaying)
+            upNext = if (Block.QUEUE in layout) nextTitles(c) else emptyList()
         }
+        // seria dni zmienia się rzadko – liczymy ją co ~10 s zamiast co pół sekundy
+        if (tickCount++ % 20 == 0) cachedStreak = prefs.streak()
 
         // Stoper muzyczny: ile zostało do końca ułożonej muzyki
         var swRemaining: Long? = null
@@ -462,12 +539,25 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             sleepAfterItem = Core.sleepAfterItem,
             todayMs = prefs.listened(today) + Core.pendingListenMs,
             goalMinutes = prefs.goalMinutes,
-            streak = prefs.streak(),
+            streak = cachedStreak,
             stopwatchMinutes = Core.stopwatchMinutes,
             stopwatchRemainingMs = swRemaining,
             stopwatchDone = Core.stopwatchDone,
             stopwatchInfo = Core.stopwatchInfo,
         )
+    }
+
+    private fun nextTitles(c: MediaController): List<String> {
+        val timeline = c.currentTimeline
+        if (timeline.isEmpty) return emptyList()
+        val out = mutableListOf<String>()
+        var i = c.currentMediaItemIndex
+        while (out.size < 3) {
+            i = timeline.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, c.shuffleModeEnabled)
+            if (i == C.INDEX_UNSET) break
+            out += c.getMediaItemAt(i).mediaMetadata.title?.toString().orEmpty().ifBlank { "Bez tytułu" }
+        }
+        return out
     }
 
     /** Sygnał końca stopera: wybrana melodia (zob. [Chime]). */

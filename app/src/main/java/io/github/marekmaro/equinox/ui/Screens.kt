@@ -40,6 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
@@ -145,6 +149,19 @@ private fun MiniRing(progress: Float) {
     }
 }
 
+/** Przycisk „Zezwól” w pustej liście, gdy aplikacja nie ma dostępu do plików audio. */
+@Composable
+private fun permissionAction(vm: PlayerViewModel): Pair<String, () -> Unit>? {
+    if (vm.permissionGranted) return null
+    val ctx = LocalContext.current
+    return "Zezwól na dostęp do audio" to {
+        ctx.startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+}
+
 // ================================================================== Muzyka
 
 @Composable
@@ -153,6 +170,7 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = "Muzyka",
+        emptyAction = permissionAction(vm),
         rows = tracks.map { ListRow(it.title, fmt(it.durationMs)) },
         onBack = onBack,
         onOpen = { i ->
@@ -160,7 +178,8 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
             onPlaying()
         },
         emptyText = if (!vm.libraryLoaded) "Wczytuję bibliotekę…"
-        else "Nie znalazłem muzyki.\nSkopiuj pliki MP3/FLAC na telefon\ni zezwól aplikacji na dostęp do audio.",
+        else if (!vm.permissionGranted) "Equinox potrzebuje dostępu do plików audio,\nżeby znaleźć Twoją muzykę."
+        else "Nie znalazłem muzyki.\nSkopiuj pliki MP3/FLAC na telefon.",
     )
 }
 
@@ -172,6 +191,7 @@ fun BooksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = "Audiobooki",
+        emptyAction = permissionAction(vm),
         rows = books.map { ListRow(it.title, "${(vm.bookProgress(it) * 100).toInt()}%") },
         onBack = onBack,
         onOpen = { i ->
@@ -277,7 +297,7 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
  * - składak w trybie „namiotu” (zgięty poziomo): pierścień nad zgięciem, sterowanie pod nim.
  */
 @Composable
-fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Unit) {
+fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Unit, onEditLayout: () -> Unit) {
     val np = vm.nowPlaying
     val cfg = LocalConfiguration.current
     val posture = LocalPosture.current
@@ -317,7 +337,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PlayerDetails(vm, onSessions)
+                PlayerBlocks(vm, onSessions, onEditLayout)
             }
         }
 
@@ -335,7 +355,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
                 verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
             ) {
                 Spacer(Modifier.height(8.dp))
-                PlayerDetails(vm, onSessions)
+                PlayerBlocks(vm, onSessions, onEditLayout)
             }
         }
 
@@ -347,7 +367,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             TopBar(title, onBack, small = true)
             val size = minOf(cfg.screenWidthDp - 40, (cfg.screenHeightDp * 0.45f).toInt()).coerceIn(200, 290).dp
             PlayerRing(vm, size)
-            PlayerDetails(vm, onSessions)
+            PlayerBlocks(vm, onSessions, onEditLayout)
         }
     }
 }
@@ -405,82 +425,10 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
     }
 }
 
-/** Tytuł, tryby pierścienia, przyciski, prędkość, ciekawostki i sesje. */
-@Composable
-private fun PlayerDetails(vm: PlayerViewModel, onSessions: () -> Unit) {
-    val np = vm.nowPlaying
-    val s = vm.sessions
-    val isRadio = np.kind == Kind.RADIO
-    val isBook = np.kind == Kind.BOOK
-    val mode = vm.effectiveRingMode
-
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        RingMode.entries.forEach { m ->
-            if (!(isRadio && m != RingMode.VOLUME)) {
-                Chip(m.label, modifier = Modifier.weight(1f), selected = m == mode) { vm.ringMode = m }
-            }
-        }
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(np.title, color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
-        Text(np.subtitle, color = Pal.Muted, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(
-            if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
-            color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
-        )
-        Text(mode.hint, color = Pal.Muted, fontSize = 11.sp)
-        np.error?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, textAlign = TextAlign.Center) }
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-        CircleButton("Poprzedni", { vm.previous() }, size = 52.dp) { GlyphIcon(Glyph.Prev, Pal.Text, 24.dp) }
-        CircleButton(if (np.isPlaying) "Pauza" else "Odtwórz", { vm.togglePlay() }, size = 72.dp, filled = true) {
-            GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Bg, 28.dp)
-        }
-        CircleButton("Następny", { vm.next() }, size = 52.dp) { GlyphIcon(Glyph.Next, Pal.Text, 24.dp) }
-    }
-
-    if (isBook) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("−30 s", modifier = Modifier.weight(1f)) { vm.seekBy(-30_000) }
-            Chip("+30 s", modifier = Modifier.weight(1f)) { vm.seekBy(30_000) }
-        }
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            listOf(0.8f, 1f, 1.25f, 1.5f, 2f).forEach { v ->
-                Chip(
-                    text = "${if (v % 1f == 0f) v.toInt().toString() else v.toString()}×",
-                    selected = kotlin.math.abs(np.speed - v) < 0.01f,
-                ) { vm.setSpeed(v) }
-            }
-        }
-    }
-
-    if (!isRadio) {
-        FactsCard(
-            facts = vm.facts,
-            enabled = vm.factsEnabled,
-            onToggle = { vm.setFactsOn(!vm.factsEnabled) },
-        )
-    }
-
-    val sleepText = when {
-        s.sleepRemainingMs != null -> "Sen ${fmt(s.sleepRemainingMs)}"
-        s.sleepAfterItem -> "Sen: po rozdziale"
-        s.stopwatchRemainingMs != null -> "Stoper ${fmt(s.stopwatchRemainingMs)}"
-        else -> "Sesje: sen · stoper"
-    }
-    val active = s.sleepRemainingMs != null || s.sleepAfterItem || s.stopwatchRemainingMs != null
-    Chip(sleepText, modifier = Modifier.fillMaxWidth(), selected = active, onClick = onSessions)
-}
-
 // ================================================================== Ciekawostki
 
 @Composable
-private fun FactsCard(facts: Facts?, enabled: Boolean, onToggle: () -> Unit) {
+internal fun FactsCard(facts: Facts?, enabled: Boolean, onToggle: () -> Unit) {
     if (!enabled) {
         Chip("ⓘ Pokaż ciekawostki o wykonawcy", modifier = Modifier.fillMaxWidth(), onClick = onToggle)
         return

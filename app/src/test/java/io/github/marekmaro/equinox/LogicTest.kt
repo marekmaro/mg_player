@@ -78,4 +78,17 @@ class LogicTest {
             assertTrue("${c.name}: end $end", end < 1_000)
         }
     }
+
+    @Test
+    fun blocks_layoutRoundTripAndRepair() {
+        assertEquals(Block.defaultLayout, Block.parse(null))
+        assertEquals(Block.defaultLayout, Block.parse(""))
+        val custom = listOf(Block.CLOCK, Block.TITLE, Block.QUEUE)
+        assertEquals(custom, Block.parse(Block.serialize(custom)))
+        // nieznane nazwy (np. ze starszej wersji) są pomijane, wymagany tytuł zawsze wraca
+        val repaired = Block.parse("CLOCK,NIEISTNIEJACY,QUEUE")
+        assertTrue(Block.TITLE in repaired)
+        assertTrue(Block.CLOCK in repaired && Block.QUEUE in repaired)
+        assertEquals(repaired.size, repaired.toSet().size)
+    }
 }

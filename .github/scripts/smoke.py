@@ -156,6 +156,17 @@ shot("04-teraz-gra")
 expect("TERAZ GRA", "teraz gra")
 tap("Utwory", exact=True, required=False)
 shot("05-tryb-utwory")
+# Klocki: włącz „Następne” i „Zegar” w edytorze układu
+if tap("Ułóż ekran", required=False):
+    shot("05b-edytor-klockow")
+    tap("Włącz Następne", desc=True, required=False)
+    tap("Włącz Zegar", desc=True, required=False)
+    shot("05c-edytor-po-zmianie")
+    back()
+    time.sleep(1)
+    shot("05d-teraz-gra-z-klockami")
+    expect("NASTĘPNE", "klocek Następne na ekranie")
+
 back()
 back()
 

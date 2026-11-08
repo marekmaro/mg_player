@@ -368,6 +368,7 @@ fun KnobListScreen(
     emptyText: String = "",
     smallTitle: Boolean = false,
     topTrailing: (@Composable () -> Unit)? = null,
+    emptyAction: Pair<String, () -> Unit>? = null,
     onLongOk: () -> Unit = {},
     header: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -404,7 +405,10 @@ fun KnobListScreen(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(emptyText, color = Pal.Muted, textAlign = TextAlign.Center, fontSize = 15.sp, lineHeight = 22.sp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(emptyText, color = Pal.Muted, textAlign = TextAlign.Center, fontSize = 15.sp, lineHeight = 22.sp)
+                    emptyAction?.let { (label, action) -> Chip(label, selected = true, onClick = action) }
+                }
             }
         } else {
             LazyColumn(state = listState, modifier = Modifier.weight(1f)) {

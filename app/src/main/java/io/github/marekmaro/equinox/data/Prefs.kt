@@ -49,6 +49,11 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Klocki ekranu odtwarzania (kolejność, przecinki) ---
+    var playerLayout: String?
+        get() = sp.getString("player_layout", null)
+        set(v) = sp.edit().putString("player_layout", v).apply()
+
     // --- Motyw: AUTO / DAY / NIGHT ---
     var themeMode: String
         get() = sp.getString("theme_mode", "AUTO") ?: "AUTO"

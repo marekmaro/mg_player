@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.marekmaro.equinox"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     // Klucz do podpisu wersji sklepowej podajemy przez zmienne środowiskowe

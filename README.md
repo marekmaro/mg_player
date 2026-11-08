@@ -4,7 +4,7 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**, które w trybie **Auto** przełączają się same o 7:00 i 19:00.
 
-## Co już działa (wersja 0.3)
+## Co już działa (wersja 0.4)
 
 - **Pokrętło**: każda lista w aplikacji przewija się obrotem kciuka po okręgu, z lekką wibracją przy każdym kroku. Środek „OK” wybiera pozycję.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
@@ -17,6 +17,9 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
   - **Wyzwanie**: X minut audiobooka dziennie, licznik dni z rzędu
   - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec melodyjny sygnał do wyboru (domyślnie Fanfara 8-bit, w menu pod czasem także Klasyczny, Dzwonek i Delikatny; kanał alarmu, słychać go nawet przy ściszonej muzyce) i wibracja. Próbki są w `docs/`.
 - **Ciekawostki zamiast okładki**: krótki opis wykonawcy (albo autora audiobooka) w środku pierścienia i karta z faktami z Wikipedii. Dotknięcie pokazuje następny fakt. Najpierw szukam w polskiej Wikipedii, potem w angielskiej. Wyniki są zapisywane w telefonie. Do Wikipedii wysyłana jest tylko nazwa wykonawcy. Można to wyłączyć przyciskiem „Ukryj”.
+- **Powitanie**: krótka animacja przy starcie (podziałka, pierścień, obrót dnia i nocy, powitanie zależne od pory dnia). Dotknięcie ją pomija; przy wyłączonych animacjach w systemie jej nie ma.
+- **Klocki ekranu odtwarzania**: ekran „Teraz gra” składa się z klocków (tytuł, tryby pierścienia, przyciski, audiobook, ciekawostki, następne, dziś, zegar, sesje). W „▦ Ułóż ekran” włączasz je, wyłączasz i ustawiasz kolejność.
+- **Stabilność**: uszkodzone pliki są pomijane, zerwane radio łączy się ponownie, biblioteka sama się odświeża po dodaniu plików, a radio działa przy zgaszonym ekranie.
 - **Widżety**: „Odtwarzacz” (4×2: pierścień, tytuł, ⏮ ⏯ ⏭) i „Pierścień” (2×2: środek wstrzymuje i wznawia).
 - **Kafelek w szybkich ustawieniach „Stoper muzyczny”**: jedno dotknięcie uruchamia stoper, a kafelek pokazuje, ile zostało.
 - **Telefony składane i tablety**: po rozłożeniu układ dwupanelowy. W trybie „namiotu” pierścień jest nad zgięciem, a sterowanie pod nim. Obrót ani złożenie telefonu nie gubi otwartego ekranu.

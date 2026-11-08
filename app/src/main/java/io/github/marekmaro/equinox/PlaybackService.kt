@@ -12,6 +12,7 @@ import androidx.media3.session.MediaSessionService
 import io.github.marekmaro.equinox.data.Prefs
 import io.github.marekmaro.equinox.widget.WidgetUpdater
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -31,6 +32,8 @@ class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
     private val scope = MainScope()
     private lateinit var prefs: Prefs
+    private var radioRetries = 0
+    private var skippedInRow = 0
 
     private val listener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -50,7 +53,34 @@ class PlaybackService : MediaSessionService() {
             pushWidget()
         }
 
+        /**
+         * Odporność na błędy: uszkodzony lub usunięty plik jest pomijany,
+         * a zerwane radio łączy się ponownie (3 próby, coraz dłuższa przerwa).
+         */
+        override fun onPlayerError(error: PlaybackException) {
+            val p = session?.player ?: return
+            if (Core.kind == Kind.RADIO) {
+                if (radioRetries < 3) {
+                    radioRetries++
+                    scope.launch {
+                        delay(2_000L * radioRetries)
+                        p.prepare()
+                        p.play()
+                    }
+                }
+            } else if (p.hasNextMediaItem() && skippedInRow < 5) {
+                skippedInRow++
+                p.seekToNextMediaItem()
+                p.prepare()
+                p.play()
+            }
+        }
+
         override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY) {
+                radioRetries = 0
+                skippedInRow = 0
+            }
             if (playbackState == Player.STATE_ENDED && Core.stopwatchDurations != null) {
                 // Stoper: muzyka ucichła, więc czas minął
                 Core.stopwatchDurations = null
@@ -76,6 +106,8 @@ class PlaybackService : MediaSessionService() {
                 /* handleAudioFocus = */ true
             )
             .setHandleAudioBecomingNoisy(true) // pauza po wyjęciu słuchawek
+            // nie pozwól telefonowi uśpić Wi-Fi i procesora w trakcie radia przy zgaszonym ekranie
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         player.addListener(listener)
         session = MediaSession.Builder(this, player).build()
@@ -118,7 +150,9 @@ class PlaybackService : MediaSessionService() {
             var last = SystemClock.elapsedRealtime()
             var ticks = 0
             while (isActive) {
-                delay(500)
+                // gdy nic nie gra i nie ma timera snu, budzimy się rzadziej (bateria)
+                val busy = session?.player?.isPlaying == true || Core.sleepEndAt != null
+                delay(if (busy) 500 else 2_000)
                 val now = SystemClock.elapsedRealtime()
                 val dt = now - last
                 last = now
