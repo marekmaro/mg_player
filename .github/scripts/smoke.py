@@ -345,7 +345,10 @@ for f in sorted(glob.glob(f"{OUT}/*.png")):
         continue
     # pomniejszamy (ImageMagick jest na maszynach GitHuba), żeby linia zmieściła się w logu
     small = f + ".jpg"
-    if subprocess.run(["convert", f, "-resize", "360x", "-quality", "70", small]).returncode != 0:
+    try:
+        if subprocess.run(["convert", f, "-resize", "360x", "-quality", "70", small]).returncode != 0:
+            small = f
+    except OSError:
         small = f
     print("SHOT " + f.split("/")[-1] + " " + base64.b64encode(open(small, "rb").read()).decode())
 
