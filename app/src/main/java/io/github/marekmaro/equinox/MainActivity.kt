@@ -27,6 +27,9 @@ import androidx.window.layout.WindowInfoTracker
 import kotlinx.coroutines.launch
 import io.github.marekmaro.equinox.ui.LocalPosture
 import io.github.marekmaro.equinox.ui.Posture
+import io.github.marekmaro.equinox.ui.ThemeMode
+import io.github.marekmaro.equinox.ui.ThemeState
+import io.github.marekmaro.equinox.data.Prefs
 import io.github.marekmaro.equinox.ui.BooksScreen
 import io.github.marekmaro.equinox.ui.HomeScreen
 import io.github.marekmaro.equinox.ui.EquinoxTheme
@@ -50,6 +53,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        ThemeState.mode = ThemeMode.entries.firstOrNull { it.name == Prefs(this).themeMode } ?: ThemeMode.AUTO
         watchFold()
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
         if (savedInstanceState == null) vm.handleOpen(intent?.getStringExtra(EXTRA_OPEN))

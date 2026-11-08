@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,7 +48,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import io.github.marekmaro.equinox.data.Prefs
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -158,7 +161,7 @@ fun Chip(text: String, modifier: Modifier = Modifier, selected: Boolean = false,
 }
 
 @Composable
-fun TopBar(title: String, onBack: (() -> Unit)?, small: Boolean = false) {
+fun TopBar(title: String, onBack: (() -> Unit)?, small: Boolean = false, trailing: (@Composable () -> Unit)? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -174,6 +177,45 @@ fun TopBar(title: String, onBack: (() -> Unit)?, small: Boolean = false) {
         } else {
             Text(title, color = Pal.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
         }
+        if (trailing != null) {
+            Spacer(Modifier.weight(1f))
+            trailing()
+        }
+    }
+}
+
+/** Znak Equinox: koło w połowie jasne, w połowie ciemne (dzień i noc w równowadze). */
+@Composable
+fun EquinoxGlyph(size: Dp = 18.dp, color: Color = Pal.Text) {
+    Canvas(Modifier.size(size)) {
+        val sw = 1.5.dp.toPx()
+        val r = this.size.minDimension / 2f - sw
+        drawArc(color, 90f, 180f, useCenter = true, topLeft = Offset(center.x - r, center.y - r), size = Size(r * 2, r * 2))
+        drawCircle(color, radius = r, style = Stroke(sw))
+    }
+}
+
+/** Przełącznik motywu: Auto (wg pory dnia) → Dzień → Noc. */
+@Composable
+fun DayNightToggle() {
+    val ctx = LocalContext.current
+    Row(
+        Modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .border(1.dp, Pal.Line, RoundedCornerShape(22.dp))
+            .clickable {
+                val next = ThemeState.next()
+                ThemeState.mode = next
+                Prefs(ctx).themeMode = next.name
+            }
+            .semantics { contentDescription = "Motyw: ${ThemeState.mode.label}. Dotknij, aby zmienić." }
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        EquinoxGlyph()
+        Text(ThemeState.mode.label, color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
     }
 }
 
@@ -325,6 +367,7 @@ fun KnobListScreen(
     onOpen: (Int) -> Unit,
     emptyText: String = "",
     smallTitle: Boolean = false,
+    topTrailing: (@Composable () -> Unit)? = null,
     onLongOk: () -> Unit = {},
     header: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -352,7 +395,7 @@ fun KnobListScreen(
     else (cfg.screenHeightDp * 0.27f).coerceIn(150f, 210f).dp
 
     val list: @Composable ColumnScope.() -> Unit = {
-        TopBar(title, onBack, small = smallTitle)
+        TopBar(title, onBack, small = smallTitle, trailing = topTrailing)
         header()
         if (rows.isEmpty()) {
             Box(

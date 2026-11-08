@@ -49,6 +49,11 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Motyw: AUTO / DAY / NIGHT ---
+    var themeMode: String
+        get() = sp.getString("theme_mode", "AUTO") ?: "AUTO"
+        set(v) = sp.edit().putString("theme_mode", v).apply()
+
     // --- Sygnał końca stopera ---
     var chime: String
         get() = sp.getString("chime", "CHIP") ?: "CHIP"

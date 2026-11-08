@@ -88,6 +88,7 @@ fun HomeScreen(
         onLongOk = { vm.togglePlay() },
         title = "EQUINOX",
         smallTitle = true,
+        topTrailing = { DayNightToggle() },
         rows = rows,
         onBack = null,
         onOpen = { i ->
@@ -100,6 +101,7 @@ fun HomeScreen(
             }
         },
     ) {
+        Text(greeting(), color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         if (np.kind != null) {
             Row(
                 Modifier
@@ -543,54 +545,7 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
     ) {
         TopBar("Sesje", onBack)
 
-        // --- Sen
-        Card {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                val label = when {
-                    s.sleepRemainingMs != null -> fmt(s.sleepRemainingMs)
-                    s.sleepAfterItem -> "rozdz."
-                    else -> "—"
-                }
-                RingStat(progress = if (s.sleepRemainingMs != null) 1f else 0f, label = label, color = Pal.Accent)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Sen", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    Text("Płynnie ścisza i zatrzymuje muzykę, książkę lub radio.", color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("15", modifier = Modifier.weight(1f)) { vm.setSleep(15) }
-                Chip("30", modifier = Modifier.weight(1f)) { vm.setSleep(30) }
-                Chip("60", modifier = Modifier.weight(1f)) { vm.setSleep(60) }
-                Chip("Rozdz.", selected = s.sleepAfterItem, modifier = Modifier.weight(1.3f)) { vm.setSleepAfterItem() }
-            }
-            if (s.sleepRemainingMs != null || s.sleepAfterItem) {
-                Chip("Wyłącz timer", modifier = Modifier.fillMaxWidth()) { vm.cancelSleep() }
-            }
-        }
-
-        // --- Wyzwanie
-        Card {
-            val goalMs = s.goalMinutes * 60_000L
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                RingStat(
-                    progress = (s.todayMs.toFloat() / goalMs).coerceIn(0f, 1f),
-                    label = "${s.todayMs / 60_000}/${s.goalMinutes}",
-                    color = Pal.Text,
-                )
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Wyzwanie", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    Text("${s.goalMinutes} min audiobooka dziennie.", color = Pal.Muted, fontSize = 13.sp)
-                    Text(
-                        if (s.streak > 0) "${s.streak} dni z rzędu" else "Zacznij serię dziś",
-                        color = Pal.Text, fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("− 5 min", modifier = Modifier.weight(1f)) { vm.changeGoal(-5) }
-                Chip("+ 5 min", modifier = Modifier.weight(1f)) { vm.changeGoal(5) }
-            }
-        }
+        SectionLabel("DZIEŃ · skupienie")
 
         // --- Stoper muzyczny
         Card {
@@ -643,6 +598,57 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
                 Chip("Zatrzymaj stoper", modifier = Modifier.fillMaxWidth()) { vm.stopStopwatch() }
             }
         }
+        // --- Wyzwanie
+        Card {
+            val goalMs = s.goalMinutes * 60_000L
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                RingStat(
+                    progress = (s.todayMs.toFloat() / goalMs).coerceIn(0f, 1f),
+                    label = "${s.todayMs / 60_000}/${s.goalMinutes}",
+                    color = Pal.Text,
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Wyzwanie", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text("${s.goalMinutes} min audiobooka dziennie.", color = Pal.Muted, fontSize = 13.sp)
+                    Text(
+                        if (s.streak > 0) "${s.streak} dni z rzędu" else "Zacznij serię dziś",
+                        color = Pal.Text, fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("− 5 min", modifier = Modifier.weight(1f)) { vm.changeGoal(-5) }
+                Chip("+ 5 min", modifier = Modifier.weight(1f)) { vm.changeGoal(5) }
+            }
+        }
+
+        SectionLabel("NOC · odpoczynek")
+
+        // --- Sen
+        Card {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                val label = when {
+                    s.sleepRemainingMs != null -> fmt(s.sleepRemainingMs)
+                    s.sleepAfterItem -> "rozdz."
+                    else -> "—"
+                }
+                RingStat(progress = if (s.sleepRemainingMs != null) 1f else 0f, label = label, color = Pal.Accent)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Sen", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text("Płynnie ścisza i zatrzymuje muzykę, książkę lub radio.", color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("15", modifier = Modifier.weight(1f)) { vm.setSleep(15) }
+                Chip("30", modifier = Modifier.weight(1f)) { vm.setSleep(30) }
+                Chip("60", modifier = Modifier.weight(1f)) { vm.setSleep(60) }
+                Chip("Rozdz.", selected = s.sleepAfterItem, modifier = Modifier.weight(1.3f)) { vm.setSleepAfterItem() }
+            }
+            if (s.sleepRemainingMs != null || s.sleepAfterItem) {
+                Chip("Wyłącz timer", modifier = Modifier.fillMaxWidth()) { vm.cancelSleep() }
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -687,6 +693,16 @@ private fun ChimePicker(selected: Chime, onSelect: (Chime) -> Unit) {
             }
         }
     }
+}
+
+/** Nagłówek grupy w Sesjach: Dzień / Noc. */
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+        letterSpacing = 2.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+    )
 }
 
 @Composable

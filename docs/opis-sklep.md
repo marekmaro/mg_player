@@ -4,13 +4,15 @@ Wersja robocza.
 
 ## Krótki opis (do 80 znaków)
 
-> Muzyka, audiobooki i radio. Prosto, bez reklam, zrobione z pasji.
+> Muzyka, audiobooki i radio. Za dnia skupienie, nocą spokój. Bez reklam.
 
 ## Pełny opis
 
 > Cześć!
 >
 > Zrobiłem Equinox, bo sam chciałem mieć taki odtwarzacz i nigdzie go nie znalazłem. Jeden, w którym jest moja muzyka, audiobooki i radio. Żeby nie trzeba było zakładać konta, nic mnie nie rozpraszało i żeby działał po prostu, jak dawne odtwarzacze, które obsługiwało się jednym kciukiem.
+>
+> Nazwa nie jest przypadkowa. Equinox to równonoc, ten moment w roku, kiedy dzień i noc są równe. Tak chciałem, żeby działała ta aplikacja: za dnia pomaga się skupić (stoper muzyczny, codzienne wyzwanie z książką), a wieczorem pozwala spokojnie odpłynąć przy audiobooku albo radiu. Nawet wygląd się zmienia: o zmierzchu aplikacja sama przechodzi w ciemny motyw, a rano w jasny.
 >
 > Nie jestem dużą firmą. To aplikacja od pasjonata dla pasjonatów, ludzi, którzy lubią po prostu włączyć coś dobrego i słuchać.
 >
