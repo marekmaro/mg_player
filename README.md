@@ -4,9 +4,9 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**, które w trybie **Auto** przełączają się same o 7:00 i 19:00.
 
-## Co już działa (wersja 0.5)
+## Co już działa (wersja 0.6)
 
-- **Pokrętło**: każda lista w aplikacji przewija się obrotem kciuka po okręgu, z lekką wibracją przy każdym kroku. Środek „OK” wybiera pozycję.
+- **Pokrętło**: każda lista przewija się obrotem kciuka po okręgu. Im szybciej kręcisz, tym dalej skacze. Przy długich listach pojawia się duża litera, a zaznaczenie zawsze nadąża. Środek „OK” wybiera, przytrzymanie „OK” to pauza.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
 - **Audiobooki**: jeden folder lub album to jedna książka. Aplikacja pamięta rozdział i pozycję każdej książki, a po wznowieniu cofa o 5 s. Prędkość 0.8–2×, przyciski ±30 s.
 - **Playlisty**: tworzenie, zmiana nazwy, usuwanie. Utwór dodasz przyciskiem „+” na liście muzyki albo „＋ Do playlisty” na ekranie odtwarzania, a usuniesz go „✕”. Przy dodawaniu jest wyszukiwarka.

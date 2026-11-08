@@ -447,8 +447,22 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         when (effectiveRingMode) {
             RingMode.SEEK -> seekBy(d * 10_000L)
             RingMode.TRACKS -> if (d > 0) controller?.seekToNextMediaItem() else controller?.seekToPreviousMediaItem()
-            RingMode.VOLUME -> adjustVolume(d)
+            RingMode.VOLUME -> repeat(kotlin.math.abs(d)) { adjustVolume(d) }
         }
+    }
+
+    /** Przytrzymanie środka tarczy: Przewiń → Utwory → Głośność. */
+    fun cycleRingMode() {
+        val modes = if (nowPlaying.kind == Kind.RADIO) listOf(RingMode.VOLUME) else RingMode.entries
+        ringMode = modes[(modes.indexOf(effectiveRingMode) + 1) % modes.size]
+    }
+
+    // Samouczek sterowania kółkiem: pokazywany raz, potem pod przyciskiem „?”
+    var tutorialSeen by mutableStateOf(prefs.tutorialSeen); private set
+
+    fun markTutorialSeen() {
+        tutorialSeen = true
+        prefs.tutorialSeen = true
     }
 
     fun adjustVolume(d: Int) {

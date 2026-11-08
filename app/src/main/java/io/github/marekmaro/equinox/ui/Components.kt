@@ -1,6 +1,15 @@
 package io.github.marekmaro.equinox.ui
 
 import androidx.compose.foundation.Canvas
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import android.os.SystemClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -236,14 +245,18 @@ fun Card(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> U
 // ------------------------------------------------------------------ Pokrętło
 
 /**
- * Pokrętło: obrót kciukiem po okręgu. Co [stepDegrees] stopni wywołuje
- * [onStep] (+1 zgodnie z ruchem wskazówek zegara, -1 przeciwnie) i daje
- * delikatną wibrację.
+ * Pokrętło: obrót kciukiem po okręgu.
+ * - Krok co [stepDegrees] stopni wywołuje [onStep] (+ zgodnie z ruchem wskazówek zegara).
+ * - [accelerate]: im szybciej kręcisz, tym krótszy krok – wolno = precyzyjnie po jednej
+ *   pozycji, szybko = nawet 5× więcej pozycji na ten sam obrót.
+ * - Kilka kroków z jednego ruchu palca zgłaszamy naraz (mniej przerysowań, płynniej).
+ * - Wibracja najwyżej co 30 ms, żeby przy szybkim kręceniu nie „buczało”.
  */
 @Composable
 fun RotaryKnob(
     modifier: Modifier = Modifier,
     stepDegrees: Float = 30f,
+    accelerate: Boolean = true,
     onStep: (Int) -> Unit,
     content: @Composable BoxScope.(rotation: Float) -> Unit,
 ) {
@@ -252,32 +265,47 @@ fun RotaryKnob(
     val step by rememberUpdatedState(onStep)
 
     Box(
-        modifier.pointerInput(stepDegrees) {
+        modifier.pointerInput(stepDegrees, accelerate) {
             var last = 0f
             var acc = 0f
+            var lastTime = 0L
+            var velocity = 0f // stopnie na milisekundę, wygładzone
+            var lastHaptic = 0L
             detectDragGestures(
                 onDragStart = { o ->
                     last = angleOf(o, size)
                     acc = 0f
+                    velocity = 0f
+                    lastTime = 0L
                 },
                 onDrag = { change, _ ->
                     change.consume()
+                    val now = change.uptimeMillis
                     val a = angleOf(change.position, size)
                     var d = a - last
                     if (d > 180f) d -= 360f
                     if (d < -180f) d += 360f
                     last = a
+                    if (lastTime != 0L) {
+                        val dt = (now - lastTime).coerceAtLeast(1L).toFloat()
+                        velocity = velocity * 0.6f + (kotlin.math.abs(d) / dt) * 0.4f
+                    }
+                    lastTime = now
                     acc += d
                     rotation += d
-                    while (acc >= stepDegrees) {
-                        acc -= stepDegrees
-                        step(1)
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    }
-                    while (acc <= -stepDegrees) {
-                        acc += stepDegrees
-                        step(-1)
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+                    // 0,3°/ms (ok. 300°/s) = zwykłe tempo; powyżej przyspieszamy do 5×
+                    val boost = if (accelerate) 1f + ((velocity - 0.3f) / 0.3f).coerceIn(0f, 4f) else 1f
+                    val effStep = stepDegrees / boost
+                    var steps = 0
+                    while (acc >= effStep) { acc -= effStep; steps++ }
+                    while (acc <= -effStep) { acc += effStep; steps-- }
+                    if (steps != 0) {
+                        step(steps)
+                        if (now - lastHaptic >= 30L) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            lastHaptic = now
+                        }
                     }
                 },
             )
@@ -316,7 +344,7 @@ fun DrawScope.drawTicks(count: Int, every: Int, minor: Color = Pal.Tick, major: 
 fun MenuKnob(onStep: (Int) -> Unit, onOk: () -> Unit, onLongOk: () -> Unit = {}, size: Dp = 210.dp) {
     val ok by rememberUpdatedState(onOk)
     val longOk by rememberUpdatedState(onLongOk)
-    RotaryKnob(Modifier.size(size), onStep = onStep) { rot ->
+    RotaryKnob(Modifier.size(size), stepDegrees = 24f, onStep = onStep) { rot ->
         Canvas(Modifier.fillMaxSize()) {
             drawTicks(48, 6)
             val inner = this.size.minDimension / 2f - 22.dp.toPx()
@@ -375,16 +403,41 @@ fun KnobListScreen(
     var sel by remember(rows.size) { mutableIntStateOf(0) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    var scrollJob by remember { mutableStateOf<Job?>(null) }
+    var lastMove by remember { mutableLongStateOf(0L) }
+    // duża litera przy przewijaniu długiej listy
+    var letter by remember { mutableStateOf<String?>(null) }
+    var letterTick by remember { mutableIntStateOf(0) }
 
     fun move(d: Int) {
         if (rows.isEmpty()) return
         sel = (sel + d).coerceIn(0, rows.lastIndex)
-        scope.launch {
-            val first = listState.firstVisibleItemIndex
-            val visible = listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
-            if (sel < first || sel >= first + visible - 1) {
-                listState.animateScrollToItem((sel - 2).coerceAtLeast(0))
+        val now = SystemClock.uptimeMillis()
+        val fast = now - lastMove < 150L
+        lastMove = now
+        if (rows.size >= 15) {
+            letter = firstLetter(rows[sel].title)
+            letterTick++
+        }
+        // tylko jedno przewijanie naraz: nowe anuluje poprzednie, więc zaznaczenie
+        // nigdy nie „goni” kolejki starych animacji
+        scrollJob?.cancel()
+        scrollJob = scope.launch {
+            val visible = listState.layoutInfo.visibleItemsInfo
+            if (visible.isEmpty()) return@launch
+            val first = visible.first().index
+            val last = visible.last().index
+            if (sel <= first || sel >= last) {
+                val target = (sel - visible.size / 2).coerceAtLeast(0) // zaznaczenie na środku
+                if (fast) listState.scrollToItem(target) else listState.animateScrollToItem(target)
             }
+        }
+    }
+
+    LaunchedEffect(letterTick) {
+        if (letter != null) {
+            delay(650)
+            letter = null
         }
     }
 
@@ -411,13 +464,16 @@ fun KnobListScreen(
                 }
             }
         } else {
-            LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
-                itemsIndexed(rows) { i, row ->
-                    ListRowItem(row, selected = i == sel) {
-                        sel = i
-                        onOpen(i)
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                    itemsIndexed(rows) { i, row ->
+                        ListRowItem(row, selected = i == sel) {
+                            sel = i
+                            onOpen(i)
+                        }
                     }
                 }
+                LetterBubble(letter, Modifier.align(Alignment.Center))
             }
         }
     }
@@ -445,6 +501,33 @@ fun KnobListScreen(
         Column(base, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             list()
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { knob() }
+        }
+    }
+}
+
+/** Pierwsza litera tytułu (cyfry i znaki jako „#”). */
+fun firstLetter(title: String): String {
+    val c = title.trimStart().firstOrNull() ?: return "#"
+    return if (c.isLetter()) c.uppercase() else "#"
+}
+
+@Composable
+private fun LetterBubble(letter: String?, modifier: Modifier) {
+    val alpha by animateFloatAsState(if (letter != null) 1f else 0f, tween(if (letter != null) 80 else 250), label = "litera")
+    val last = remember { arrayOf("") } // ostatnia litera, żeby nie znikała w trakcie wygaszania
+    if (letter != null) last[0] = letter
+    val shown = last[0]
+    if (alpha > 0.01f) {
+        Box(
+            modifier
+                .alpha(alpha)
+                .size(88.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Pal.Surface2)
+                .border(1.dp, Pal.Accent, RoundedCornerShape(24.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(shown, color = Pal.Accent, fontSize = 48.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -114,4 +114,13 @@ class LogicTest {
         assertTrue(R.isPlaylistLink("http://x/listen.pls?id=3"))
         assertTrue(!R.isPlaylistLink("http://x/stream.mp3"))
     }
+
+    @Test
+    fun letterBubble_firstLetter() {
+        val f = io.github.marekmaro.equinox.ui::firstLetter
+        assertEquals("Ś", f("świt nad miastem"))
+        assertEquals("#", f("2 + 1"))
+        assertEquals("#", f(""))
+        assertEquals("A", f("  ale"))
+    }
 }

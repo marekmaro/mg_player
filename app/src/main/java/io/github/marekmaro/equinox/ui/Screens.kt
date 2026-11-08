@@ -45,6 +45,8 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -317,15 +319,41 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
         Kind.RADIO -> "RADIO"
         else -> "TERAZ GRA"
     }
+    var showTutorial by remember { mutableStateOf(!vm.tutorialSeen) }
     val base = Modifier
         .fillMaxSize()
         .background(Pal.Bg)
         .systemBarsPadding()
         .padding(horizontal = 20.dp, vertical = 12.dp)
 
+    Box(Modifier.fillMaxSize()) {
+        PlayingContent(vm, np, title, base, cfg, posture, wide, onBack, onSessions, onEditLayout) { showTutorial = true }
+        if (showTutorial && np.kind != null) {
+            DialTutorial(onDone = {
+                showTutorial = false
+                vm.markTutorialSeen()
+            })
+        }
+    }
+}
+
+@Composable
+private fun PlayingContent(
+    vm: PlayerViewModel,
+    np: io.github.marekmaro.equinox.NowPlaying,
+    title: String,
+    base: Modifier,
+    cfg: android.content.res.Configuration,
+    posture: Posture,
+    wide: Boolean,
+    onBack: () -> Unit,
+    onSessions: () -> Unit,
+    onEditLayout: () -> Unit,
+    onHelp: () -> Unit,
+) {
     if (np.kind == null) {
         Column(base, horizontalAlignment = Alignment.CenterHorizontally) {
-            TopBar(title, onBack, small = true)
+            TopBar(title, onBack, small = true, trailing = { HelpButton(onHelp) })
             Spacer(Modifier.height(200.dp))
             Text("Nic teraz nie gra.", color = Pal.Muted, fontSize = 16.sp)
         }
@@ -334,7 +362,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
 
     when {
         posture == Posture.TABLETOP -> Column(base) {
-            TopBar(title, onBack, small = true)
+            TopBar(title, onBack, small = true, trailing = { HelpButton(onHelp) })
             // górna połowa: pierścień (ekran stoi jak laptop)
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 val size = ((cfg.screenHeightDp / 2) * 0.8f).toInt().coerceIn(160, 300).dp
@@ -352,7 +380,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
 
         wide -> Row(base, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                TopBar(title, onBack, small = true)
+                TopBar(title, onBack, small = true, trailing = { HelpButton(onHelp) })
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     val size = minOf(cfg.screenWidthDp / 2 - 40, cfg.screenHeightDp - 140).coerceIn(160, 360).dp
                     PlayerRing(vm, size)
@@ -373,11 +401,55 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TopBar(title, onBack, small = true)
+            TopBar(title, onBack, small = true, trailing = { HelpButton(onHelp) })
             // po bokach pierścienia zostaje pas, za który można przewijać ekran palcem
             val size = minOf(cfg.screenWidthDp - 100, (cfg.screenHeightDp * 0.45f).toInt()).coerceIn(200, 290).dp
             PlayerRing(vm, size)
             PlayerBlocks(vm, onSessions, onEditLayout)
+        }
+    }
+}
+
+@Composable
+private fun HelpButton(onClick: () -> Unit) {
+    CircleButton("Jak sterować kółkiem", onClick) {
+        Text("?", color = Pal.Muted, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** Krótki samouczek gestów: pokazywany przy pierwszym otwarciu, potem pod „?”. */
+@Composable
+private fun DialTutorial(onDone: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.72f))
+            .pointerInput(Unit) { detectTapGestures { } } // nie przepuszczaj dotknięć pod spód
+            .systemBarsPadding()
+            .padding(20.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card {
+            Text("Jak sterować kółkiem", color = Pal.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            TutorialStep("↻", "Kręć po pierścieniu", "Przewija utwór, zmienia utwory albo głośność, zależnie od trybu pod kółkiem. Szybciej kręcisz, dalej skacze.")
+            TutorialStep("⏯", "Dotknij środka tarczy", "Pauza i odtwarzanie.")
+            TutorialStep("⏮⏭", "Dotknij lewej lub prawej strony", "Poprzedni albo następny utwór.")
+            TutorialStep("✋", "Przytrzymaj tarczę", "Zmienia tryb kręcenia: Przewiń → Utwory → Głośność.")
+            TutorialStep("OK", "W listach", "Kręć, żeby wybrać, środek OK otwiera, przytrzymanie OK to pauza.")
+            Chip("Rozumiem", modifier = Modifier.fillMaxWidth(), selected = true, onClick = onDone)
+        }
+    }
+}
+
+@Composable
+private fun TutorialStep(symbol: String, title: String, text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(Pal.Surface2), contentAlignment = Alignment.Center) {
+            Text(symbol, color = Pal.Accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, color = Pal.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(text, color = Pal.Muted, fontSize = 13.sp, lineHeight = 18.sp)
         }
     }
 }
@@ -391,6 +463,8 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
     RotaryKnob(
         Modifier.size(ringSize),
         stepDegrees = mode.stepDegrees,
+        // przy przeskakiwaniu utworów bez przyspieszania – żeby nie przeskoczyć przypadkiem kilku
+        accelerate = mode != RingMode.TRACKS,
         onStep = { d -> vm.ringStep(d) },
     ) { _ ->
         val frac = if (np.durationMs > 0) np.positionMs.toFloat() / np.durationMs else 0f
@@ -407,28 +481,52 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
             }
             drawCircle(Pal.Surface, radius = size.minDimension / 2f - 40.dp.toPx())
         }
+        // Tarcza w środku: lewa strona = poprzedni, środek = pauza/graj, prawa = następny.
+        // Przytrzymanie = zmiana trybu kręcenia. Reakcja od razu (bez czekania na podwójne dotknięcie).
+        val haptic = LocalHapticFeedback.current
+        val face = ringSize * 0.58f
         Box(
             Modifier
-                .size(ringSize * 0.58f)
+                .size(face)
                 .clip(CircleShape)
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onTap = { vm.togglePlay() },
-                        onDoubleTap = { vm.next() },
-                        onLongPress = { vm.previous() },
+                        onTap = { pos ->
+                            val third = size.width / 3f
+                            when {
+                                pos.x < third -> vm.previous()
+                                pos.x > third * 2 -> vm.next()
+                                else -> vm.togglePlay()
+                            }
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        },
+                        onLongPress = {
+                            vm.cycleRingMode()
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
                     )
                 }
-                .semantics { contentDescription = if (np.isPlaying) "Pauza" else "Odtwórz" },
+                .semantics {
+                    contentDescription = "Tarcza: lewa strona poprzedni, środek ${if (np.isPlaying) "pauza" else "odtwórz"}, prawa strona następny. Przytrzymaj, aby zmienić tryb kręcenia."
+                },
             contentAlignment = Alignment.Center,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, (ringSize * 0.19f).coerceAtMost(56.dp))
-                // W miejscu okładki: krótki opis wykonawcy / autora
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = face * 0.08f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                GlyphIcon(Glyph.Prev, Pal.Muted, (face * 0.13f).coerceAtMost(26.dp))
+                GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, (face * 0.3f).coerceAtMost(60.dp))
+                GlyphIcon(Glyph.Next, Pal.Muted, (face * 0.13f).coerceAtMost(26.dp))
+            }
+            // W miejscu okładki: krótki opis wykonawcy / autora
+            vm.facts?.headline?.takeIf { it.isNotBlank() }?.let { headline ->
                 Text(
-                    vm.facts?.headline?.takeIf { it.isNotBlank() } ?: "2× dalej\nprzytrzymaj: wstecz",
+                    headline,
                     color = Pal.Muted, fontSize = 11.sp, lineHeight = 14.sp,
-                    textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(start = 22.dp, end = 22.dp, bottom = face * 0.14f),
                 )
             }
         }

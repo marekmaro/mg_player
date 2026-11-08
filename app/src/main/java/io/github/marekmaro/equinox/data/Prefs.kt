@@ -90,6 +90,10 @@ class Prefs(context: Context) {
         get() = sp.getString("player_layout", null)
         set(v) = sp.edit().putString("player_layout", v).apply()
 
+    var tutorialSeen: Boolean
+        get() = sp.getBoolean("tutorial_seen", false)
+        set(v) = sp.edit().putBoolean("tutorial_seen", v).apply()
+
     // --- Motyw: AUTO / DAY / NIGHT ---
     var themeMode: String
         get() = sp.getString("theme_mode", "AUTO") ?: "AUTO"

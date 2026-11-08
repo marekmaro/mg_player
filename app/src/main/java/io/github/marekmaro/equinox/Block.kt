@@ -12,9 +12,10 @@ enum class Block(
     /** klocka nie da się wyłączyć (bez niego ekran nie ma sensu) */
     val required: Boolean = false,
 ) {
-    TITLE("Tytuł i czas", "Co gra, kto to wykonuje i ile minęło", true, required = true),
     MODES("Tryby pierścienia", "Przewiń / Utwory / Głośność", true),
-    CONTROLS("Przyciski", "Poprzedni, pauza, następny", true),
+    TITLE("Tytuł i czas", "Co gra, kto to wykonuje i ile minęło", true, required = true),
+    // przyciski są teraz na tarczy w środku pierścienia; duże przyciski można włączyć
+    CONTROLS("Duże przyciski", "Poprzedni, pauza, następny pod pierścieniem", false),
     BOOK("Audiobook", "±30 s i prędkość (tylko przy książkach)", true),
     FACTS("Ciekawostki", "Fakty o wykonawcy lub autorze", true),
     QUEUE("Następne", "Trzy kolejne utwory lub rozdziały", false),
