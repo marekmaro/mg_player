@@ -245,10 +245,12 @@ time.sleep(2)
 expect("EQUINOX", "po obrocie ekranu")
 
 # 9. Symulacja rozłożonego składaka (ok. 700x840 dp): układ dwupanelowy
+note("  przed rozłożeniem: " + " | ".join(t or d for t, d, *_ in nodes() if (t or d))[:300])
 adb("shell", "wm", "size", "1840x2208")
 adb("shell", "wm", "density", "420")
 time.sleep(4)
 W, H = screen_size()  # przewijanie musi znać nowy rozmiar ekranu
+note("  po rozłożeniu: " + " | ".join(t or d for t, d, *_ in nodes() if (t or d))[:300])
 shot("15-skladak-menu")
 tap("Muzyka", exact=True)
 tap("Nocny przystanek")
@@ -337,11 +339,15 @@ if hits:
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
 # tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
-KEY = ("15-", "04-teraz", "22-", "23-")
+KEY = ("01-start", "04-teraz", "13-", "14-", "15-", "16-", "22-", "23-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
     if not f.split("/")[-1].startswith(KEY):
         continue
-    print("SHOT " + f.split("/")[-1] + " " + base64.b64encode(open(f, "rb").read()).decode())
+    # pomniejszamy (ImageMagick jest na maszynach GitHuba), żeby linia zmieściła się w logu
+    small = f + ".jpg"
+    if subprocess.run(["convert", f, "-resize", "360x", "-quality", "70", small]).returncode != 0:
+        small = f
+    print("SHOT " + f.split("/")[-1] + " " + base64.b64encode(open(small, "rb").read()).decode())
 
 note("\n=== WYNIK ===")
 if problems:
