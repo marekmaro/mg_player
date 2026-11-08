@@ -1,6 +1,6 @@
 # Opis do Google Play
 
-Wersja robocza. `[Nazwa]` zamienimy, gdy wybierzemy nazwę.
+Wersja robocza.
 
 ## Krótki opis (do 80 znaków)
 
@@ -10,7 +10,7 @@ Wersja robocza. `[Nazwa]` zamienimy, gdy wybierzemy nazwę.
 
 > Cześć!
 >
-> Zrobiłem [Nazwa], bo sam chciałem mieć taki odtwarzacz i nigdzie go nie znalazłem. Jeden, w którym jest moja muzyka, audiobooki i radio. Żeby nie trzeba było zakładać konta, nic mnie nie rozpraszało i żeby działał po prostu, jak dawne odtwarzacze, które obsługiwało się jednym kciukiem.
+> Zrobiłem Sundial, bo sam chciałem mieć taki odtwarzacz i nigdzie go nie znalazłem. Jeden, w którym jest moja muzyka, audiobooki i radio. Żeby nie trzeba było zakładać konta, nic mnie nie rozpraszało i żeby działał po prostu, jak dawne odtwarzacze, które obsługiwało się jednym kciukiem.
 >
 > Nie jestem dużą firmą. To aplikacja od pasjonata dla pasjonatów, ludzi, którzy lubią po prostu włączyć coś dobrego i słuchać.
 >
@@ -36,12 +36,12 @@ Wersja robocza. `[Nazwa]` zamienimy, gdy wybierzemy nazwę.
 >
 > **Jeśli Ci się spodoba**
 >
-> Wszystko jest za darmo i tak zostanie. Jeśli [Nazwa] umili Ci dzień, możesz postawić mi wirtualną kawę w aplikacji ☕. To nic nie odblokowuje i niczego nie wymusza, a dla mnie znaczy bardzo dużo. Każda kawa to sygnał, że warto rozwijać aplikację dalej.
+> Wszystko jest za darmo i tak zostanie. Jeśli Sundial umili Ci dzień, możesz postawić mi wirtualną kawę w aplikacji ☕. To nic nie odblokowuje i niczego nie wymusza, a dla mnie znaczy bardzo dużo. Każda kawa to sygnał, że warto rozwijać aplikację dalej.
 >
 > Masz pomysł, znalazłeś błąd albo chcesz po prostu napisać, co myślisz? Napisz, czytam każdą wiadomość.
 >
 > Miłego słuchania!
-> [Twoje imię]
+> Mar0
 
 ## Tekst przycisku w aplikacji
 

@@ -1,8 +1,8 @@
-# MG Player
+# Sundial
 
 Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany jednym kciukiem.
 
-## Co już działa (wersja 0.1)
+## Co już działa (wersja 0.2)
 
 - **Pokrętło**: każda lista w aplikacji przewija się obrotem kciuka po okręgu, z lekką wibracją przy każdym kroku. Środek „OK” wybiera pozycję.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
@@ -15,6 +15,8 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
   - **Wyzwanie**: X minut audiobooka dziennie, licznik dni z rzędu
   - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec melodyjny sygnał do wyboru (domyślnie Fanfara 8-bit, w menu pod czasem także Klasyczny, Dzwonek i Delikatny; kanał alarmu, słychać go nawet przy ściszonej muzyce) i wibracja. Próbki są w `docs/`.
 - **Ciekawostki zamiast okładki**: krótki opis wykonawcy (albo autora audiobooka) w środku pierścienia i karta z faktami z Wikipedii. Dotknięcie pokazuje następny fakt. Najpierw szukam w polskiej Wikipedii, potem w angielskiej. Wyniki są zapisywane w telefonie. Do Wikipedii wysyłana jest tylko nazwa wykonawcy. Można to wyłączyć przyciskiem „Ukryj”.
+- **Telefony składane i tablety**: po rozłożeniu układ dwupanelowy. W trybie „namiotu” pierścień jest nad zgięciem, a sterowanie pod nim. Obrót ani złożenie telefonu nie gubi otwartego ekranu.
+- Timer snu, stoper, wyzwanie i zapis pozycji audiobooka działają w serwisie odtwarzania, także po zamknięciu aplikacji.
 - Odtwarzanie w tle, powiadomienie z kontrolkami, ekran blokady, słuchawki Bluetooth (Media3).
 
 Audiobooki są rozpoznawane po folderze, którego ścieżka zawiera np. `Audiobooks`, `Audiobooki`, `Książki`, albo po znaczniku audiobooka w pliku.
@@ -23,7 +25,7 @@ Audiobooki są rozpoznawane po folderze, którego ścieżka zawiera np. `Audiobo
 
 1. Wejdź w zakładkę **Actions** w tym repozytorium.
 2. Otwórz najnowsze uruchomienie **Build APK** z zielonym ✓.
-3. Na dole w sekcji **Artifacts** pobierz `mg-player-debug-apk` (plik ZIP).
+3. Na dole w sekcji **Artifacts** pobierz `sundial-debug-apk` (plik ZIP).
 4. Rozpakuj ZIP i przenieś `app-debug.apk` na telefon.
 5. Otwórz plik na telefonie i zezwól na instalację z nieznanych źródeł.
 
@@ -46,14 +48,23 @@ Budowanie z wiersza poleceń:
 ./gradlew assembleDebug
 ```
 
+## Testy
+
+Każda zmiana w `main` uruchamia w GitHub Actions:
+- **testy jednostkowe** (`./gradlew testDebugUnitTest`): formatowanie czasu, dobór utworów do stopera, rozpoznawanie wykonawców, ciekawostki, sygnały,
+- **Android Lint**,
+- **test na emulatorze** (`.github/scripts/smoke.py`): instalacja, pliki testowe, przejście po wszystkich ekranach, kręcenie pokrętłem, obrót ekranu, symulacja rozłożonego składaka i sprawdzenie, czy aplikacja się nie wywraca. Zrzuty ekranu są w artefakcie `smoke-screenshots`.
+
 ## Technologia
 
 Kotlin · Jetpack Compose · Media3 (ExoPlayer + MediaSession) · minSdk 26 (Android 8.0) · targetSdk 35
 
 ```
-app/src/main/java/pl/mgplayer/
+app/src/main/java/io/github/marekmaro/sundial/
 ├── MainActivity.kt       nawigacja i uprawnienia
-├── PlaybackService.kt    odtwarzanie w tle (Media3)
+├── PlaybackService.kt    odtwarzanie w tle (Media3) + sesje
+├── Core.kt               wspólny stan sesji, dobór utworów do stopera
+├── EndChime.kt           sygnały końca stopera (generowane w kodzie)
 ├── PlayerViewModel.kt    logika: kolejki, audiobooki, sesje, radio
 ├── data/                 biblioteka plików, API radia, zapis ustawień
 └── ui/                   motyw, pokrętło, ekrany
@@ -61,7 +72,6 @@ app/src/main/java/pl/mgplayer/
 
 ## Plan dalszy
 
-- [ ] Timer snu i stoper działające także po zamknięciu aplikacji (przeniesienie do serwisu)
 - [ ] Korektor: „Bas ↔ Głos” + „Czysty głos” dla audiobooków
 - [ ] Okładki albumów
 - [ ] Premium (Google Play Billing) i reklama w miejscu okładki (AdMob, tylko przy otwartej aplikacji)
