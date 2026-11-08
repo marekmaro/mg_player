@@ -2,7 +2,7 @@
 <resources>
     <color name="bg">#FF141517</color>
 
-    <style name="Theme.Sundial" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.Equinox" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

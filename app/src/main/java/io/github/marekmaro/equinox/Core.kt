@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
 import android.content.Context
 import android.os.VibrationEffect

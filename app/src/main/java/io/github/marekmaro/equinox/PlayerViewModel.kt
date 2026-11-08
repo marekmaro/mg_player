@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
 import android.app.Application
 import android.content.ComponentName
@@ -25,15 +25,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.github.marekmaro.sundial.data.Book
-import io.github.marekmaro.sundial.data.Facts
-import io.github.marekmaro.sundial.data.FactsRepository
-import io.github.marekmaro.sundial.data.MediaRepository
-import io.github.marekmaro.sundial.data.Prefs
-import io.github.marekmaro.sundial.data.RadioRepository
-import io.github.marekmaro.sundial.data.Station
-import io.github.marekmaro.sundial.data.Track
-import io.github.marekmaro.sundial.data.toMediaItem
+import io.github.marekmaro.equinox.data.Book
+import io.github.marekmaro.equinox.data.Facts
+import io.github.marekmaro.equinox.data.FactsRepository
+import io.github.marekmaro.equinox.data.MediaRepository
+import io.github.marekmaro.equinox.data.Prefs
+import io.github.marekmaro.equinox.data.RadioRepository
+import io.github.marekmaro.equinox.data.Station
+import io.github.marekmaro.equinox.data.Track
+import io.github.marekmaro.equinox.data.toMediaItem
 import java.time.LocalDate
 
 /** Co robi obrót pierścienia na ekranie „Teraz gra”. */

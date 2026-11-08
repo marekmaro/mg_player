@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.data
+package io.github.marekmaro.equinox.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,7 +43,7 @@ data class Facts(
 
 object FactsRepository {
 
-    private const val USER_AGENT = "Sundial/0.2 (https://github.com/marekmaro/mg_player)"
+    private const val USER_AGENT = "Equinox/0.3 (https://github.com/marekmaro/mg_player)"
 
     // Słowa potwierdzające, że znaleziona strona dotyczy muzyka / pisarza,
     // a nie np. miasta albo filmu o tej samej nazwie.

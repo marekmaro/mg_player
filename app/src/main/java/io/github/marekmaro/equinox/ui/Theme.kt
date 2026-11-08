@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.ui
+package io.github.marekmaro.equinox.ui
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -22,7 +22,7 @@ object Pal {
 val Mono = FontFamily.Monospace
 
 @Composable
-fun SundialTheme(content: @Composable () -> Unit) {
+fun EquinoxTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Pal.Accent,

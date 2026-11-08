@@ -1,6 +1,6 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
-import io.github.marekmaro.sundial.data.FactsRepository
+import io.github.marekmaro.equinox.data.FactsRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

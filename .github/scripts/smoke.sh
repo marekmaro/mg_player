@@ -2,7 +2,7 @@
 # Test dymny na emulatorze: pliki testowe -> instalacja -> przejście po ekranach.
 set -euo pipefail
 
-PKG=io.github.marekmaro.sundial
+PKG=io.github.marekmaro.equinox
 APK=$(ls apk/*.apk | head -1)
 OUT=smoke
 mkdir -p "$OUT" audio

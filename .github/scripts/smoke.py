@@ -1,5 +1,5 @@
 """
-Przejście po ekranach Sundial na emulatorze (przez adb + uiautomator).
+Przejście po ekranach Equinox na emulatorze (przez adb + uiautomator).
 Robi zrzuty ekranu, kręci pokrętłem i sprawdza logcat pod kątem awarii.
 Kończy się błędem, jeśli aplikacja się wywróci albo nie znajdzie kluczowych napisów.
 """
@@ -126,7 +126,7 @@ def crashed():
 adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
 time.sleep(6)
 shot("01-start")
-expect("SUNDIAL", "start")
+expect("EQUINOX", "start")
 expect("Losuj wszystko", "start")
 
 # 2. Pokrętło: obrót o 90° powinien przesunąć zaznaczenie o 3 pozycje (co 30°)
@@ -198,7 +198,7 @@ time.sleep(3)
 shot("14-poziomo")
 adb("shell", "settings", "put", "system", "user_rotation", "0")
 time.sleep(2)
-expect("SUNDIAL", "po obrocie ekranu")
+expect("EQUINOX", "po obrocie ekranu")
 
 # 9. Symulacja rozłożonego składaka (ok. 700x840 dp): układ dwupanelowy
 adb("shell", "wm", "size", "1840x2208")
@@ -220,7 +220,7 @@ adb("shell", "wm", "size", "reset")
 adb("shell", "wm", "density", "reset")
 time.sleep(2)
 
-# 10. Widżety: system musi widzieć oba widżety Sundial
+# 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
 for w in ["PlayerWidget", "RingWidget"]:
     if f"widget.{w}" in dump and PKG in dump:

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "sundial"
+rootProject.name = "equinox"
 include(":app")

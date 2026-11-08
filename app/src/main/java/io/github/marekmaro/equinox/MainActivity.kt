@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
 import android.Manifest
 import android.os.Build
@@ -25,20 +25,20 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
 import kotlinx.coroutines.launch
-import io.github.marekmaro.sundial.ui.LocalPosture
-import io.github.marekmaro.sundial.ui.Posture
-import io.github.marekmaro.sundial.ui.BooksScreen
-import io.github.marekmaro.sundial.ui.HomeScreen
-import io.github.marekmaro.sundial.ui.SundialTheme
-import io.github.marekmaro.sundial.ui.MusicScreen
-import io.github.marekmaro.sundial.ui.PlayingScreen
-import io.github.marekmaro.sundial.ui.RadioScreen
-import io.github.marekmaro.sundial.ui.SessionsScreen
+import io.github.marekmaro.equinox.ui.LocalPosture
+import io.github.marekmaro.equinox.ui.Posture
+import io.github.marekmaro.equinox.ui.BooksScreen
+import io.github.marekmaro.equinox.ui.HomeScreen
+import io.github.marekmaro.equinox.ui.EquinoxTheme
+import io.github.marekmaro.equinox.ui.MusicScreen
+import io.github.marekmaro.equinox.ui.PlayingScreen
+import io.github.marekmaro.equinox.ui.RadioScreen
+import io.github.marekmaro.equinox.ui.SessionsScreen
 
 class MainActivity : ComponentActivity() {
 
     companion object {
-        const val EXTRA_OPEN = "io.github.marekmaro.sundial.OPEN"
+        const val EXTRA_OPEN = "io.github.marekmaro.equinox.OPEN"
         const val OPEN_PLAYING = "playing"
         const val OPEN_SESSIONS = "sessions"
         const val OPEN_STOPWATCH = "stopwatch"
@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
         if (savedInstanceState == null) vm.handleOpen(intent?.getStringExtra(EXTRA_OPEN))
         setContent {
-            SundialTheme {
+            EquinoxTheme {
                 CompositionLocalProvider(LocalPosture provides posture.value) {
                     PermissionRequest(onDone = { vm.loadLibrary() })
                     App(vm)

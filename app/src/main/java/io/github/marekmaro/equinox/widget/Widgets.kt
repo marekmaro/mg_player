@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.widget
+package io.github.marekmaro.equinox.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -13,9 +13,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.widget.RemoteViews
 import androidx.media3.common.Player
-import io.github.marekmaro.sundial.MainActivity
-import io.github.marekmaro.sundial.PlaybackService
-import io.github.marekmaro.sundial.R
+import io.github.marekmaro.equinox.MainActivity
+import io.github.marekmaro.equinox.PlaybackService
+import io.github.marekmaro.equinox.R
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -57,9 +57,9 @@ class WidgetActionReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_TOGGLE = "io.github.marekmaro.sundial.widget.TOGGLE"
-        const val ACTION_NEXT = "io.github.marekmaro.sundial.widget.NEXT"
-        const val ACTION_PREV = "io.github.marekmaro.sundial.widget.PREV"
+        const val ACTION_TOGGLE = "io.github.marekmaro.equinox.widget.TOGGLE"
+        const val ACTION_NEXT = "io.github.marekmaro.equinox.widget.NEXT"
+        const val ACTION_PREV = "io.github.marekmaro.equinox.widget.PREV"
     }
 }
 
@@ -75,7 +75,7 @@ object WidgetUpdater {
     )
 
     fun idle(lastTitle: String? = null) = State(
-        title = lastTitle ?: "Sundial",
+        title = lastTitle ?: "Equinox",
         subtitle = if (lastTitle != null) "Dotknij, by słuchać dalej" else "Dotknij, by słuchać",
         playing = false,
         progress = 0f,

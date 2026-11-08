@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sundial</string>
+    <string name="app_name">Equinox</string>
 
-    <string name="widget_label">SUNDIAL</string>
+    <string name="widget_label">EQUINOX</string>
     <string name="widget_progress">Postęp odtwarzania</string>
     <string name="widget_prev">Poprzedni</string>
     <string name="widget_play">Odtwórz lub wstrzymaj</string>

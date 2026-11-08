@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
 import android.media.AudioAttributes
 import android.media.AudioFormat

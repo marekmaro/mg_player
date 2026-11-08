@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.marekmaro.sundial"
+    namespace = "io.github.marekmaro.equinox"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.github.marekmaro.sundial"
+        applicationId = "io.github.marekmaro.equinox"
         minSdk = 26
         targetSdk = 35
         versionCode = 3
@@ -18,14 +18,14 @@ android {
 
     // Klucz do podpisu wersji sklepowej podajemy przez zmienne środowiskowe
     // (lokalnie albo jako sekrety GitHub) – nigdy nie trafia do repozytorium.
-    val keystorePath: String? = System.getenv("SUNDIAL_KEYSTORE")
+    val keystorePath: String? = System.getenv("EQUINOX_KEYSTORE")
     signingConfigs {
         if (keystorePath != null) {
             create("upload") {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("SUNDIAL_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("SUNDIAL_KEY_ALIAS")
-                keyPassword = System.getenv("SUNDIAL_KEY_PASSWORD")
+                storePassword = System.getenv("EQUINOX_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("EQUINOX_KEY_ALIAS")
+                keyPassword = System.getenv("EQUINOX_KEY_PASSWORD")
             }
         }
     }

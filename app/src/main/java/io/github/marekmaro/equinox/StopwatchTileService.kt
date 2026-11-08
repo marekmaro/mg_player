@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -11,7 +11,7 @@ import android.service.quicksettings.TileService
 
 /**
  * Kafelek w szybkich ustawieniach: „Stoper muzyczny”.
- * Dotknięcie otwiera Sundial i od razu startuje stoper (ostatnio ustawiony czas).
+ * Dotknięcie otwiera Equinox i od razu startuje stoper (ostatnio ustawiony czas).
  * Gdy stoper już działa, kafelek jest podświetlony i pokazuje, ile zostało.
  */
 class StopwatchTileService : TileService() {

@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial
+package io.github.marekmaro.equinox
 
 import android.content.Intent
 import android.os.SystemClock
@@ -9,8 +9,8 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import io.github.marekmaro.sundial.data.Prefs
-import io.github.marekmaro.sundial.widget.WidgetUpdater
+import io.github.marekmaro.equinox.data.Prefs
+import io.github.marekmaro.equinox.widget.WidgetUpdater
 import androidx.media3.common.MediaMetadata
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -97,7 +97,7 @@ class PlaybackService : MediaSessionService() {
         WidgetUpdater.push(
             this,
             WidgetUpdater.State(
-                title = md.title?.toString().orEmpty().ifBlank { "Sundial" },
+                title = md.title?.toString().orEmpty().ifBlank { "Equinox" },
                 subtitle = when {
                     radio -> "● na żywo"
                     else -> md.artist?.toString().orEmpty()

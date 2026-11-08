@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.data
+package io.github.marekmaro.equinox.data
 
 import android.content.ContentUris
 import android.content.Context

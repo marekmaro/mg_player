@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.data
+package io.github.marekmaro.equinox.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,7 +22,7 @@ object RadioRepository {
             "$BASE?name=${URLEncoder.encode(query.trim(), "UTF-8")}&$common"
         }
         val conn = URL(url).openConnection() as HttpURLConnection
-        conn.setRequestProperty("User-Agent", "Sundial/0.2")
+        conn.setRequestProperty("User-Agent", "Equinox/0.3")
         conn.connectTimeout = 10_000
         conn.readTimeout = 10_000
         try {

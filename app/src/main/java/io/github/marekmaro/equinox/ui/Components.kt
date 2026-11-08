@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.ui
+package io.github.marekmaro.equinox.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

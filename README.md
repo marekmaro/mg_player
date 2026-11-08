@@ -1,4 +1,4 @@
-# Sundial
+# Equinox
 
 Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany jednym kciukiem.
 
@@ -31,7 +31,7 @@ Pełna instrukcja, w tym wersja do Google Play i podpisywanie: **[docs/BUDOWANIE
 
 1. Wejdź w zakładkę **Actions** w tym repozytorium.
 2. Otwórz najnowsze uruchomienie **Build APK** z zielonym ✓.
-3. Na dole w sekcji **Artifacts** pobierz `sundial-debug-apk` (plik ZIP).
+3. Na dole w sekcji **Artifacts** pobierz `equinox-debug-apk` (plik ZIP).
 4. Rozpakuj ZIP i przenieś `app-debug.apk` na telefon.
 5. Otwórz plik na telefonie i zezwól na instalację z nieznanych źródeł.
 
@@ -66,7 +66,7 @@ Każda zmiana w `main` uruchamia w GitHub Actions:
 Kotlin · Jetpack Compose · Media3 (ExoPlayer + MediaSession) · minSdk 26 (Android 8.0) · targetSdk 35
 
 ```
-app/src/main/java/io/github/marekmaro/sundial/
+app/src/main/java/io/github/marekmaro/equinox/
 ├── MainActivity.kt       nawigacja i uprawnienia
 ├── PlaybackService.kt    odtwarzanie w tle (Media3) + sesje
 ├── Core.kt               wspólny stan sesji, dobór utworów do stopera

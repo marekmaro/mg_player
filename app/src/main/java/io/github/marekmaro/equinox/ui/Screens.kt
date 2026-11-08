@@ -1,4 +1,4 @@
-package io.github.marekmaro.sundial.ui
+package io.github.marekmaro.equinox.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -56,12 +56,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.marekmaro.sundial.Chime
-import io.github.marekmaro.sundial.Kind
-import io.github.marekmaro.sundial.PlayerViewModel
-import io.github.marekmaro.sundial.RingMode
-import io.github.marekmaro.sundial.fmt
-import io.github.marekmaro.sundial.data.Facts
+import io.github.marekmaro.equinox.Chime
+import io.github.marekmaro.equinox.Kind
+import io.github.marekmaro.equinox.PlayerViewModel
+import io.github.marekmaro.equinox.RingMode
+import io.github.marekmaro.equinox.fmt
+import io.github.marekmaro.equinox.data.Facts
 import androidx.compose.runtime.mutableIntStateOf
 
 // ================================================================== Słuchaj (menu główne)
@@ -86,7 +86,7 @@ fun HomeScreen(
     )
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
-        title = "SUNDIAL",
+        title = "EQUINOX",
         smallTitle = true,
         rows = rows,
         onBack = null,
