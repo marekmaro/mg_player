@@ -2,7 +2,7 @@
 
 Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany jednym kciukiem.
 
-## Co już działa (wersja 0.2)
+## Co już działa (wersja 0.3)
 
 - **Pokrętło**: każda lista w aplikacji przewija się obrotem kciuka po okręgu, z lekką wibracją przy każdym kroku. Środek „OK” wybiera pozycję.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
@@ -15,11 +15,17 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
   - **Wyzwanie**: X minut audiobooka dziennie, licznik dni z rzędu
   - **Stoper muzyczny**: ustawiasz czas, a aplikacja układa muzykę dokładnie na ten czas. Kiedy muzyka ucichnie, czas minął. Na koniec melodyjny sygnał do wyboru (domyślnie Fanfara 8-bit, w menu pod czasem także Klasyczny, Dzwonek i Delikatny; kanał alarmu, słychać go nawet przy ściszonej muzyce) i wibracja. Próbki są w `docs/`.
 - **Ciekawostki zamiast okładki**: krótki opis wykonawcy (albo autora audiobooka) w środku pierścienia i karta z faktami z Wikipedii. Dotknięcie pokazuje następny fakt. Najpierw szukam w polskiej Wikipedii, potem w angielskiej. Wyniki są zapisywane w telefonie. Do Wikipedii wysyłana jest tylko nazwa wykonawcy. Można to wyłączyć przyciskiem „Ukryj”.
+- **Widżety**: „Odtwarzacz” (4×2: pierścień, tytuł, ⏮ ⏯ ⏭) i „Pierścień” (2×2: środek wstrzymuje i wznawia).
+- **Kafelek w szybkich ustawieniach „Stoper muzyczny”**: jedno dotknięcie uruchamia stoper, a kafelek pokazuje, ile zostało.
 - **Telefony składane i tablety**: po rozłożeniu układ dwupanelowy. W trybie „namiotu” pierścień jest nad zgięciem, a sterowanie pod nim. Obrót ani złożenie telefonu nie gubi otwartego ekranu.
 - Timer snu, stoper, wyzwanie i zapis pozycji audiobooka działają w serwisie odtwarzania, także po zamknięciu aplikacji.
 - Odtwarzanie w tle, powiadomienie z kontrolkami, ekran blokady, słuchawki Bluetooth (Media3).
 
 Audiobooki są rozpoznawane po folderze, którego ścieżka zawiera np. `Audiobooks`, `Audiobooki`, `Książki`, albo po znaczniku audiobooka w pliku.
+
+## Jak zbudować aplikację
+
+Pełna instrukcja, w tym wersja do Google Play i podpisywanie: **[docs/BUDOWANIE.md](docs/BUDOWANIE.md)**
 
 ## Jak pobrać APK bez instalowania niczego
 
@@ -53,7 +59,7 @@ Budowanie z wiersza poleceń:
 Każda zmiana w `main` uruchamia w GitHub Actions:
 - **testy jednostkowe** (`./gradlew testDebugUnitTest`): formatowanie czasu, dobór utworów do stopera, rozpoznawanie wykonawców, ciekawostki, sygnały,
 - **Android Lint**,
-- **test na emulatorze** (`.github/scripts/smoke.py`): instalacja, pliki testowe, przejście po wszystkich ekranach, kręcenie pokrętłem, obrót ekranu, symulacja rozłożonego składaka i sprawdzenie, czy aplikacja się nie wywraca. Zrzuty ekranu są w artefakcie `smoke-screenshots`.
+- **test na emulatorze** wersji release (R8) (`.github/scripts/smoke.py`): instalacja, pliki testowe, przejście po wszystkich ekranach, kręcenie pokrętłem, obrót ekranu, symulacja rozłożonego składaka, widżety, kliknięcie kafelka i sprawdzenie, czy aplikacja się nie wywraca. Zrzuty ekranu są w artefakcie `smoke-screenshots`.
 
 ## Technologia
 
@@ -75,4 +81,4 @@ app/src/main/java/io/github/marekmaro/sundial/
 - [ ] Korektor: „Bas ↔ Głos” + „Czysty głos” dla audiobooków
 - [ ] Okładki albumów
 - [ ] Premium (Google Play Billing) i reklama w miejscu okładki (AdMob, tylko przy otwartej aplikacji)
-- [ ] Wersja release z podpisem i publikacja w Google Play
+- [ ] Publikacja w Google Play (wersja z podpisem jest gotowa, zobacz docs/BUDOWANIE.md)

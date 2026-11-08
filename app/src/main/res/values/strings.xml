@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Sundial</string>
+
+    <string name="widget_label">SUNDIAL</string>
+    <string name="widget_progress">Postęp odtwarzania</string>
+    <string name="widget_prev">Poprzedni</string>
+    <string name="widget_play">Odtwórz lub wstrzymaj</string>
+    <string name="widget_next">Następny</string>
+    <string name="widget_player_name">Odtwarzacz</string>
+    <string name="widget_ring_name">Pierścień</string>
+    <string name="widget_player_desc">Pierścień postępu, tytuł i przyciski sterowania</string>
+    <string name="widget_ring_desc">Sam pierścień postępu. Środek wstrzymuje i wznawia.</string>
+
+    <string name="tile_stopwatch">Stoper muzyczny</string>
 </resources>

@@ -30,6 +30,9 @@ object Core {
 
     var chime: Chime = Chime.CHIP
 
+    /** Ostatnio ustawiony czas stopera w minutach. */
+    var stopwatchMinutes: Int = 25
+
     /** Minuty audiobooka jeszcze niezapisane na dysk (zapis co kilka sekund). */
     var pendingListenMs: Long = 0L
 }

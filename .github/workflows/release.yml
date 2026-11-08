@@ -1,0 +1,50 @@
+name: Release (Google Play)
+
+# Uruchamiane ręcznie: Actions -> Release (Google Play) -> Run workflow.
+# Wymaga sekretów repozytorium (Settings -> Secrets and variables -> Actions):
+#   SUNDIAL_KEYSTORE_BASE64, SUNDIAL_KEYSTORE_PASSWORD, SUNDIAL_KEY_ALIAS, SUNDIAL_KEY_PASSWORD
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Odtwórz klucz z sekretu
+        env:
+          KEYSTORE_B64: ${{ secrets.SUNDIAL_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "Brak sekretu SUNDIAL_KEYSTORE_BASE64 – zobacz docs/BUDOWANIE.md"; exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Zbuduj podpisany pakiet AAB i APK
+        env:
+          SUNDIAL_KEYSTORE: ${{ runner.temp }}/upload.jks
+          SUNDIAL_KEYSTORE_PASSWORD: ${{ secrets.SUNDIAL_KEYSTORE_PASSWORD }}
+          SUNDIAL_KEY_ALIAS: ${{ secrets.SUNDIAL_KEY_ALIAS }}
+          SUNDIAL_KEY_PASSWORD: ${{ secrets.SUNDIAL_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest bundleRelease assembleRelease --no-daemon
+
+      - name: Usuń klucz
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sundial-release
+          path: |
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/*.apk

@@ -10,6 +10,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import io.github.marekmaro.sundial.data.Prefs
+import io.github.marekmaro.sundial.widget.WidgetUpdater
+import androidx.media3.common.MediaMetadata
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -36,10 +38,16 @@ class PlaybackService : MediaSessionService() {
                 session?.player?.pause()
                 Core.sleepAfterItem = false
             }
+            pushWidget()
+        }
+
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            pushWidget()
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (!isPlaying) persist()
+            pushWidget()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -49,6 +57,7 @@ class PlaybackService : MediaSessionService() {
                 Core.stopwatchDone = true
                 vibrateFinish(this@PlaybackService)
                 scope.playChime(Core.chime)
+                StopwatchTileService.requestRefresh(this@PlaybackService)
             }
         }
     }
@@ -70,7 +79,38 @@ class PlaybackService : MediaSessionService() {
             .build()
         player.addListener(listener)
         session = MediaSession.Builder(this, player).build()
+        Companion.player = player
         startTicker()
+        pushWidget()
+    }
+
+    /** Odświeża widżety na ekranie głównym aktualnym stanem odtwarzacza. */
+    private fun pushWidget() {
+        val p = session?.player ?: return
+        if (p.mediaItemCount == 0) {
+            WidgetUpdater.push(this, WidgetUpdater.idle())
+            return
+        }
+        val md = p.mediaMetadata
+        val dur = p.duration
+        val radio = Core.kind == Kind.RADIO
+        WidgetUpdater.push(
+            this,
+            WidgetUpdater.State(
+                title = md.title?.toString().orEmpty().ifBlank { "Sundial" },
+                subtitle = when {
+                    radio -> "● na żywo"
+                    else -> md.artist?.toString().orEmpty()
+                },
+                playing = p.isPlaying,
+                progress = when {
+                    radio -> if (p.isPlaying) 1f else 0f
+                    dur > 0 && dur != C.TIME_UNSET -> p.currentPosition.toFloat() / dur
+                    else -> 0f
+                },
+                active = true,
+            ),
+        )
     }
 
     private fun startTicker() {
@@ -85,9 +125,14 @@ class PlaybackService : MediaSessionService() {
                 val player = session?.player ?: continue
 
                 // Wyzwanie: licz minuty audiobooka; zapis na dysk co ~5 s
-                if (player.isPlaying && Core.kind == Kind.BOOK) {
-                    Core.pendingListenMs += dt
-                    if (++ticks % 10 == 0) persist()
+                if (player.isPlaying) {
+                    ticks++
+                    // pierścień na widżecie co ~5 s (rzadziej = mniej pracy dla baterii)
+                    if (ticks % 10 == 0) pushWidget()
+                    if (Core.kind == Kind.BOOK) {
+                        Core.pendingListenMs += dt
+                        if (ticks % 10 == 0) persist()
+                    }
                 }
 
                 // Timer snu z płynnym ściszaniem w ostatnich 15 s
@@ -128,6 +173,9 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         persist()
+        val lastTitle = session?.player?.mediaMetadata?.title?.toString()
+        Companion.player = null
+        WidgetUpdater.push(this, WidgetUpdater.idle(lastTitle?.takeIf { it.isNotBlank() }), force = true)
         scope.cancel()
         session?.run {
             player.removeListener(listener)
@@ -136,5 +184,11 @@ class PlaybackService : MediaSessionService() {
         }
         session = null
         super.onDestroy()
+    }
+
+    companion object {
+        /** Odtwarzacz serwisu (ten sam proces) – dla widżetów i kafelka. Tylko wątek główny. */
+        var player: Player? = null
+            private set
     }
 }

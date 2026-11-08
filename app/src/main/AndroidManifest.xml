@@ -37,5 +37,50 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <!-- Widżety na ekran główny -->
+        <receiver
+            android:name=".widget.PlayerWidget"
+            android:exported="false"
+            android:label="@string/widget_player_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_player_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.RingWidget"
+            android:exported="false"
+            android:label="@string/widget_ring_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_ring_info" />
+        </receiver>
+
+        <!-- Przyciski widżetów (tylko wewnątrz aplikacji) -->
+        <receiver
+            android:name=".widget.WidgetActionReceiver"
+            android:exported="false" />
+
+        <!-- Kafelek w szybkich ustawieniach -->
+        <service
+            android:name=".StopwatchTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_stopwatch"
+            android:label="@string/tile_stopwatch"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="false" />
+        </service>
     </application>
 </manifest>

@@ -220,6 +220,30 @@ adb("shell", "wm", "size", "reset")
 adb("shell", "wm", "density", "reset")
 time.sleep(2)
 
+# 10. Widżety: system musi widzieć oba widżety Sundial
+dump = adb("shell", "dumpsys", "appwidget")
+for w in ["PlayerWidget", "RingWidget"]:
+    if f"widget.{w}" in dump and PKG in dump:
+        note(f"OK [widżety]: system widzi {w}")
+    else:
+        problems.append(f"[widżety] system nie widzi {w}")
+
+# 11. Kafelek w szybkich ustawieniach: dotknięcie ma uruchomić stoper muzyczny
+adb("shell", "input", "keyevent", "3")  # ekran główny telefonu
+time.sleep(2)
+tile = f"{PKG}/.StopwatchTileService"
+note(adb("shell", "cmd", "statusbar", "add-tile", tile).strip() or "kafelek dodany")
+time.sleep(2)
+adb("shell", "cmd", "statusbar", "click-tile", tile)
+time.sleep(10)
+adb("shell", "cmd", "statusbar", "collapse")
+shot("18-kafelek-stoper")
+expect("TERAZ GRA", "kafelek: stoper wystartował i otworzył odtwarzacz")
+back()
+tap("Sesje", exact=True, required=False)
+shot("19-sesje-stoper-dziala")
+expect("Zatrzymaj stoper", "kafelek: stoper aktywny w Sesjach")
+
 hits, logs = crashed()
 open(f"{OUT}/logcat.txt", "w", encoding="utf-8").write(logs)
 if hits:

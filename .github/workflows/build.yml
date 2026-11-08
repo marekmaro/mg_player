@@ -22,7 +22,7 @@ jobs:
       - name: Unit tests, lint, debug APK
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --stacktrace
+          ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease --no-daemon --stacktrace
 
       - name: Lint summary
         if: always()
@@ -45,6 +45,12 @@ jobs:
           name: sundial-debug-apk
           path: app/build/outputs/apk/debug/*.apk
 
+      # wersja release (R8) podpisana kluczem testowym – do testu na emulatorze
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sundial-release-test-apk
+          path: app/build/outputs/apk/release/*.apk
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -64,7 +70,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: sundial-debug-apk
+          name: sundial-release-test-apk
           path: apk
 
       - name: Enable KVM

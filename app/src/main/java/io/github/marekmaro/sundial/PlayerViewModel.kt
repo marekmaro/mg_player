@@ -91,8 +91,24 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var radioLoading by mutableStateOf(false); private set
     var radioError by mutableStateOf<String?>(null); private set
 
-    private var stopwatchMinutes = 25
     private var playerError: String? = null
+
+    /** Prośba o przejście do ekranu (z widżetu, kafelka). Obsługuje ją nawigacja w MainActivity. */
+    var navRequest by mutableStateOf<Screen?>(null)
+    private var stopwatchRequested = false
+
+    /** Wywoływane, gdy aplikację otwiera widżet albo kafelek. */
+    fun handleOpen(open: String?) {
+        when (open) {
+            MainActivity.OPEN_PLAYING -> navRequest = Screen.Playing
+            MainActivity.OPEN_SESSIONS -> navRequest = Screen.Sessions
+            MainActivity.OPEN_STOPWATCH -> {
+                // stoper wystartuje, gdy biblioteka i odtwarzacz będą gotowe (patrz tick)
+                stopwatchRequested = true
+                navRequest = Screen.Sessions
+            }
+        }
+    }
 
     /** Ekran odświeżamy tylko, gdy aplikacja jest widoczna (oszczędza baterię). */
     var visible = true
@@ -277,7 +293,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun changeStopwatch(deltaMinutes: Int) {
-        stopwatchMinutes = (stopwatchMinutes + deltaMinutes).coerceIn(5, 180)
+        Core.stopwatchMinutes = (Core.stopwatchMinutes + deltaMinutes).coerceIn(5, 180)
         tickNow()
     }
 
@@ -291,7 +307,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
      * zadany czas. Kiedy muzyka ucichnie, czas minął.
      */
     fun startStopwatch(): Boolean {
-        val target = stopwatchMinutes * 60_000L
+        val target = Core.stopwatchMinutes * 60_000L
         val idx = pickForDuration(tracks.map { it.durationMs }, target)
         if (idx.isEmpty()) return false
         val picked = idx.map { tracks[it] }
@@ -300,6 +316,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         Core.stopwatchDurations = picked.map { it.durationMs }
         Core.stopwatchDone = false
         Core.stopwatchInfo = "${picked.size} utw. · ${fmt(total)}"
+        StopwatchTileService.requestRefresh(getApplication())
         tickNow()
         return true
     }
@@ -308,6 +325,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         Core.stopwatchDurations = null
         Core.stopwatchDone = false
         Core.stopwatchInfo = null
+        StopwatchTileService.requestRefresh(getApplication())
         tickNow()
     }
 
@@ -408,6 +426,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private fun tickNow() = tick(0)
 
     private fun tick(@Suppress("UNUSED_PARAMETER") dtMs: Long) {
+        if (stopwatchRequested && controller != null && libraryLoaded) {
+            stopwatchRequested = false
+            if (startStopwatch()) navRequest = Screen.Playing
+        }
         val c = controller
         if (c != null) {
             val item = c.currentMediaItem
@@ -441,7 +463,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             todayMs = prefs.listened(today) + Core.pendingListenMs,
             goalMinutes = prefs.goalMinutes,
             streak = prefs.streak(),
-            stopwatchMinutes = stopwatchMinutes,
+            stopwatchMinutes = Core.stopwatchMinutes,
             stopwatchRemainingMs = swRemaining,
             stopwatchDone = Core.stopwatchDone,
             stopwatchInfo = Core.stopwatchInfo,

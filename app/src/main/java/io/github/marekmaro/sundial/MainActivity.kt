@@ -2,6 +2,7 @@ package io.github.marekmaro.sundial
 
 import android.Manifest
 import android.os.Build
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -36,6 +37,13 @@ import io.github.marekmaro.sundial.ui.SessionsScreen
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        const val EXTRA_OPEN = "io.github.marekmaro.sundial.OPEN"
+        const val OPEN_PLAYING = "playing"
+        const val OPEN_SESSIONS = "sessions"
+        const val OPEN_STOPWATCH = "stopwatch"
+    }
+
     private val vm: PlayerViewModel by viewModels()
     private val posture = mutableStateOf(Posture.FLAT)
 
@@ -43,6 +51,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         watchFold()
+        // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
+        if (savedInstanceState == null) vm.handleOpen(intent?.getStringExtra(EXTRA_OPEN))
         setContent {
             SundialTheme {
                 CompositionLocalProvider(LocalPosture provides posture.value) {
@@ -69,6 +79,12 @@ class MainActivity : ComponentActivity() {
                     }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        vm.handleOpen(intent.getStringExtra(EXTRA_OPEN))
     }
 
     override fun onStart() {
@@ -117,6 +133,14 @@ private fun App(vm: PlayerViewModel) {
     }
 
     BackHandler(enabled = stack.size > 1) { back() }
+
+    // przejście zlecone z widżetu albo kafelka
+    LaunchedEffect(vm.navRequest) {
+        vm.navRequest?.let {
+            if (stack.lastOrNull() != it) go(it)
+            vm.navRequest = null
+        }
+    }
 
     when (stack.last()) {
         Screen.Home -> HomeScreen(

@@ -12,13 +12,33 @@ android {
         applicationId = "io.github.marekmaro.sundial"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
+    }
+
+    // Klucz do podpisu wersji sklepowej podajemy przez zmienne środowiskowe
+    // (lokalnie albo jako sekrety GitHub) – nigdy nie trafia do repozytorium.
+    val keystorePath: String? = System.getenv("SUNDIAL_KEYSTORE")
+    signingConfigs {
+        if (keystorePath != null) {
+            create("upload") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("SUNDIAL_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SUNDIAL_KEY_ALIAS")
+                keyPassword = System.getenv("SUNDIAL_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: mniejsza i szybsza aplikacja
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // bez klucza (np. test w CI) podpisujemy kluczem testowym, żeby dało się zainstalować
+            signingConfig = if (keystorePath != null) signingConfigs.getByName("upload")
+            else signingConfigs.getByName("debug")
         }
     }
 

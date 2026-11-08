@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widżet 2x2: sam pierścień, środek = pauza/odtwarzanie -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:padding="8dp">
+
+    <ImageView
+        android:id="@+id/widget_ring"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/widget_progress"
+        android:scaleType="fitCenter" />
+
+    <ImageButton
+        android:id="@+id/widget_play"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/widget_play"
+        android:padding="12dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_play" />
+</FrameLayout>
