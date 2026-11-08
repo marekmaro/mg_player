@@ -92,6 +92,8 @@ def tap(text, exact=False, desc=False, required=True, zone=(0.55, 0.25)):
         if required:
             problems.append(f"nie znaleziono: {text!r}")
         note(f"BRAK: {text!r}")
+        seen = [t or d for t, d, *_ in nodes() if (t or d)]
+        note("  na ekranie: " + " | ".join(seen)[:400])
         return False
     adb("shell", "input", "tap", str(pos[0]), str(pos[1]))
     note(f"tap: {text!r}")
@@ -335,7 +337,7 @@ if hits:
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
 # tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
-KEY = ("01-start", "01b-", "01c-", "04a-", "04-teraz", "05d-", "07-", "09-", "15-", "22-", "23-")
+KEY = ("15-", "04-teraz", "22-", "23-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
     if not f.split("/")[-1].startswith(KEY):
         continue
