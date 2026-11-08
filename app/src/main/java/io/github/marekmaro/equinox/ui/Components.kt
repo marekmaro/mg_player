@@ -175,7 +175,7 @@ fun TopBar(title: String, onBack: (() -> Unit)?, small: Boolean = false, trailin
         if (small) {
             Text(title, color = Pal.Muted, fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 4.sp)
         } else {
-            Text(title, color = Pal.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = Pal.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
         }
         if (trailing != null) {
             Spacer(Modifier.weight(1f))

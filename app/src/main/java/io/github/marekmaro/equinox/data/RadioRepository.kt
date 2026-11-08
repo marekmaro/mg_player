@@ -14,6 +14,32 @@ object RadioRepository {
 
     private const val BASE = "https://all.api.radio-browser.info/json/stations/search"
 
+    fun isPlaylistLink(url: String): Boolean {
+        val path = url.substringBefore('?').lowercase()
+        return path.endsWith(".pls") || path.endsWith(".m3u")
+    }
+
+    /** Z listy .pls / .m3u wyciąga pierwszy adres http(s) strumienia. */
+    suspend fun resolvePlaylist(url: String): String? = withContext(Dispatchers.IO) {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.setRequestProperty("User-Agent", "Equinox/0.5")
+        conn.connectTimeout = 10_000
+        conn.readTimeout = 10_000
+        try {
+            val text = conn.inputStream.bufferedReader().use { it.readText().take(64_000) }
+            parsePlaylist(text)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /** Parsowanie: w .pls linie „File1=http…”, w .m3u zwykłe linie z adresem. */
+    fun parsePlaylist(text: String): String? =
+        text.lineSequence()
+            .map { it.trim() }
+            .map { if (it.contains('=') && it.lowercase().startsWith("file")) it.substringAfter('=').trim() else it }
+            .firstOrNull { it.startsWith("http://") || it.startsWith("https://") }
+
     suspend fun search(query: String): List<Station> = withContext(Dispatchers.IO) {
         val common = "order=clickcount&reverse=true&hidebroken=true&limit=60"
         val url = if (query.isBlank()) {
@@ -22,7 +48,7 @@ object RadioRepository {
             "$BASE?name=${URLEncoder.encode(query.trim(), "UTF-8")}&$common"
         }
         val conn = URL(url).openConnection() as HttpURLConnection
-        conn.setRequestProperty("User-Agent", "Equinox/0.4")
+        conn.setRequestProperty("User-Agent", "Equinox/0.5")
         conn.connectTimeout = 10_000
         conn.readTimeout = 10_000
         try {

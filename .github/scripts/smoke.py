@@ -241,6 +241,40 @@ adb("shell", "wm", "size", "reset")
 adb("shell", "wm", "density", "reset")
 time.sleep(2)
 
+# 9b. Playlisty: utwórz, dodaj utwór, sprawdź
+for _ in range(4):  # wróć do menu głównego
+    if find("Losuj wszystko"):
+        break
+    back()
+tap("Playlisty", exact=True)
+tap("+ Nowa playlista")
+tap("Nazwa", exact=True, required=False)  # pole tekstowe w oknie
+adb("shell", "input", "text", "Wieczorna")
+time.sleep(1)
+tap("Utwórz", exact=True)
+time.sleep(1)
+shot("20-playlista-pusta")
+expect("Wieczorna", "playlista utworzona")
+tap("+ Dodaj")
+shot("21-dodawanie-utworow")
+tap("+", exact=True)          # pierwszy utwór na liście
+tap("+", exact=True)          # drugi
+back()
+shot("22-playlista-z-utworami")
+expect("✕", "utwory dodane do playlisty")
+back()
+back()
+
+# 9c. Biblioteka: foldery i skanowanie telefonu
+tap("Biblioteka", exact=True)
+shot("23-biblioteka")
+expect("Testowe", "folder z muzyką widoczny")
+tap("Skanuj teraz")
+time.sleep(12)
+shot("24-po-skanowaniu")
+expect("Znaleziono", "skanowanie telefonu")
+back()
+
 # 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
 for w in ["PlayerWidget", "RingWidget"]:

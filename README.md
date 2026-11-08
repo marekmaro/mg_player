@@ -4,12 +4,15 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**, które w trybie **Auto** przełączają się same o 7:00 i 19:00.
 
-## Co już działa (wersja 0.4)
+## Co już działa (wersja 0.5)
 
 - **Pokrętło**: każda lista w aplikacji przewija się obrotem kciuka po okręgu, z lekką wibracją przy każdym kroku. Środek „OK” wybiera pozycję.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
 - **Audiobooki**: jeden folder lub album to jedna książka. Aplikacja pamięta rozdział i pozycję każdej książki, a po wznowieniu cofa o 5 s. Prędkość 0.8–2×, przyciski ±30 s.
-- **Radio**: wyszukiwarka tysięcy stacji (radio-browser.info), na start popularne polskie stacje. Ulubione (★) i dodawanie własnego linku do strumienia.
+- **Playlisty**: tworzenie, zmiana nazwy, usuwanie. Utwór dodasz przyciskiem „+” na liście muzyki albo „＋ Do playlisty” na ekranie odtwarzania, a usuniesz go „✕”. Przy dodawaniu jest wyszukiwarka.
+- **Biblioteka**: każdy folder oznaczasz jako Auto / Muzyka / Audiobook / Pomiń (dotyczy też podfolderów). Przycisk **Skanuj telefon** dodaje pliki, których system jeszcze nie zauważył.
+- **Formaty**: MP3, AAC/M4A, M4B, FLAC, OGG, Opus, WAV, AMR. Zależnie od telefonu też ALAC i AC-3. Nieobsługiwane: WMA, APE, DSD.
+- **Radio**: wyszukiwarka tysięcy stacji (radio-browser.info), na start popularne polskie stacje. Ulubione (★) i dodawanie własnego linku do strumienia (także HLS .m3u8 i listy .pls / .m3u).
 - **Teraz gra**: pierścień działa jak pokrętło, w trzech trybach do wyboru: **Przewijanie** (±10 s), **Utwory** (następny/poprzedni) i **Głośność**. Środek pierścienia: dotknięcie = pauza/odtwarzanie, 2× = następny, przytrzymanie = poprzedni.
 - Na każdej liście przytrzymanie „OK” wstrzymuje lub wznawia odtwarzanie, bez wychodzenia z listy.
 - **Sesje**:

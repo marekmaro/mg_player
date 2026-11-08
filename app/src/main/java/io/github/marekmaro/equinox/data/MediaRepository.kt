@@ -17,6 +17,8 @@ data class Track(
     val durationMs: Long,
     val uri: Uri,
     val isBook: Boolean,
+    /** folder, w którym leży plik (do reguł Muzyka / Audiobook / Pomiń) */
+    val folder: String = "",
 )
 
 /** Audiobook = jeden album / folder. Rozdziały to kolejne pliki. */
@@ -85,7 +87,8 @@ object MediaRepository {
 
                 while (c.moveToNext()) {
                     val id = c.getLong(iId)
-                    val path = (c.getString(iData) ?: "").lowercase()
+                    val rawPath = c.getString(iData) ?: ""
+                    val path = rawPath.lowercase()
                     val flagged = iBook >= 0 && c.getInt(iBook) != 0
                     val artist = c.getString(iArtist)
                     result += Track(
@@ -97,6 +100,7 @@ object MediaRepository {
                         durationMs = c.getLong(iDuration),
                         uri = ContentUris.withAppendedId(collection, id),
                         isBook = flagged || bookHints.any { path.contains(it) },
+                        folder = rawPath.substringBeforeLast('/', ""),
                     )
                 }
             }

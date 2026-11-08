@@ -91,4 +91,27 @@ class LogicTest {
         assertTrue(Block.CLOCK in repaired && Block.QUEUE in repaired)
         assertEquals(repaired.size, repaired.toSet().size)
     }
+
+    @Test
+    fun folderRules_longestPathWins() {
+        val rules = mapOf(
+            "/sdcard/Music" to io.github.marekmaro.equinox.data.FolderRule.SKIP,
+            "/sdcard/Music/Dobre" to io.github.marekmaro.equinox.data.FolderRule.MUSIC,
+        )
+        val L = io.github.marekmaro.equinox.data.Library
+        assertEquals(io.github.marekmaro.equinox.data.FolderRule.SKIP, L.ruleFor("/sdcard/Music/Stare", rules))
+        assertEquals(io.github.marekmaro.equinox.data.FolderRule.MUSIC, L.ruleFor("/sdcard/Music/Dobre/Album", rules))
+        // „Music2” to inny folder niż „Music”
+        assertEquals(io.github.marekmaro.equinox.data.FolderRule.AUTO, L.ruleFor("/sdcard/Music2", rules))
+    }
+
+    @Test
+    fun radio_parsesPlsAndM3u() {
+        val R = io.github.marekmaro.equinox.data.RadioRepository
+        assertEquals("http://stream.example.com/live", R.parsePlaylist("[playlist]\nNumberOfEntries=1\nFile1=http://stream.example.com/live\nTitle1=X"))
+        assertEquals("https://a.example/s.mp3", R.parsePlaylist("#EXTM3U\n#EXTINF:-1,Radio\nhttps://a.example/s.mp3\n"))
+        assertEquals(null, R.parsePlaylist("brak adresu"))
+        assertTrue(R.isPlaylistLink("http://x/listen.pls?id=3"))
+        assertTrue(!R.isPlaylistLink("http://x/stream.mp3"))
+    }
 }

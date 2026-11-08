@@ -28,6 +28,10 @@ import kotlinx.coroutines.launch
 import io.github.marekmaro.equinox.ui.LocalPosture
 import io.github.marekmaro.equinox.ui.Posture
 import io.github.marekmaro.equinox.ui.LayoutEditorScreen
+import io.github.marekmaro.equinox.ui.LibraryScreen
+import io.github.marekmaro.equinox.ui.PickTracksScreen
+import io.github.marekmaro.equinox.ui.PlaylistScreen
+import io.github.marekmaro.equinox.ui.PlaylistsScreen
 import io.github.marekmaro.equinox.ui.WelcomeIntro
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -132,7 +136,7 @@ private fun PermissionRequest(onDone: () -> Unit) {
     }
 }
 
-enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout }
+enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library }
 
 @Composable
 private fun App(vm: PlayerViewModel) {
@@ -169,6 +173,8 @@ private fun App(vm: PlayerViewModel) {
             onRadio = { go(Screen.Radio) },
             onSessions = { go(Screen.Sessions) },
             onPlaying = { go(Screen.Playing) },
+            onPlaylists = { go(Screen.Playlists) },
+            onLibrary = { go(Screen.Library) },
         )
         Screen.Music -> MusicScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Books -> BooksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
@@ -176,5 +182,9 @@ private fun App(vm: PlayerViewModel) {
         Screen.Sessions -> SessionsScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Playing -> PlayingScreen(vm, onBack = ::back, onSessions = { go(Screen.Sessions) }, onEditLayout = { go(Screen.Layout) })
         Screen.Layout -> LayoutEditorScreen(vm, onBack = ::back)
+        Screen.Playlists -> PlaylistsScreen(vm, onBack = ::back, onOpenPlaylist = { go(Screen.Playlist) })
+        Screen.Playlist -> PlaylistScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onAddTracks = { go(Screen.PickTracks) })
+        Screen.PickTracks -> PickTracksScreen(vm, onBack = ::back)
+        Screen.Library -> LibraryScreen(vm, onBack = ::back)
     }
 }

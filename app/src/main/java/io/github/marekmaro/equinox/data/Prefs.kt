@@ -49,6 +49,42 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Reguły folderów: ścieżka -> Muzyka / Audiobook / Pomiń ---
+    fun folderRules(): Map<String, FolderRule> {
+        val o = try { JSONObject(sp.getString("folder_rules", "{}") ?: "{}") } catch (e: Exception) { JSONObject() }
+        return o.keys().asSequence().mapNotNull { k ->
+            FolderRule.entries.firstOrNull { it.name == o.optString(k) }?.let { k to it }
+        }.toMap()
+    }
+
+    fun setFolderRules(rules: Map<String, FolderRule>) {
+        val o = JSONObject()
+        rules.forEach { (k, v) -> if (v != FolderRule.AUTO) o.put(k, v.name) }
+        sp.edit().putString("folder_rules", o.toString()).apply()
+    }
+
+    // --- Playlisty ---
+    fun playlists(): List<Playlist> {
+        val arr = try { JSONArray(sp.getString("playlists", "[]") ?: "[]") } catch (e: Exception) { JSONArray() }
+        return (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            val ids = o.optJSONArray("tracks") ?: JSONArray()
+            Playlist(
+                id = o.optLong("id"),
+                name = o.optString("name"),
+                trackIds = (0 until ids.length()).map { ids.getLong(it) },
+            )
+        }
+    }
+
+    fun setPlaylists(list: List<Playlist>) {
+        val arr = JSONArray()
+        list.forEach { p ->
+            arr.put(JSONObject().put("id", p.id).put("name", p.name).put("tracks", JSONArray(p.trackIds)))
+        }
+        sp.edit().putString("playlists", arr.toString()).apply()
+    }
+
     // --- Klocki ekranu odtwarzania (kolejność, przecinki) ---
     var playerLayout: String?
         get() = sp.getString("player_layout", null)

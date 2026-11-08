@@ -33,6 +33,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.marekmaro.equinox.data.Book
+import io.github.marekmaro.equinox.data.FolderInfo
+import io.github.marekmaro.equinox.data.FolderRule
+import io.github.marekmaro.equinox.data.Library
+import io.github.marekmaro.equinox.data.Playlist
 import io.github.marekmaro.equinox.data.Facts
 import io.github.marekmaro.equinox.data.FactsRepository
 import io.github.marekmaro.equinox.data.MediaRepository
@@ -225,14 +229,117 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---------------------------------------------------------------- Biblioteka: foldery i skanowanie
+
+    /** Wszystkie pliki z telefonu, przed zastosowaniem reguł folderów. */
+    private var allTracks: List<Track> = emptyList()
+    private var folderRules: Map<String, FolderRule> = prefs.folderRules()
+    var folders by mutableStateOf<List<FolderInfo>>(emptyList()); private set
+
+    /** Stan skanowania: null = nie trwa; liczba = ile plików znaleziono dotąd. */
+    var scanProgress by mutableStateOf<Int?>(null); private set
+    var scanMessage by mutableStateOf<String?>(null); private set
+
     fun loadLibrary() {
         permissionGranted = hasAudioPermission()
         viewModelScope.launch {
-            val all = withContext(Dispatchers.IO) { MediaRepository.load(getApplication()) }
-            tracks = all.filter { !it.isBook }
-            books = MediaRepository.groupBooks(all.filter { it.isBook })
+            allTracks = withContext(Dispatchers.IO) { MediaRepository.load(getApplication()) }
+            applyLibrary()
             libraryLoaded = true
         }
+    }
+
+    private fun applyLibrary() {
+        val visible = Library.applyRules(allTracks, folderRules)
+        tracks = visible.filter { !it.isBook }
+        books = MediaRepository.groupBooks(visible.filter { it.isBook })
+        folders = Library.folders(allTracks, folderRules)
+    }
+
+    /** Dotknięcie folderu: Auto → Muzyka → Audiobook → Pomiń → Auto. */
+    fun cycleFolderRule(path: String) {
+        val current = folderRules[path] ?: FolderRule.AUTO
+        val next = current.next()
+        folderRules = if (next == FolderRule.AUTO) folderRules - path else folderRules + (path to next)
+        prefs.setFolderRules(folderRules)
+        applyLibrary()
+    }
+
+    fun scanPhone() {
+        if (scanProgress != null) return
+        val before = allTracks.size
+        scanProgress = 0
+        scanMessage = null
+        viewModelScope.launch {
+            val result = try {
+                Library.scanPhone(getApplication()) { n -> viewModelScope.launch { scanProgress = n } }
+            } catch (e: Exception) {
+                null
+            }
+            allTracks = withContext(Dispatchers.IO) { MediaRepository.load(getApplication()) }
+            applyLibrary()
+            libraryLoaded = true
+            val added = (allTracks.size - before).coerceAtLeast(0)
+            scanMessage = when {
+                result == null -> "Nie udało się przeszukać pamięci telefonu."
+                added > 0 -> "Znaleziono ${result.filesFound} plików audio, w tym $added nowych w bibliotece."
+                else -> "Znaleziono ${result.filesFound} plików audio. Biblioteka jest aktualna."
+            }
+            scanProgress = null
+        }
+    }
+
+    // ---------------------------------------------------------------- Playlisty
+
+    var playlists by mutableStateOf(prefs.playlists()); private set
+
+    /** Otwarta playlista (ekran szczegółów). */
+    var openPlaylistId by mutableStateOf<Long?>(null)
+
+    fun playlist(id: Long?): Playlist? = playlists.firstOrNull { it.id == id }
+
+    /** Utwory playlisty; pliki usunięte z telefonu są pomijane. */
+    fun playlistTracks(p: Playlist): List<Track> {
+        val byId = allTracks.associateBy { it.id }
+        return p.trackIds.mapNotNull { byId[it] }
+    }
+
+    fun createPlaylist(name: String): Long {
+        val id = System.currentTimeMillis()
+        savePlaylists(playlists + Playlist(id, name.trim().ifBlank { "Nowa playlista" }, emptyList()))
+        return id
+    }
+
+    fun renamePlaylist(id: Long, name: String) =
+        savePlaylists(playlists.map { if (it.id == id) it.copy(name = name.trim().ifBlank { it.name }) else it })
+
+    fun deletePlaylist(id: Long) = savePlaylists(playlists.filter { it.id != id })
+
+    fun isInPlaylist(id: Long, trackId: Long) = playlist(id)?.trackIds?.contains(trackId) == true
+
+    fun addToPlaylist(id: Long, trackId: Long) =
+        savePlaylists(playlists.map { if (it.id == id && trackId !in it.trackIds) it.copy(trackIds = it.trackIds + trackId) else it })
+
+    fun removeFromPlaylist(id: Long, trackId: Long) =
+        savePlaylists(playlists.map { if (it.id == id) it.copy(trackIds = it.trackIds - trackId) else it })
+
+    fun toggleInPlaylist(id: Long, trackId: Long) =
+        if (isInPlaylist(id, trackId)) removeFromPlaylist(id, trackId) else addToPlaylist(id, trackId)
+
+    fun playPlaylist(p: Playlist, start: Int = 0, shuffle: Boolean = false): Boolean {
+        val list = playlistTracks(p)
+        if (list.isEmpty()) return false
+        if (shuffle) playTracks(list.shuffled(), 0) else playTracks(list, start.coerceIn(0, list.lastIndex))
+        return true
+    }
+
+    /** Identyfikator utworu, który teraz gra (do „Dodaj do playlisty” z ekranu odtwarzania). */
+    fun currentTrackId(): Long? =
+        if (Core.kind == Kind.MUSIC) controller?.currentMediaItem?.mediaId?.toLongOrNull() else null
+
+    private fun savePlaylists(list: List<Playlist>) {
+        playlists = list
+        prefs.setPlaylists(list)
     }
 
     fun bookProgress(book: Book): Float {
@@ -279,6 +386,22 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun playStation(s: Station) {
+        // linki .pls / .m3u to listy – najpierw wyciągamy z nich adres strumienia
+        if (RadioRepository.isPlaylistLink(s.url)) {
+            viewModelScope.launch {
+                val resolved = try { RadioRepository.resolvePlaylist(s.url) } catch (e: Exception) { null }
+                if (resolved != null) playStationNow(s.copy(url = resolved))
+                else {
+                    playerError = "Ten link nie zawiera adresu stacji."
+                    tickNow()
+                }
+            }
+            return
+        }
+        playStationNow(s)
+    }
+
+    private fun playStationNow(s: Station) {
         val c = controller ?: return
         Core.stopwatchDurations = null
         Core.kind = Kind.RADIO

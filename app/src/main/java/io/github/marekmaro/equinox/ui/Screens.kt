@@ -78,6 +78,8 @@ fun HomeScreen(
     onRadio: () -> Unit,
     onSessions: () -> Unit,
     onPlaying: () -> Unit,
+    onPlaylists: () -> Unit,
+    onLibrary: () -> Unit,
 ) {
     val np = vm.nowPlaying
     val s = vm.sessions
@@ -85,8 +87,10 @@ fun HomeScreen(
         ListRow("Losuj wszystko", if (vm.tracks.isEmpty()) "" else "${vm.tracks.size}"),
         ListRow("Muzyka"),
         ListRow("Audiobooki", if (vm.books.isEmpty()) "" else "${vm.books.size}"),
+        ListRow("Playlisty", if (vm.playlists.isEmpty()) "" else "${vm.playlists.size}"),
         ListRow("Radio", "na żywo"),
         ListRow("Sesje", "${s.todayMs / 60_000}/${s.goalMinutes} min"),
+        ListRow("Biblioteka", "foldery"),
     )
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
@@ -100,8 +104,10 @@ fun HomeScreen(
                 0 -> if (vm.shuffleAll()) onPlaying()
                 1 -> onMusic()
                 2 -> onBooks()
-                3 -> onRadio()
-                4 -> onSessions()
+                3 -> onPlaylists()
+                4 -> onRadio()
+                5 -> onSessions()
+                6 -> onLibrary()
             }
         },
     ) {
@@ -167,11 +173,14 @@ private fun permissionAction(vm: PlayerViewModel): Pair<String, () -> Unit>? {
 @Composable
 fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) {
     val tracks = vm.tracks
+    var addTrackId by remember { mutableStateOf<Long?>(null) }
+    addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = "Muzyka",
         emptyAction = permissionAction(vm),
-        rows = tracks.map { ListRow(it.title, fmt(it.durationMs)) },
+        // „+” przy utworze = dodaj do playlisty
+        rows = tracks.map { t -> ListRow(t.title, fmt(t.durationMs), trailing = "+", onTrailing = { addTrackId = t.id }) },
         onBack = onBack,
         onOpen = { i ->
             vm.playTracks(tracks, i)

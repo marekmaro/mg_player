@@ -50,6 +50,8 @@ import java.time.LocalTime
 /** Pod pierścieniem: klocki w kolejności wybranej przez użytkownika. */
 @Composable
 fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -> Unit) {
+    var addTrackId by remember { mutableStateOf<Long?>(null) }
+    addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
     vm.layout.forEach { block ->
         when (block) {
             Block.TITLE -> TitleBlock(vm)
@@ -63,14 +65,26 @@ fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -
             Block.SESSIONS -> SessionsBlock(vm, onSessions)
         }
     }
-    Text(
-        "▦ Ułóż ekran",
-        color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onEditLayout)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    )
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (vm.nowPlaying.kind == Kind.MUSIC) {
+            Text(
+                "＋ Do playlisty",
+                color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { addTrackId = vm.currentTrackId() }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            )
+        }
+        Text(
+            "▦ Ułóż ekran",
+            color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onEditLayout)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        )
+    }
 }
 
 @Composable

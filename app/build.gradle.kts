@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.marekmaro.equinox"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
     }
 
     // Klucz do podpisu wersji sklepowej podajemy przez zmienne środowiskowe
@@ -77,6 +77,8 @@ dependencies {
 
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-session:1.5.1")
+    // radio w formacie HLS (.m3u8)
+    implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
 
     // wykrywanie zgięcia telefonów składanych
     implementation("androidx.window:window:1.3.0")
