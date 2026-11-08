@@ -1,0 +1,27 @@
+name: Sprawdź wersje zależności
+
+# Wypisuje najnowsze stabilne wersje bibliotek (do ręcznej aktualizacji).
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/deps.yml']
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Najnowsze stabilne wersje
+        run: |
+          latest() { curl -s "$1" | grep -o "<version>[^<]*</version>" | sed 's/<[^>]*>//g' | grep -viE "alpha|beta|rc|dev|-M[0-9]|eap" | tail -1; }
+          G=https://dl.google.com/android/maven2
+          M=https://repo1.maven.org/maven2
+          for a in com/android/tools/build/gradle androidx/compose/compose-bom androidx/media3/media3-exoplayer \
+                   androidx/core/core-ktx androidx/activity/activity-compose androidx/lifecycle/lifecycle-runtime-ktx \
+                   androidx/window/window; do
+            echo "WERSJA $a = $(latest $G/$a/maven-metadata.xml)"
+          done
+          echo "WERSJA kotlin = $(latest $M/org/jetbrains/kotlin/kotlin-gradle-plugin/maven-metadata.xml)"
+          echo "WERSJA gradle = $(curl -s https://services.gradle.org/versions/current | grep '"version"')"
+          echo "WERSJA compose-bom-list = $(curl -s $G/androidx/compose/compose-bom/maven-metadata.xml | grep -o '<version>[^<]*</version>' | sed 's/<[^>]*>//g' | grep -viE 'alpha|beta|rc' | tail -4 | tr '\n' ' ')"
+          echo "WERSJA agp-list = $(curl -s $G/com/android/tools/build/gradle/maven-metadata.xml | grep -o '<version>[^<]*</version>' | sed 's/<[^>]*>//g' | grep -viE 'alpha|beta|rc|dev' | tail -6 | tr '\n' ' ')"
+          echo "WERSJA kotlin-list = $(curl -s $M/org/jetbrains/kotlin/kotlin-gradle-plugin/maven-metadata.xml | grep -o '<version>[^<]*</version>' | sed 's/<[^>]*>//g' | grep -viE 'beta|rc|dev|-M' | tail -6 | tr '\n' ' ')"
