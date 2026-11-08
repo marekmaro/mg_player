@@ -416,9 +416,9 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
                 GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, (ringSize * 0.19f).coerceAtMost(56.dp))
                 // W miejscu okładki: krótki opis wykonawcy / autora
                 Text(
-                    vm.facts?.headline?.takeIf { it.isNotBlank() } ?: "2× dalej · przytrzymaj wstecz",
+                    vm.facts?.headline?.takeIf { it.isNotBlank() } ?: "2× dalej\nprzytrzymaj: wstecz",
                     color = Pal.Muted, fontSize = 11.sp, lineHeight = 14.sp,
-                    textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
