@@ -6,7 +6,7 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.7)
+## Co już działa (wersja 0.8)
 
 - **Pokrętło**: każda lista przewija się obrotem kciuka po okręgu. Im szybciej kręcisz, tym dalej skacze. Przy długich listach pojawia się duża litera, a zaznaczenie zawsze nadąża. Środek „OK” wybiera, przytrzymanie „OK” to pauza.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
@@ -95,5 +95,5 @@ app/src/main/java/io/github/marekmaro/equinox/
 - [ ] Korektor: „Bas ↔ Głos” + „Czysty głos” dla audiobooków
 - [ ] Okładki albumów
 - [ ] Premium (Google Play Billing) i reklama w miejscu okładki (AdMob, tylko przy otwartej aplikacji)
-- [ ] Polityka prywatności (wymagana przez Google Play)
+- [ ] Opublikować politykę prywatności pod publicznym adresem (tekst: docs/polityka-prywatnosci.md)
 - [ ] Publikacja w Google Play (wersja z podpisem jest gotowa, zobacz docs/BUDOWANIE.md)

@@ -1,6 +1,6 @@
-# Audyt Equinox 0.7
+# Audyt Equinox 0.8
 
-Stan na wersję 0.7.0. Każdą zmianę w `main` automatycznie sprawdzają testy jednostkowe, Android Lint, budowanie wersji release (R8) oraz testy na emulatorach (opis niżej).
+Stan na wersję 0.8.0. Każdą zmianę w `main` automatycznie sprawdzają testy jednostkowe, Android Lint, budowanie wersji release (R8) oraz testy na emulatorach (opis niżej).
 
 Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ograniczenie lub do zrobienia
 
@@ -21,7 +21,7 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 | Bez usług Google | ✅ | Aplikacja nie korzysta z Google Play Services, więc działa też na Huawei i telefonach bez Google. Do instalacji z Google Play potrzebny jest oczywiście sklep. |
 | Telefony bez wibracji | ✅ | Wibracje są opcjonalne, ich brak niczego nie psuje. |
 | Wyłączone animacje | ✅ | Powitanie się nie pokazuje. |
-| Agresywne oszczędzanie baterii (Xiaomi, Huawei, Oppo) | ⚠️ | Odtwarzanie działa jako usługa pierwszoplanowa z powiadomieniem, co zwykle wystarcza. Na części telefonów system może jednak zatrzymać timer snu po wyłączeniu ekranu. Pomoc dla użytkownika: dontkillmyapp.com. Do rozważenia: podpowiedź w aplikacji. |
+| Agresywne oszczędzanie baterii (Xiaomi, Huawei, Oppo, Samsung…) | 🔧 | Gdy system może usypiać aplikację, w Sesjach pojawia się podpowiedź z przyciskiem do ustawień baterii i poradami dla producenta telefonu (dontkillmyapp.com). Można ją ukryć. |
 
 ## 2. Stabilność
 
@@ -42,7 +42,7 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 - ✅ Widżety odświeżane co ok. 5 s tylko podczas odtwarzania i tylko przy widocznej zmianie.
 - ✅ Pokrętło: zbiorcze kroki, jedno przewijanie naraz, wibracja najwyżej co 30 ms.
 - ✅ R8 (zmniejszanie kodu i zasobów) w wersji do sklepu.
-- ⚠️ Bardzo duże biblioteki (10 000+ plików) nie były testowane. Wczytywanie jest w tle, ale lista playlist i stoper przetwarzają całą bibliotekę naraz.
+- 🔧 Duże biblioteki: wyszukiwanie utworów po id liczone raz, wiersze listy zapamiętane. Testy wydajności: dobór utworów do stopera i reguły folderów dla 20 000 plików mieszczą się z zapasem w limitach.
 
 ## 4. Prywatność i bezpieczeństwo
 
@@ -51,7 +51,7 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 - ✅ Klucz podpisu tylko w sekretach GitHuba i u właściciela, nigdy w repozytorium.
 - ✅ Komponenty eksportowane tylko tam, gdzie wymaga ich system (usługa odtwarzania dla słuchawek i Android Auto, kafelek z uprawnieniem systemowym). Przyciski widżetów są wewnętrzne.
 - ⚠️ `usesCleartextTraffic=true`: część stacji radiowych nadaje tylko przez http, więc to celowe. Dotyczy wyłącznie strumieni i nie przesyła danych użytkownika.
-- ⚠️ **Polityka prywatności jest wymagana przez Google Play** (aplikacja łączy się z internetem i czyta pliki audio). Do napisania przed publikacją.
+- 🔧 **Polityka prywatności** napisana (`docs/polityka-prywatnosci.md`), a w aplikacji jest ekran „Prywatność” (Biblioteka → Prywatność). ⚠️ Google Play wymaga **publicznego adresu**, a repozytorium jest prywatne, więc trzeba ją opublikować (np. GitHub Pages, Gist, Google Sites).
 
 ## 5. Dostępność
 
@@ -63,12 +63,12 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 
 ## 6. Znane ograniczenia (do kolejnych wersji)
 
-- ⚠️ Rozdziały zapisane wewnątrz jednego pliku M4B nie są widoczne osobno.
-- ⚠️ Widżety mają zawsze ciemny wygląd (nie zmieniają się z motywem).
-- ⚠️ Zależności (Media3, Compose, AGP) są o kilka wersji starsze od najnowszych. Działają stabilnie, a aktualizację warto zrobić osobno i przetestować.
+- 🔧 Rozdziały wewnątrz plików M4B/M4A (znacznik „chpl”, zapisywany m.in. przez ffmpeg): numer i tytuł, przeskakiwanie, „sen po rozdziale”. ⚠️ Rozdziały zapisane jako osobna ścieżka tekstowa (format Apple) nie są jeszcze odczytywane.
+- 🔧 Widżety są jasne lub ciemne zgodnie z motywem telefonu.
+- 🔧 Zależności zaktualizowane do najnowszych stabilnych wersji: AGP 9.5.1, Gradle 9.9, Kotlin 2.4.21, Compose BOM 2026.09, Media3 1.11.1; compileSdk 37, targetSdk 36 (wymóg Google Play dla nowych aplikacji). Lint: 40 ostrzeżeń stylu, 0 błędów.
 - ⚠️ Testy na prawdziwych telefonach: jak dotąd jeden (Samsung, uwagi o płynności pokrętła wprowadzone w 0.6). Przed publikacją warto przetestować w grupie testerów, czego i tak wymaga Google Play (12 osób przez 14 dni).
 
-## 7. Wyniki testów na emulatorach (wersja 0.7)
+## 7. Wyniki testów na emulatorach (wersja 0.8 na nowych zależnościach)
 
 | Urządzenie testowe | Wynik | Uwagi |
 |---|---|---|
