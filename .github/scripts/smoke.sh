@@ -9,9 +9,14 @@ mkdir -p "$OUT" audio
 
 python3 .github/scripts/make_audio.py audio
 
-adb shell mkdir -p /sdcard/Music/Testowe /sdcard/Audiobooks/Lalka
-for f in audio/music/*.wav; do adb push "$f" /sdcard/Music/Testowe/ >/dev/null; done
-for f in audio/book/*.wav; do adb push "$f" /sdcard/Audiobooks/Lalka/ >/dev/null; done
+# poczekaj, aż pamięć telefonu będzie gotowa (inaczej kopiowanie bywa odrzucane)
+for i in $(seq 1 30); do
+  if adb shell "mkdir -p /sdcard/Music/Testowe /sdcard/Audiobooks/Lalka && touch /sdcard/Music/Testowe/.ok" 2>/dev/null; then break; fi
+  sleep 3
+done
+push() { for i in 1 2 3 4 5; do adb push "$1" "$2" >/dev/null && return 0; sleep 3; done; return 1; }
+for f in audio/music/*.wav; do push "$f" /sdcard/Music/Testowe/; done
+for f in audio/book/*.wav; do push "$f" /sdcard/Audiobooks/Lalka/; done
 adb shell content call --uri content://media --method scan_volume --arg external_primary || true
 sleep 8
 

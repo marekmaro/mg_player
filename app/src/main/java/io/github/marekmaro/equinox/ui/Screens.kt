@@ -101,7 +101,10 @@ fun HomeScreen(
             }
         },
     ) {
-        Text(greeting(), color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        // na małych ekranach przy aktywnej karcie „Teraz gra” oszczędzamy miejsce na listę
+        if (np.kind == null || LocalConfiguration.current.screenHeightDp >= 720) {
+            Text(greeting(), color = Pal.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        }
         if (np.kind != null) {
             Row(
                 Modifier

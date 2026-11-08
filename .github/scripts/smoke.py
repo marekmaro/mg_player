@@ -70,7 +70,7 @@ def find_scroll(text, exact=False, desc=False):
     tries = 0
     while not pos and tries < 3:
         # przewijanie przy lewej krawędzi, żeby nie kręcić pokrętłem
-        x = str(int(W * 0.04))
+        x = str(int(W * 0.12))  # na liście, ale z dala od pokrętła
         adb("shell", "input", "swipe", x, str(int(H * 0.55)), x, str(int(H * 0.25)), "400")
         time.sleep(1)
         pos = find(text, exact, desc)
