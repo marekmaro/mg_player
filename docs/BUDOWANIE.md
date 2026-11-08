@@ -50,8 +50,9 @@ Zamień plik klucza na tekst (base64):
 
 - **Windows (PowerShell):**
   ```powershell
-  [Convert]::ToBase64String([IO.File]::ReadAllBytes("equinox-upload.jks")) | Set-Clipboard
+  [Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path "equinox-upload.jks"))) | Set-Clipboard
   ```
+  Uruchom to w folderze, w którym leży plik klucza (`Resolve-Path` zamienia nazwę na pełną ścieżkę; bez tego Windows szuka pliku w `C:\Windows`). Nie wiesz, gdzie jest plik? `Get-ChildItem -Path $HOME -Recurse -Filter equinox-upload.jks -ErrorAction SilentlyContinue`
 - **macOS:**
   ```bash
   base64 -i equinox-upload.jks | pbcopy
