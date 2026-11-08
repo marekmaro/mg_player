@@ -122,7 +122,8 @@ def back():
 
 def crashed():
     logs = adb("logcat", "-d", "-v", "brief")
-    hits = [l for l in logs.splitlines() if "FATAL EXCEPTION" in l or (f"Process: {PKG}" in l)]
+    # tylko awarie Equinox (na starszych Androidach log zawiera też inne aplikacje)
+    hits = [l for l in logs.splitlines() if f"Process: {PKG}" in l]
     return hits, logs
 
 
