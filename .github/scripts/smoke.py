@@ -129,6 +129,13 @@ shot("01-start")
 expect("EQUINOX", "start")
 expect("Losuj wszystko", "start")
 
+# 1b. Motyw: Auto -> Dzień (zrzut) -> Noc (zrzut) -> Auto
+for name in ["01b-motyw-dzien", "01c-motyw-noc"]:
+    if tap("Motyw:", desc=True, required=False):
+        time.sleep(1)
+        shot(name)
+tap("Motyw:", desc=True, required=False)
+
 # 2. Pokrętło: obrót o 90° powinien przesunąć zaznaczenie o 3 pozycje (co 30°)
 ok = find("Wybierz", desc=True)
 if ok:
