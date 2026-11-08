@@ -46,6 +46,6 @@ if [ "$SDK" -ge 33 ]; then
 else
   adb shell pm grant $PKG android.permission.READ_EXTERNAL_STORAGE
 fi
-adb logcat -c
+adb logcat -c || true  # Android 8 nie zawsze pozwala wyczyścić log
 
 python3 .github/scripts/smoke.py $PKG "$OUT"

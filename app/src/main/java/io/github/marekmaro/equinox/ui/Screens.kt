@@ -425,10 +425,16 @@ private fun DialTutorial(onDone: () -> Unit) {
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.72f))
             .pointerInput(Unit) { detectTapGestures { } } // nie przepuszczaj dotknięć pod spód
-            .systemBarsPadding()
-            .padding(20.dp),
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
+        // przewijany: przy dużej czcionce na małym ekranie karta bywa wyższa niż ekran
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+        ) {
         Card {
             Text("Jak sterować kółkiem", color = Pal.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             TutorialStep("↻", "Kręć po pierścieniu", "Przewija utwór, zmienia utwory albo głośność, zależnie od trybu pod kółkiem. Szybciej kręcisz, dalej skacze.")
@@ -437,6 +443,7 @@ private fun DialTutorial(onDone: () -> Unit) {
             TutorialStep("✋", "Przytrzymaj tarczę", "Zmienia tryb kręcenia: Przewiń → Utwory → Głośność.")
             TutorialStep("OK", "W listach", "Kręć, żeby wybrać, środek OK otwiera, przytrzymanie OK to pauza.")
             Chip("Rozumiem", modifier = Modifier.fillMaxWidth(), selected = true, onClick = onDone)
+        }
         }
     }
 }
