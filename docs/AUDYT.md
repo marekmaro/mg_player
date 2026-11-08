@@ -13,7 +13,8 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 | Android 10 | 🔧 | Skanowanie telefonu potrzebowało `requestLegacyExternalStorage` (ograniczony dostęp do plików tylko na Androidzie 10). Dodane. |
 | Android 8–12 a 13+ | ✅ | Uprawnienia: `READ_EXTERNAL_STORAGE` (do 12) i `READ_MEDIA_AUDIO` + powiadomienia (13+). Test na emulatorach 8, 11 i 14. |
 | Mały ekran (4", 320 dp) | 🔧 | Wcześniejsze audyty: pierścień zostawia margines do przewijania, powitanie chowa się przy aktywnej karcie, lista mieści się obok pokrętła. |
-| Duża czcionka (ułatwienia dostępu) | ✅ | Test na emulatorze z tekstem 130%. Listy i ekrany przewijają się, nic nie jest ucięte na stałe. |
+| Duża czcionka (ułatwienia dostępu) | 🔧 | Test na emulatorze z tekstem 130% znalazł dwa problemy, oba poprawione: przycisk „Rozumiem” w samouczku był poza ekranem (samouczek się teraz przewija), a w poziomie na listę zostawało półtora wiersza (na niskim ekranie nagłówek przewija się razem z listą). |
+| Telefon w poziomie | 🔧 | Przy wysokości ekranu poniżej 480 dp nagłówek i karta „Słuchaj dalej” są częścią przewijanej listy. |
 | Telefony składane | ✅ | Układ dwupanelowy po rozłożeniu, tryb „namiotu” (pierścień nad zgięciem); obrót i złożenie nie gubią ekranu. Rozłożony składak sprawdzany w teście (symulacja rozmiaru). |
 | Tablety, poziomo | ✅ | Pokrętło obok listy, „Teraz gra” w dwóch kolumnach. |
 | Chromebook, DeX, mysz | 🔧 | Dotyk nie jest już wymagany do instalacji; kółko myszy kręci pokrętłem. |
@@ -67,7 +68,17 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 - ⚠️ Zależności (Media3, Compose, AGP) są o kilka wersji starsze od najnowszych. Działają stabilnie, a aktualizację warto zrobić osobno i przetestować.
 - ⚠️ Testy na prawdziwych telefonach: jak dotąd jeden (Samsung, uwagi o płynności pokrętła wprowadzone w 0.6). Przed publikacją warto przetestować w grupie testerów, czego i tak wymaga Google Play (12 osób przez 14 dni).
 
-## 7. Jak powtórzyć sprawdzenie
+## 7. Wyniki testów na emulatorach (wersja 0.7)
+
+| Urządzenie testowe | Wynik | Uwagi |
+|---|---|---|
+| Android 8.0 (API 26), ekran 4" | ✅ | Wszystkie ekrany, playlisty, biblioteka, skanowanie, widżety. Kafelek pominięty, bo emulator Androida 8 nie pozwala go dodać poleceniem (sam kafelek działa od Androida 7). |
+| Android 11 (API 30), czcionka 130% | ✅ | Po dwóch poprawkach układu (wyżej). |
+| Android 14 (API 34) | ✅ | Pełny zestaw z kafelkiem i symulacją rozłożonego składaka. |
+
+Każdy test przechodzi: ekran główny, motywy (Telefon / Dzień / Noc), pokrętło, muzykę, samouczek, klocki, audiobook, sesje, radio, obrót ekranu, rozłożony składak, playlisty, bibliotekę i skanowanie, widżety, kafelek. Na koniec sprawdza log pod kątem awarii.
+
+## 8. Jak powtórzyć sprawdzenie
 
 - **GitHub → Actions → Build APK:** testy jednostkowe, lint, release i 3 emulatory.
 - **Lokalnie:** `./gradlew testDebugUnitTest lintDebug assembleRelease`
