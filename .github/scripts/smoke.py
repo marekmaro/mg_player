@@ -64,22 +64,25 @@ W, H = (int(SIZE[-1][0]), int(SIZE[-1][1])) if SIZE else (1080, 1920)
 note(f"ekran: {W}x{H}  gęstość: {adb('shell', 'wm', 'density').strip()}")
 
 
-def find_scroll(text, exact=False, desc=False):
+LOW = (0.92, 0.55)  # przewijanie z dołu ekranu (pod pierścieniem na ekranie odtwarzania)
+
+
+def find_scroll(text, exact=False, desc=False, zone=(0.55, 0.25)):
     """Szuka napisu; jeśli go nie widać, przewija listę w górę (maks. 3 razy)."""
     pos = find(text, exact, desc)
     tries = 0
     while not pos and tries < 3:
         # przewijanie przy lewej krawędzi, żeby nie kręcić pokrętłem
         x = str(int(W * 0.12))  # na liście, ale z dala od pokrętła
-        adb("shell", "input", "swipe", x, str(int(H * 0.55)), x, str(int(H * 0.25)), "400")
+        adb("shell", "input", "swipe", x, str(int(H * zone[0])), x, str(int(H * zone[1])), "400")
         time.sleep(1)
         pos = find(text, exact, desc)
         tries += 1
     return pos
 
 
-def tap(text, exact=False, desc=False, required=True):
-    pos = find_scroll(text, exact, desc)
+def tap(text, exact=False, desc=False, required=True, zone=(0.55, 0.25)):
+    pos = find_scroll(text, exact, desc, zone)
     if not pos:
         if required:
             problems.append(f"nie znaleziono: {text!r}")
@@ -91,8 +94,8 @@ def tap(text, exact=False, desc=False, required=True):
     return True
 
 
-def expect(text, step):
-    if find_scroll(text):
+def expect(text, step, zone=(0.55, 0.25)):
+    if find_scroll(text, zone=zone):
         note(f"OK [{step}]: widać {text!r}")
     else:
         problems.append(f"[{step}] brak napisu {text!r}")
@@ -157,7 +160,7 @@ expect("TERAZ GRA", "teraz gra")
 tap("Utwory", exact=True, required=False)
 shot("05-tryb-utwory")
 # Klocki: włącz „Następne” i „Zegar” w edytorze układu
-if tap("Ułóż ekran", required=False):
+if tap("Ułóż ekran", required=False, zone=LOW):
     shot("05b-edytor-klockow")
     tap("Włącz Następne", desc=True, required=False)
     tap("Włącz Zegar", desc=True, required=False)
@@ -165,7 +168,7 @@ if tap("Ułóż ekran", required=False):
     back()
     time.sleep(1)
     shot("05d-teraz-gra-z-klockami")
-    expect("NASTĘPNE", "klocek Następne na ekranie")
+    expect("NASTĘPNE", "klocek Następne na ekranie", zone=LOW)
 
 back()
 back()
@@ -178,7 +181,7 @@ tap("Lalka")
 time.sleep(3)
 shot("07-audiobook-gra")
 expect("AUDIOBOOK", "audiobook")
-tap("1.5×", exact=True, required=False)
+tap("1.5×", exact=True, required=False, zone=LOW)
 time.sleep(1)
 shot("08-audiobook-predkosc")
 back()

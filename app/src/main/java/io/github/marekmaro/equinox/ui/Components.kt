@@ -145,7 +145,7 @@ fun Chip(text: String, modifier: Modifier = Modifier, selected: Boolean = false,
             .background(if (selected) Pal.AccentDim else Color.Transparent)
             .border(1.dp, if (selected) Pal.Accent else Pal.Line, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(

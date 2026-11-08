@@ -365,7 +365,8 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             TopBar(title, onBack, small = true)
-            val size = minOf(cfg.screenWidthDp - 40, (cfg.screenHeightDp * 0.45f).toInt()).coerceIn(200, 290).dp
+            // po bokach pierścienia zostaje pas, za który można przewijać ekran palcem
+            val size = minOf(cfg.screenWidthDp - 100, (cfg.screenHeightDp * 0.45f).toInt()).coerceIn(200, 290).dp
             PlayerRing(vm, size)
             PlayerBlocks(vm, onSessions, onEditLayout)
         }
