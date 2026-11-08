@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "io.github.marekmaro.equinox"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.marekmaro.equinox"
