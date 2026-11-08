@@ -60,8 +60,12 @@ def find(text, exact=False, desc=False):
     return None
 
 
-SIZE = re.findall(r"(\d+)x(\d+)", adb("shell", "wm", "size"))
-W, H = (int(SIZE[-1][0]), int(SIZE[-1][1])) if SIZE else (1080, 1920)
+def screen_size():
+    size = re.findall(r"(\d+)x(\d+)", adb("shell", "wm", "size"))
+    return (int(size[-1][0]), int(size[-1][1])) if size else (1080, 1920)
+
+
+W, H = screen_size()
 note(f"ekran: {W}x{H}  gęstość: {adb('shell', 'wm', 'density').strip()}")
 
 
@@ -242,6 +246,7 @@ expect("EQUINOX", "po obrocie ekranu")
 adb("shell", "wm", "size", "1840x2208")
 adb("shell", "wm", "density", "420")
 time.sleep(4)
+W, H = screen_size()  # przewijanie musi znać nowy rozmiar ekranu
 shot("15-skladak-menu")
 tap("Muzyka", exact=True)
 tap("Nocny przystanek")
@@ -257,6 +262,7 @@ adb("shell", "settings", "put", "system", "user_rotation", "0")
 adb("shell", "wm", "size", "reset")
 adb("shell", "wm", "density", "reset")
 time.sleep(2)
+W, H = screen_size()
 
 # 9b. Playlisty: utwórz, dodaj utwór, sprawdź
 for _ in range(4):  # wróć do menu głównego
@@ -329,7 +335,7 @@ if hits:
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
 # tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
-KEY = ("01-start", "01b-", "01c-", "04a-", "04-teraz", "05d-", "07-", "09-", "20-", "22-", "23-", "14-")
+KEY = ("01-start", "01b-", "01c-", "04a-", "04-teraz", "05d-", "07-", "09-", "15-", "22-", "23-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
     if not f.split("/")[-1].startswith(KEY):
         continue
