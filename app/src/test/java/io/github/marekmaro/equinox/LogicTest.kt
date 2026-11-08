@@ -117,7 +117,7 @@ class LogicTest {
 
     @Test
     fun letterBubble_firstLetter() {
-        val f = io.github.marekmaro.equinox.ui::firstLetter
+        val f: (String) -> String = { io.github.marekmaro.equinox.ui.firstLetter(it) }
         assertEquals("Ś", f("świt nad miastem"))
         assertEquals("#", f("2 + 1"))
         assertEquals("#", f(""))
