@@ -33,6 +33,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.marekmaro.equinox.data.Book
+import io.github.marekmaro.equinox.data.Chapters
 import io.github.marekmaro.equinox.data.FolderInfo
 import io.github.marekmaro.equinox.data.FolderRule
 import io.github.marekmaro.equinox.data.Library
@@ -63,6 +64,8 @@ data class NowPlaying(
     val kind: Kind? = null,
     val speed: Float = 1f,
     val error: String? = null,
+    /** rozdział wewnątrz pliku (M4B): np. „3/12 · Pan Tadeusz”, null gdy brak */
+    val chapter: String? = null,
 )
 
 data class SessionsUi(
@@ -215,7 +218,24 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Po powrocie do aplikacji: jeśli użytkownik właśnie nadał uprawnienia, wczytaj bibliotekę. */
+    // ---------------------------------------------------------------- Oszczędzanie baterii
+
+    /** true = system może ograniczać aplikację w tle (np. zatrzymać timer snu przy zgaszonym ekranie). */
+    var batteryRestricted by mutableStateOf(false); private set
+    var batteryHintHidden by mutableStateOf(prefs.batteryHintHidden); private set
+
+    private fun checkBattery() {
+        val pm = getApplication<Application>().getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        batteryRestricted = pm?.isIgnoringBatteryOptimizations(getApplication<Application>().packageName) == false
+    }
+
+    fun hideBatteryHint() {
+        batteryHintHidden = true
+        prefs.batteryHintHidden = true
+    }
+
     fun onVisible() {
+        checkBattery()
         val granted = hasAudioPermission()
         if (granted && (!permissionGranted || !libraryLoaded)) loadLibrary()
         permissionGranted = granted
@@ -249,7 +269,11 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Szybkie wyszukiwanie utworu po id (playlisty, rozdziały) – liczone raz przy wczytaniu. */
+    private var trackById: Map<Long, Track> = emptyMap()
+
     private fun applyLibrary() {
+        trackById = allTracks.associateBy { it.id }
         val visible = Library.applyRules(allTracks, folderRules)
         tracks = visible.filter { !it.isBook }
         books = MediaRepository.groupBooks(visible.filter { it.isBook })
@@ -299,10 +323,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     fun playlist(id: Long?): Playlist? = playlists.firstOrNull { it.id == id }
 
     /** Utwory playlisty; pliki usunięte z telefonu są pomijane. */
-    fun playlistTracks(p: Playlist): List<Track> {
-        val byId = allTracks.associateBy { it.id }
-        return p.trackIds.mapNotNull { byId[it] }
-    }
+    fun playlistTracks(p: Playlist): List<Track> = p.trackIds.mapNotNull { trackById[it] }
 
     fun createPlaylist(name: String): Long {
         val id = System.currentTimeMillis()
@@ -428,8 +449,47 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun next() { controller?.seekToNext() }
-    fun previous() { controller?.seekToPrevious() }
+    /** Następny: w audiobooku z rozdziałami w jednym pliku – następny rozdział. */
+    fun next() {
+        val c = controller ?: return
+        val ch = currentChapters()
+        if (ch.isNotEmpty()) {
+            val i = Chapters.indexAt(ch, c.currentPosition)
+            if (i < ch.lastIndex) { c.seekTo(ch[i + 1].startMs); return }
+        }
+        c.seekToNext()
+    }
+
+    /** Poprzedni: na początek rozdziału, a gdy już tam jesteśmy (do 3 s) – rozdział wcześniej. */
+    fun previous() {
+        val c = controller ?: return
+        val ch = currentChapters()
+        if (ch.isNotEmpty()) {
+            val i = Chapters.indexAt(ch, c.currentPosition)
+            when {
+                c.currentPosition - ch[i].startMs > 3_000 -> { c.seekTo(ch[i].startMs); return }
+                i > 0 -> { c.seekTo(ch[i - 1].startMs); return }
+            }
+        }
+        c.seekToPrevious()
+    }
+
+    private fun currentChapters(): List<io.github.marekmaro.equinox.data.Chapter> {
+        val id = controller?.currentMediaItem?.mediaId
+        return if (Core.kind == Kind.BOOK && id != null && id == Core.chaptersFor) Core.chapters else emptyList()
+    }
+
+    /** Wczytuje rozdziały pliku audiobooka w tle (raz na plik). */
+    private fun loadChaptersIfNeeded(mediaId: String?) {
+        if (Core.kind != Kind.BOOK || mediaId == null || mediaId == Core.chaptersFor) return
+        Core.chaptersFor = mediaId
+        Core.chapters = emptyList()
+        val uri = mediaId.toLongOrNull()?.let { trackById[it]?.uri } ?: return
+        viewModelScope.launch {
+            val found = withContext(Dispatchers.IO) { Chapters.read(getApplication(), uri) }
+            if (Core.chaptersFor == mediaId) Core.chapters = found
+        }
+    }
 
     fun seekBy(deltaMs: Long) {
         val c = controller ?: return
@@ -645,6 +705,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             val item = c.currentMediaItem
             val md = item?.mediaMetadata
             val dur = c.duration
+            loadChaptersIfNeeded(item?.mediaId)
+            val ch = currentChapters()
+            val chapterLabel = if (ch.isEmpty()) null else {
+                val i = Chapters.indexAt(ch, c.currentPosition)
+                "Rozdział ${i + 1}/${ch.size} · ${ch[i].title}"
+            }
             nowPlaying = NowPlaying(
                 title = md?.title?.toString().orEmpty(),
                 subtitle = md?.artist?.toString().orEmpty(),
@@ -654,6 +720,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 kind = if (item == null) null else (Core.kind ?: Kind.MUSIC),
                 speed = c.playbackParameters.speed,
                 error = playerError,
+                chapter = chapterLabel,
             )
             if (c.isPlaying) playerError = null
             updateFacts(nowPlaying)

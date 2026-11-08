@@ -128,7 +128,6 @@ object WidgetUpdater {
         RemoteViews(ctx.packageName, R.layout.widget_ring).apply {
             setImageViewBitmap(R.id.widget_ring, ring)
             setImageViewResource(R.id.widget_play, if (s.playing) R.drawable.ic_pause else R.drawable.ic_play)
-            setInt(R.id.widget_play, "setColorFilter", ACCENT)
             setOnClickPendingIntent(R.id.widget_root, openApp(ctx))
             setOnClickPendingIntent(
                 R.id.widget_play,
@@ -161,7 +160,8 @@ object WidgetUpdater {
         p.strokeCap = Paint.Cap.ROUND
         for (i in 0 until 60) {
             val major = i % 5 == 0
-            p.color = if (major) 0xFF3A3D42.toInt() else 0xFF2E3135.toInt()
+            // półprzezroczysta szarość wygląda dobrze na jasnym i ciemnym widżecie
+            p.color = if (major) 0x99808080.toInt() else 0x55808080
             p.strokeWidth = size * 0.012f
             val a = Math.toRadians(i * 6.0 - 90.0)
             val outer = r - size * 0.01f
@@ -176,7 +176,7 @@ object WidgetUpdater {
         val rect = RectF(inset, inset, size - inset, size - inset)
         p.style = Paint.Style.STROKE
         p.strokeWidth = size * 0.035f
-        p.color = 0xFF24272B.toInt()
+        p.color = 0x40808080
         c.drawArc(rect, 0f, 360f, false, p)
         val sweep = 360f * progress.coerceIn(0f, 1f)
         if (sweep > 0f) {
@@ -184,9 +184,6 @@ object WidgetUpdater {
             c.drawArc(rect, -90f, sweep, false, p)
         }
 
-        p.style = Paint.Style.FILL
-        p.color = 0xFF1B1D20.toInt()
-        c.drawCircle(center, center, r - size * 0.2f, p)
         return bmp
     }
 }

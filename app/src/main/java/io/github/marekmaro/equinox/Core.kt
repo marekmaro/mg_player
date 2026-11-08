@@ -33,6 +33,10 @@ object Core {
     /** Ostatnio ustawiony czas stopera w minutach. */
     var stopwatchMinutes: Int = 25
 
+    /** Rozdziały wewnątrz bieżącego pliku audiobooka (np. M4B) i plik, którego dotyczą. */
+    var chapters: List<io.github.marekmaro.equinox.data.Chapter> = emptyList()
+    var chaptersFor: String? = null
+
     /** Minuty audiobooka jeszcze niezapisane na dysk (zapis co kilka sekund). */
     var pendingListenMs: Long = 0L
 }

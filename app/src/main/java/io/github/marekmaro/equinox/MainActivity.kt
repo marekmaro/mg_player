@@ -29,6 +29,7 @@ import io.github.marekmaro.equinox.ui.LocalPosture
 import io.github.marekmaro.equinox.ui.Posture
 import io.github.marekmaro.equinox.ui.LayoutEditorScreen
 import io.github.marekmaro.equinox.ui.LibraryScreen
+import io.github.marekmaro.equinox.ui.PrivacyScreen
 import io.github.marekmaro.equinox.ui.PickTracksScreen
 import io.github.marekmaro.equinox.ui.PlaylistScreen
 import io.github.marekmaro.equinox.ui.PlaylistsScreen
@@ -136,7 +137,7 @@ private fun PermissionRequest(onDone: () -> Unit) {
     }
 }
 
-enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library }
+enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library, Privacy }
 
 @Composable
 private fun App(vm: PlayerViewModel) {
@@ -185,6 +186,7 @@ private fun App(vm: PlayerViewModel) {
         Screen.Playlists -> PlaylistsScreen(vm, onBack = ::back, onOpenPlaylist = { go(Screen.Playlist) })
         Screen.Playlist -> PlaylistScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onAddTracks = { go(Screen.PickTracks) })
         Screen.PickTracks -> PickTracksScreen(vm, onBack = ::back)
-        Screen.Library -> LibraryScreen(vm, onBack = ::back)
+        Screen.Library -> LibraryScreen(vm, onBack = ::back, onPrivacy = { go(Screen.Privacy) })
+        Screen.Privacy -> PrivacyScreen(onBack = ::back)
     }
 }

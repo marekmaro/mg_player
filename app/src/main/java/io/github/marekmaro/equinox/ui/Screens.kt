@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -182,7 +183,7 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
         title = "Muzyka",
         emptyAction = permissionAction(vm),
         // „+” przy utworze = dodaj do playlisty
-        rows = tracks.map { t -> ListRow(t.title, fmt(t.durationMs), trailing = "+", onTrailing = { addTrackId = t.id }) },
+        rows = remember(tracks) { tracks.map { t -> ListRow(t.title, fmt(t.durationMs), trailing = "+", onTrailing = { addTrackId = t.id }) } },
         onBack = onBack,
         onOpen = { i ->
             vm.playTracks(tracks, i)
@@ -689,6 +690,7 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         }
 
         SectionLabel("NOC · odpoczynek")
+        if (vm.batteryRestricted && !vm.batteryHintHidden) BatteryHint(vm)
 
         // --- Sen
         Card {
@@ -758,6 +760,54 @@ private fun ChimePicker(selected: Chime, onSelect: (Chime) -> Unit) {
                 )
             }
         }
+    }
+}
+
+/**
+ * Niektóre telefony (Xiaomi, Huawei, Oppo, Samsung…) agresywnie usypiają aplikacje w tle.
+ * Podpowiadamy, jak zwolnić Equinox z ograniczeń, żeby timer snu i stoper działały niezawodnie.
+ */
+@Composable
+private fun BatteryHint(vm: PlayerViewModel) {
+    val ctx = LocalContext.current
+    val brand = Build.MANUFACTURER.lowercase().replace(" ", "-")
+    val known = setOf("xiaomi", "huawei", "honor", "oppo", "realme", "oneplus", "vivo", "samsung", "meizu", "asus", "sony", "nokia", "google", "motorola", "lenovo", "tecno", "infinix")
+    Card {
+        Text("Oszczędzanie baterii", color = Pal.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            "Telefon może usypiać Equinox przy zgaszonym ekranie, a wtedy timer snu albo stoper nie zadziała na czas. Zezwól aplikacji na działanie w tle bez ograniczeń.",
+            color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip("Ustawienia baterii", modifier = Modifier.weight(1f), selected = true) {
+                val intents = listOf(
+                    Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null)),
+                )
+                for (i in intents) {
+                    try {
+                        ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        break
+                    } catch (e: Exception) {
+                    }
+                }
+            }
+            Chip("Porady: ${Build.MANUFACTURER}", modifier = Modifier.weight(1f)) {
+                val url = if (brand in known) "https://dontkillmyapp.com/$brand" else "https://dontkillmyapp.com"
+                try {
+                    ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (e: Exception) {
+                }
+            }
+        }
+        Text(
+            "Nie pokazuj więcej",
+            color = Pal.Muted, fontSize = 12.sp,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { vm.hideBatteryHint() }
+                .padding(vertical = 6.dp),
+        )
     }
 }
 

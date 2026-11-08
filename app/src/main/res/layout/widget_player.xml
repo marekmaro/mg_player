@@ -30,7 +30,7 @@
             android:fontFamily="monospace"
             android:letterSpacing="0.2"
             android:text="@string/widget_label"
-            android:textColor="#FF9A968E"
+            android:textColor="@color/widget_muted"
             android:textSize="10sp" />
 
         <TextView
@@ -39,7 +39,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FFEDEAE4"
+            android:textColor="@color/widget_text"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FF9A968E"
+            android:textColor="@color/widget_muted"
             android:textSize="12sp" />
 
         <LinearLayout
@@ -67,7 +67,8 @@
                 android:contentDescription="@string/widget_prev"
                 android:padding="9dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_prev" />
+                android:src="@drawable/ic_prev"
+                android:tint="@color/widget_icon" />
 
             <ImageButton
                 android:id="@+id/widget_play"
@@ -89,7 +90,8 @@
                 android:contentDescription="@string/widget_next"
                 android:padding="9dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_next" />
+                android:src="@drawable/ic_next"
+                android:tint="@color/widget_icon" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

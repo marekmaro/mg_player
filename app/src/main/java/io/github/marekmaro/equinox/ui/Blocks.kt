@@ -94,6 +94,7 @@ private fun TitleBlock(vm: PlayerViewModel) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(np.title, color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
         Text(np.subtitle, color = Pal.Muted, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        np.chapter?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         Text(
             if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
             color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,

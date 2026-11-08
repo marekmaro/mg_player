@@ -37,6 +37,7 @@ class PlaybackService : MediaSessionService() {
     private val scope = MainScope()
     private lateinit var prefs: Prefs
     private var radioRetries = 0
+    private var lastChapterPos = 0L
     private var skippedInRow = 0
 
     private val listener = object : Player.Listener {
@@ -176,6 +177,23 @@ class PlaybackService : MediaSessionService() {
                         if (ticks % 10 == 0) persist()
                     }
                 }
+
+                // „Sen po rozdziale” dla rozdziałów wewnątrz jednego pliku (M4B)
+                val pos = player.currentPosition
+                if (Core.sleepAfterItem && Core.kind == Kind.BOOK && Core.chapters.isNotEmpty() &&
+                    Core.chaptersFor == player.currentMediaItem?.mediaId
+                ) {
+                    val boundary = Core.chapters.getOrNull(
+                        io.github.marekmaro.equinox.data.Chapters.indexAt(Core.chapters, lastChapterPos) + 1
+                    )?.startMs
+                    // tylko zwykłe odtwarzanie przez granicę (nie ręczny przeskok)
+                    val natural = pos >= lastChapterPos && pos - lastChapterPos < 5_000
+                    if (boundary != null && natural && lastChapterPos < boundary && pos >= boundary) {
+                        player.pause()
+                        Core.sleepAfterItem = false
+                    }
+                }
+                lastChapterPos = pos
 
                 // Timer snu z płynnym ściszaniem w ostatnich 15 s
                 Core.sleepEndAt?.let { end ->

@@ -242,7 +242,7 @@ fun NameDialog(title: String, initial: String, confirm: String, onDismiss: () ->
 // ================================================================== Biblioteka: skanowanie, foldery, formaty
 
 @Composable
-fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit) {
+fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit, onPrivacy: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -303,6 +303,17 @@ fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit) {
             }
         }
 
+        // --- Prywatność
+        Card(Modifier.clickable(onClick = onPrivacy)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Prywatność", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text("Bez kont, reklam i śledzenia. Zobacz, z czym łączy się aplikacja.", color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                }
+                Text("›", color = Pal.Muted, fontSize = 22.sp)
+            }
+        }
+
         // --- Formaty
         Card {
             Text("Obsługiwane formaty", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
@@ -332,5 +343,52 @@ private fun RuleBadge(rule: FolderRule, inherited: Boolean) {
             rule.label + if (inherited) " ↑" else "",
             color = if (active) Pal.Accent else Pal.Muted, fontFamily = Mono, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+// ================================================================== Prywatność
+
+@Composable
+fun PrivacyScreen(onBack: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Pal.Bg)
+            .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        TopBar("Prywatność", onBack)
+        Text("Equinox nie zbiera o Tobie żadnych danych.", color = Pal.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        PrivacySection(
+            "Co zostaje na telefonie",
+            "Twoje pliki, playlisty, ustawienia, postęp audiobooków i statystyki wyzwania. Nie wysyłam ich nikomu i nie mam do nich dostępu.",
+        )
+        PrivacySection(
+            "Z czym łączy się aplikacja",
+            "• radio-browser.info: lista stacji radiowych (i Twoje hasło wyszukiwania)\n" +
+                "• serwery stacji radiowych: sam strumień dźwięku\n" +
+                "• Wikipedia: tylko nazwa wykonawcy lub autora, żeby pokazać ciekawostki (wyłączysz to przyciskiem „Ukryj”)",
+        )
+        PrivacySection("Czego tu nie ma", "Kont, reklam, analityki, śledzenia i sprzedawania danych.")
+        PrivacySection(
+            "Uprawnienia",
+            "Pliki audio – żeby je odtwarzać. Powiadomienia – przyciski odtwarzania. Internet – radio i ciekawostki. Wibracje – pokrętło i sygnał stopera.",
+        )
+        PrivacySection(
+            "Jak usunąć dane",
+            "Ustawienia telefonu → Aplikacje → Equinox → Pamięć → Wyczyść dane. Twoje pliki muzyczne zostaną nietknięte.",
+        )
+        Text("Pełna polityka prywatności jest dostępna na stronie aplikacji w Google Play.", color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp)
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun PrivacySection(title: String, text: String) {
+    Card {
+        Text(title, color = Pal.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = Pal.Muted, fontSize = 14.sp, lineHeight = 20.sp)
     }
 }

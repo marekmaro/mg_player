@@ -123,4 +123,88 @@ class LogicTest {
         assertEquals("#", f(""))
         assertEquals("A", f("  ale"))
     }
+
+    // ---------- rozdziały M4B (znacznik chpl) ----------
+
+    private fun chplPayload(chapters: List<Pair<Long, String>>): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        val d = java.io.DataOutputStream(out)
+        d.writeInt(0x01000000) // wersja 1, flagi 0 (tak zapisuje ffmpeg)
+        d.writeInt(0)          // zarezerwowane
+        d.writeByte(chapters.size)
+        chapters.forEach { (ms, title) ->
+            d.writeLong(ms * 10_000) // jednostki 100 ns
+            val t = title.toByteArray(Charsets.UTF_8)
+            d.writeByte(t.size)
+            d.write(t)
+        }
+        return out.toByteArray()
+    }
+
+    private fun box(type: String, payload: ByteArray): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        val d = java.io.DataOutputStream(out)
+        d.writeInt(8 + payload.size)
+        d.write(type.toByteArray(Charsets.ISO_8859_1))
+        d.write(payload)
+        return out.toByteArray()
+    }
+
+    @Test
+    fun chapters_parseChplPayload() {
+        val ch = io.github.marekmaro.equinox.data.Chapters.parseChpl(
+            chplPayload(listOf(0L to "Wstęp", 95_000L to "Księga pierwsza", 1_800_000L to "Księga druga"))
+        )
+        assertEquals(3, ch.size)
+        assertEquals("Księga pierwsza", ch[1].title)
+        assertEquals(95_000L, ch[1].startMs)
+        assertEquals(1, io.github.marekmaro.equinox.data.Chapters.indexAt(ch, 100_000))
+        assertEquals(0, io.github.marekmaro.equinox.data.Chapters.indexAt(ch, 10))
+    }
+
+    @Test
+    fun chapters_findInMp4Structure() {
+        // ftyp, potem moov → (mvhd, udta → chpl), na końcu mdat z „dźwiękiem”
+        val chpl = box("chpl", chplPayload(listOf(0L to "Jeden", 60_000L to "Dwa")))
+        val udta = box("udta", chpl)
+        val moov = box("moov", box("mvhd", ByteArray(100)) + udta)
+        val file = box("ftyp", "M4B ".toByteArray()) + moov + box("mdat", ByteArray(5000))
+        val tmp = java.io.File.createTempFile("test", ".m4b")
+        tmp.writeBytes(file)
+        val ch = java.io.RandomAccessFile(tmp, "r").channel.use { io.github.marekmaro.equinox.data.Chapters.parse(it) }
+        tmp.delete()
+        assertEquals(listOf("Jeden", "Dwa"), ch.map { it.title })
+        assertEquals(60_000L, ch[1].startMs)
+    }
+
+    @Test
+    fun chapters_ignoreBrokenData() {
+        val C = io.github.marekmaro.equinox.data.Chapters
+        assertTrue(C.parseChpl(ByteArray(0)).isEmpty())
+        assertTrue(C.parseChpl(byteArrayOf(1, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0)).isEmpty()) // obcięte
+        val tmp = java.io.File.createTempFile("bad", ".mp3")
+        tmp.writeBytes(ByteArray(3000) { (it % 251).toByte() })
+        val ch = java.io.RandomAccessFile(tmp, "r").channel.use { C.parse(it) }
+        tmp.delete()
+        assertTrue(ch.isEmpty())
+    }
+
+    // ---------- duże biblioteki ----------
+
+    @Test
+    fun largeLibrary_isFast() {
+        val rnd = Random(7)
+        val durations = List(20_000) { 60_000L + rnd.nextLong(300_000) }
+        val t0 = System.nanoTime()
+        val idx = pickForDuration(durations, 45 * 60_000L, rnd)
+        val ms = (System.nanoTime() - t0) / 1_000_000
+        assertTrue("stoper dla 20 000 utworów trwał $ms ms", ms < 1_500)
+        assertTrue(idx.isNotEmpty())
+
+        val rules = (0 until 300).associate { "/sdcard/Music/Folder$it" to io.github.marekmaro.equinox.data.FolderRule.MUSIC }
+        val t1 = System.nanoTime()
+        repeat(20_000) { io.github.marekmaro.equinox.data.Library.ruleFor("/sdcard/Music/Folder${it % 400}/Album", rules) }
+        val ms2 = (System.nanoTime() - t1) / 1_000_000
+        assertTrue("reguły folderów dla 20 000 plików trwały $ms2 ms", ms2 < 3_000)
+    }
 }

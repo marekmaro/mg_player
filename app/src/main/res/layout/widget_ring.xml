@@ -23,5 +23,6 @@
         android:contentDescription="@string/widget_play"
         android:padding="12dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/ic_play" />
+        android:src="@drawable/ic_play"
+        android:tint="@color/widget_accent" />
 </FrameLayout>

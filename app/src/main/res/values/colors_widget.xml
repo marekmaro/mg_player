@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kolory widżetów w trybie jasnym (Dzień). Ciemne wersje: values-night/colors_widget.xml -->
+<resources>
+    <color name="widget_bg">#FFF4F1EA</color>
+    <color name="widget_stroke">#FFD9D2C4</color>
+    <color name="widget_btn">#FFE9E3D7</color>
+    <color name="widget_text">#FF1E1F22</color>
+    <color name="widget_muted">#FF66615A</color>
+    <color name="widget_icon">#FF1E1F22</color>
+    <color name="widget_accent">#FFC14E0E</color>
+</resources>
