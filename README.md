@@ -64,6 +64,10 @@ Budowanie z wiersza poleceń:
 ./gradlew assembleDebug
 ```
 
+## Audyt
+
+Raport zgodności, stabilności, prywatności i dostępności: **[docs/AUDYT.md](docs/AUDYT.md)**
+
 ## Testy
 
 Każda zmiana w `main` uruchamia w GitHub Actions:
@@ -91,4 +95,5 @@ app/src/main/java/io/github/marekmaro/equinox/
 - [ ] Korektor: „Bas ↔ Głos” + „Czysty głos” dla audiobooków
 - [ ] Okładki albumów
 - [ ] Premium (Google Play Billing) i reklama w miejscu okładki (AdMob, tylko przy otwartej aplikacji)
+- [ ] Polityka prywatności (wymagana przez Google Play)
 - [ ] Publikacja w Google Play (wersja z podpisem jest gotowa, zobacz docs/BUDOWANIE.md)
