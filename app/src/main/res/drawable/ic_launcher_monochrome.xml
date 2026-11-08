@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ikona motywowana (Android 13+): jeden kolor, system sam dobiera barwę -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M33,53 A21,21 0 0,1 75,53 Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M25,58 L83,58" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M38,65 L70,65" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M45,72 L63,72" />
+</vector>

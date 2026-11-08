@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        ThemeState.mode = ThemeMode.entries.firstOrNull { it.name == Prefs(this).themeMode } ?: ThemeMode.AUTO
+        ThemeState.mode = ThemeMode.entries.firstOrNull { it.name == Prefs(this).themeMode } ?: ThemeMode.SYSTEM
         watchFold()
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
         val openExtra = intent?.getStringExtra(EXTRA_OPEN)

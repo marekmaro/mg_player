@@ -1,10 +1,12 @@
 # Equinox
 
+<img src="docs/ikony/equinox-ikona-play-512.png" width="96" alt="Ikona Equinox: słońce nad horyzontem">
+
 Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany jednym kciukiem.
 
-*Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**, które w trybie **Auto** przełączają się same o 7:00 i 19:00.
+*Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.6)
+## Co już działa (wersja 0.7)
 
 - **Pokrętło**: każda lista przewija się obrotem kciuka po okręgu. Im szybciej kręcisz, tym dalej skacze. Przy długich listach pojawia się duża litera, a zaznaczenie zawsze nadąża. Środek „OK” wybiera, przytrzymanie „OK” to pauza.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.

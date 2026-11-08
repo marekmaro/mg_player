@@ -4,6 +4,7 @@ Robi zrzuty ekranu, kręci pokrętłem i sprawdza logcat pod kątem awarii.
 Kończy się błędem, jeśli aplikacja się wywróci albo nie znajdzie kluczowych napisów.
 """
 import math
+import os
 import re
 import subprocess
 import sys
@@ -132,12 +133,24 @@ shot("01-start")
 expect("EQUINOX", "start")
 expect("Losuj wszystko", "start")
 
-# 1b. Motyw: Auto -> Dzień (zrzut) -> Noc (zrzut) -> Auto
-for name in ["01b-motyw-dzien", "01c-motyw-noc"]:
-    if tap("Motyw:", desc=True, required=False):
-        time.sleep(1)
+# 1b. Motyw: domyślnie „TELEFON” (jak ustawienia telefonu); przełącz na Dzień i Noc, potem wróć
+def set_theme(label):
+    for _ in range(5):
+        if find(f"Motyw: {label}", desc=True):
+            return True
+        if not tap("Motyw:", desc=True, required=False):
+            return False
+        time.sleep(0.8)
+    return bool(find(f"Motyw: {label}", desc=True))
+
+if find("Motyw: TELEFON", desc=True):
+    note("OK [motyw]: domyślnie wg ustawień telefonu")
+else:
+    problems.append("[motyw] domyślny motyw nie jest TELEFON")
+for label, name in [("DZIEŃ", "01b-motyw-dzien"), ("NOC", "01c-motyw-noc")]:
+    if set_theme(label):
         shot(name)
-tap("Motyw:", desc=True, required=False)
+set_theme("TELEFON")
 
 # 2. Pokrętło: obrót o 90° powinien przesunąć zaznaczenie o 3 pozycje (co 30°)
 ok = find("Wybierz", desc=True)
@@ -287,20 +300,25 @@ for w in ["PlayerWidget", "RingWidget"]:
         problems.append(f"[widżety] system nie widzi {w}")
 
 # 11. Kafelek w szybkich ustawieniach: dotknięcie ma uruchomić stoper muzyczny
-adb("shell", "input", "keyevent", "3")  # ekran główny telefonu
-time.sleep(2)
-tile = f"{PKG}/.StopwatchTileService"
-note(adb("shell", "cmd", "statusbar", "add-tile", tile).strip() or "kafelek dodany")
-time.sleep(2)
-adb("shell", "cmd", "statusbar", "click-tile", tile)
-time.sleep(10)
-adb("shell", "cmd", "statusbar", "collapse")
-shot("18-kafelek-stoper")
-expect("TERAZ GRA", "kafelek: stoper wystartował i otworzył odtwarzacz")
-back()
-tap("Sesje", exact=True, required=False)
-shot("19-sesje-stoper-dziala")
-expect("Zatrzymaj stoper", "kafelek: stoper aktywny w Sesjach")
+#     (polecenie „cmd statusbar add-tile” jest dostępne od Androida 10)
+SDK = int(os.environ.get("SDK", "34"))
+if SDK < 29:
+    note("pomijam test kafelka: Android starszy niż 10 nie ma polecenia add-tile")
+else:
+    adb("shell", "input", "keyevent", "3")  # ekran główny telefonu
+    time.sleep(2)
+    tile = f"{PKG}/.StopwatchTileService"
+    note(adb("shell", "cmd", "statusbar", "add-tile", tile).strip() or "kafelek dodany")
+    time.sleep(2)
+    adb("shell", "cmd", "statusbar", "click-tile", tile)
+    time.sleep(10)
+    adb("shell", "cmd", "statusbar", "collapse")
+    shot("18-kafelek-stoper")
+    expect("TERAZ GRA", "kafelek: stoper wystartował i otworzył odtwarzacz")
+    back()
+    tap("Sesje", exact=True, required=False)
+    shot("19-sesje-stoper-dziala")
+    expect("Zatrzymaj stoper", "kafelek: stoper aktywny w Sesjach")
 
 hits, logs = crashed()
 open(f"{OUT}/logcat.txt", "w", encoding="utf-8").write(logs)
@@ -309,7 +327,11 @@ if hits:
 
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
+# tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
+KEY = ("01-start", "01b-", "01c-", "04a-", "04-teraz", "05d-", "07-", "09-", "20-", "22-", "23-", "14-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
+    if not f.split("/")[-1].startswith(KEY):
+        continue
     print("SHOT " + f.split("/")[-1] + " " + base64.b64encode(open(f, "rb").read()).decode())
 
 note("\n=== WYNIK ===")

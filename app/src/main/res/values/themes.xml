@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#FF141517</color>
+    <color name="bg">#FFF4F1EA</color>
 
     <style name="Theme.Equinox" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>

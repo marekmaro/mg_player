@@ -26,7 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -44,7 +44,7 @@ private const val INTRO_MS = 1_900
  * Powitanie przy starcie (ok. 1,9 s):
  * 1. podziałka „zapala się” kreska po kresce, jak tarcza zegara,
  * 2. pomarańczowy pierścień zatacza pełne koło,
- * 3. środek – pół dnia, pół nocy – obraca się o 180°, jak doba wokół równonocy,
+ * 3. w środku słońce wschodzi zza horyzontu (jak w logo),
  * 4. pojawia się nazwa i powitanie dopasowane do pory dnia, potem całość gaśnie.
  * Dotknięcie pomija animację. Przy wyłączonych animacjach w systemie nie ma jej wcale.
  */
@@ -129,15 +129,22 @@ fun WelcomeIntro(onDone: () -> Unit) {
                 if (ring > 0f) {
                     drawArc(accent, -90f, 360f * ring, false, Offset(inset, inset), arcSize, style = Stroke(sw, cap = StrokeCap.Round))
                 }
-                // 3. dzień i noc: połowa tarczy wypełniona, obrót o 180°
-                val discR = r * 0.34f
-                rotate(degrees = 180f * turn) {
+                // 3. wschód słońca: słońce wynurza się zza horyzontu (jak w logo)
+                val sunR = r * 0.30f
+                val horizonY = center.y + sunR * 0.15f
+                val sunY = horizonY + sunR * 1.1f * (1f - turn)
+                clipRect(top = 0f, bottom = horizonY) {
                     drawArc(
-                        face, 90f, 180f, useCenter = true,
-                        topLeft = Offset(center.x - discR, center.y - discR), size = Size(discR * 2, discR * 2),
+                        accent, 180f, 180f, useCenter = true,
+                        topLeft = Offset(center.x - sunR, sunY - sunR), size = Size(sunR * 2, sunR * 2),
                     )
+                    drawCircle(accent, radius = sunR, center = Offset(center.x, sunY))
                 }
-                drawCircle(face, radius = discR, style = Stroke(2.dp.toPx()))
+                val half = sunR * 1.45f
+                drawLine(face, Offset(center.x - half, horizonY), Offset(center.x + half, horizonY), 2.5.dp.toPx(), StrokeCap.Round)
+                // odbicie w wodzie pojawia się razem ze słońcem
+                drawLine(major.copy(alpha = turn), Offset(center.x - sunR * 0.8f, horizonY + 7.dp.toPx()), Offset(center.x + sunR * 0.8f, horizonY + 7.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
+                drawLine(tick.copy(alpha = turn), Offset(center.x - sunR * 0.45f, horizonY + 13.dp.toPx()), Offset(center.x + sunR * 0.45f, horizonY + 13.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
             }
             Text(
                 "EQUINOX",

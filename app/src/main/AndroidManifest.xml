@@ -12,12 +12,16 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Chromebooki, telewizory z myszką itp.: dotyk nie jest wymagany (pokrętło działa też kółkiem myszy) -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Equinox"
+        android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true">
 
         <activity

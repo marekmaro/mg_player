@@ -7,6 +7,9 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import io.github.marekmaro.equinox.data.Prefs
@@ -27,6 +30,7 @@ import java.time.LocalDate
  * Tu działają też sesje (timer snu, stoper, wyzwanie, zapis pozycji
  * audiobooka), żeby nie zależały od tego, czy aplikacja jest otwarta.
  */
+@OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
 
     private var session: MediaSession? = null
@@ -110,6 +114,10 @@ class PlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         player.addListener(listener)
+        // własna ikona (słońce nad horyzontem) w pasku stanu zamiast domyślnej
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this).build().also { it.setSmallIcon(R.drawable.ic_notification) }
+        )
         session = MediaSession.Builder(this, player).build()
         Companion.player = player
         startTicker()

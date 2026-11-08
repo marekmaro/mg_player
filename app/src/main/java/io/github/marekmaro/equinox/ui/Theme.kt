@@ -1,6 +1,7 @@
 package io.github.marekmaro.equinox.ui
 
 import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -22,7 +23,8 @@ import java.time.LocalTime
  * Noc (grafit, ciepły pomarańcz) i Dzień (jasny papier, przygaszony pomarańcz).
  * W trybie Auto przełącza się sama o świcie i zmierzchu.
  */
-enum class ThemeMode(val label: String) { AUTO("AUTO"), DAY("DZIEŃ"), NIGHT("NOC") }
+/** SYSTEM = jak ustawienia telefonu (domyślnie), AUTO = wg pory dnia, DZIEŃ / NOC = na stałe. */
+enum class ThemeMode(val label: String) { SYSTEM("TELEFON"), AUTO("PORA DNIA"), DAY("DZIEŃ"), NIGHT("NOC") }
 
 private class Palette(
     val bg: Color, val surface: Color, val surface2: Color, val line: Color, val tick: Color,
@@ -45,14 +47,18 @@ private val DayPalette = Palette(
 )
 
 object ThemeState {
-    var mode by mutableStateOf(ThemeMode.AUTO)
+    var mode by mutableStateOf(ThemeMode.SYSTEM)
     private var clockNight by mutableStateOf(isNightHour(LocalTime.now().hour))
+
+    /** Tryb ciemny telefonu – ustawiany przez EquinoxTheme. */
+    var systemDark by mutableStateOf(true)
 
     val night: Boolean
         get() = when (mode) {
             ThemeMode.DAY -> false
             ThemeMode.NIGHT -> true
             ThemeMode.AUTO -> clockNight
+            ThemeMode.SYSTEM -> systemDark
         }
 
     /** Noc od 19:00 do 6:59. */
@@ -98,6 +104,7 @@ fun EquinoxTheme(content: @Composable () -> Unit) {
             delay(60_000)
         }
     }
+    ThemeState.systemDark = isSystemInDarkTheme()
     val night = ThemeState.night
 
     // ikony paska stanu: jasne nocą, ciemne za dnia

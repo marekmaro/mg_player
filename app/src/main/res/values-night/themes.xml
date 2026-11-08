@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tryb ciemny telefonu: ciemne tło okna startowego (bez białego mignięcia) -->
+    <color name="bg">#FF141517</color>
+</resources>

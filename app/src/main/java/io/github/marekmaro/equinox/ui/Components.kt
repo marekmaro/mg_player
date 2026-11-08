@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -265,7 +266,23 @@ fun RotaryKnob(
     val step by rememberUpdatedState(onStep)
 
     Box(
-        modifier.pointerInput(stepDegrees, accelerate) {
+        modifier
+            // kółko myszy / touchpad (Chromebook, DeX, tablet z myszką): jeden ząbek = jeden krok
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val e = awaitPointerEvent()
+                        if (e.type == PointerEventType.Scroll) {
+                            val dy = e.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                            if (dy != 0f) {
+                                step(if (dy > 0) 1 else -1)
+                                e.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
+                }
+            }
+            .pointerInput(stepDegrees, accelerate) {
             var last = 0f
             var acc = 0f
             var lastTime = 0L

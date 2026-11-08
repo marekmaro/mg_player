@@ -1,31 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Equinox: dzień i noc w równowadze, otoczone pierścieniem postępu -->
+<!-- Equinox „Horyzont”: słońce w połowie nad horyzontem i jego odbicie.
+     Wszystko mieści się w bezpiecznym kole 66 dp, więc żaden kształt ikony go nie przytnie. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- tor pierścienia -->
-    <path
-        android:pathData="M54,28 A26,26 0 1,1 53.99,28"
-        android:strokeWidth="4"
-        android:strokeColor="#FF3A3D42"
-        android:fillColor="#00000000" />
-    <!-- postęp -->
-    <path
-        android:pathData="M54,28 A26,26 0 1,1 28,54"
-        android:strokeWidth="4"
-        android:strokeColor="#FFFF7A2F"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000" />
-    <!-- dzień: jasna połowa -->
-    <path
-        android:pathData="M54,38 A16,16 0 0,0 54,70 Z"
-        android:fillColor="#FFEDEAE4" />
-    <!-- noc: obrys drugiej połowy -->
-    <path
-        android:pathData="M54,38 A16,16 0 0,1 54,70"
-        android:strokeWidth="2"
-        android:strokeColor="#FFEDEAE4"
-        android:fillColor="#00000000" />
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- słońce -->
+    <path android:fillColor="#FFFF7A2F" android:pathData="M33,56 A21,21 0 0,1 75,56 Z" />
+    <!-- horyzont -->
+    <path android:strokeColor="#FFEDEAE4" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M25,56 L83,56" />
+    <!-- odbicie w wodzie -->
+    <path android:strokeColor="#FF5A5D63" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M38,64 L70,64" />
+    <path android:strokeColor="#FF3A3D42" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M45,71 L63,71" />
 </vector>

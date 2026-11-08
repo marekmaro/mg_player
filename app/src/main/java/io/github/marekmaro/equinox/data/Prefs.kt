@@ -96,7 +96,7 @@ class Prefs(context: Context) {
 
     // --- Motyw: AUTO / DAY / NIGHT ---
     var themeMode: String
-        get() = sp.getString("theme_mode", "AUTO") ?: "AUTO"
+        get() = sp.getString("theme_mode", "SYSTEM") ?: "SYSTEM"
         set(v) = sp.edit().putString("theme_mode", v).apply()
 
     // --- Sygnał końca stopera ---

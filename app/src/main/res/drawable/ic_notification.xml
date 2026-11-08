@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mała ikona w pasku stanu (powiadomienie odtwarzania): słońce nad horyzontem -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M5,13 A7,7 0 0,1 19,13 Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2" android:strokeLineCap="round"
+        android:pathData="M2.5,15.5 L21.5,15.5" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:pathData="M7,19.5 L17,19.5" />
+</vector>
