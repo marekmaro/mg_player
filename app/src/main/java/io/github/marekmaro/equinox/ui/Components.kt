@@ -419,6 +419,9 @@ fun KnobListScreen(
 ) {
     var sel by remember(rows.size) { mutableIntStateOf(0) }
     val listState = rememberLazyListState()
+    // niski ekran: telefon w poziomie albo bardzo duża czcionka
+    val compactHeight = LocalConfiguration.current.screenHeightDp < 480
+    val headerItems = if (compactHeight && rows.isNotEmpty()) 1 else 0
     val scope = rememberCoroutineScope()
     var scrollJob by remember { mutableStateOf<Job?>(null) }
     var lastMove by remember { mutableLongStateOf(0L) }
@@ -442,10 +445,11 @@ fun KnobListScreen(
         scrollJob = scope.launch {
             val visible = listState.layoutInfo.visibleItemsInfo
             if (visible.isEmpty()) return@launch
+            val item = sel + headerItems // na niskim ekranie nagłówek jest pierwszym elementem listy
             val first = visible.first().index
             val last = visible.last().index
-            if (sel <= first || sel >= last) {
-                val target = (sel - visible.size / 2).coerceAtLeast(0) // zaznaczenie na środku
+            if (item <= first || item >= last) {
+                val target = (item - visible.size / 2).coerceAtLeast(0) // zaznaczenie na środku
                 if (fast) listState.scrollToItem(target) else listState.animateScrollToItem(target)
             }
         }
@@ -466,8 +470,10 @@ fun KnobListScreen(
     else (cfg.screenHeightDp * 0.27f).coerceIn(150f, 210f).dp
 
     val list: @Composable ColumnScope.() -> Unit = {
-        TopBar(title, onBack, small = smallTitle, trailing = topTrailing)
-        header()
+        if (!compactHeight || rows.isEmpty()) {
+            TopBar(title, onBack, small = smallTitle, trailing = topTrailing)
+            header()
+        }
         if (rows.isEmpty()) {
             Box(
                 Modifier
@@ -483,6 +489,15 @@ fun KnobListScreen(
         } else {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                    if (compactHeight) {
+                        // niski ekran (telefon poziomo, duża czcionka): nagłówek przewija się z listą
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+                                TopBar(title, onBack, small = smallTitle, trailing = topTrailing)
+                                header()
+                            }
+                        }
+                    }
                     itemsIndexed(rows) { i, row ->
                         ListRowItem(row, selected = i == sel) {
                             sel = i
