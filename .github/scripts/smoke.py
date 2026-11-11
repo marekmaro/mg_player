@@ -145,19 +145,22 @@ adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
 time.sleep(6)
 shot("01-start")
 expect("EQUINOX", "start")
-expect("Losuj wszystko", "start")
+expect("Losuj wszystko|Shuffle all", "start")
 
 # 1b. Motyw: domyślnie „TELEFON” (jak ustawienia telefonu); przełącz na Dzień i Noc, potem wróć
+EN_THEME = {"TELEFON": "PHONE", "DZIEŃ": "DAY", "NOC": "NIGHT", "PORA DNIA": "TIME OF DAY"}
+
+
 def set_theme(label):
     for _ in range(5):
-        if find(f"Motyw: {label}", desc=True):
+        if find(f"Motyw: {label}|Theme: {EN_THEME.get(label, label)}", desc=True):
             return True
-        if not tap("Motyw:", desc=True, required=False):
+        if not tap("Motyw:|Theme:", desc=True, required=False):
             return False
         time.sleep(0.8)
-    return bool(find(f"Motyw: {label}", desc=True))
+    return bool(find(f"Motyw: {label}|Theme: {EN_THEME.get(label, label)}", desc=True))
 
-if find("Motyw: TELEFON", desc=True):
+if find("Motyw: TELEFON|Theme: PHONE", desc=True):
     note("OK [motyw]: domyślnie wg ustawień telefonu")
 else:
     problems.append("[motyw] domyślny motyw nie jest TELEFON")
@@ -167,7 +170,7 @@ for label, name in [("DZIEŃ", "01b-motyw-dzien"), ("NOC", "01c-motyw-noc")]:
 set_theme("TELEFON")
 
 # 2. Pokrętło: obrót o 90° powinien przesunąć zaznaczenie o 3 pozycje (co 30°)
-ok = find("Wybierz", desc=True)
+ok = find("Wybierz|Select", desc=True)
 if ok:
     cx, cy, w = ok
     ring_r = int(w / 0.36 / 2 * 0.78)
@@ -177,34 +180,34 @@ else:
     problems.append("nie znaleziono pokrętła (OK)")
 
 # 3. Muzyka -> pierwszy utwór -> Teraz gra
-tap("Muzyka", exact=True)
+tap("Muzyka|Music", exact=True)
 shot("03-muzyka")
 expect("Nocny przystanek", "lista muzyki")
 tap("Cisza przed burzą")
 time.sleep(3)
 shot("04a-samouczek")
-expect("Jak sterować kółkiem", "samouczek przy pierwszym otwarciu")
-tap("Rozumiem", exact=True, required=False)
+expect("Jak sterować kółkiem|How to use the dial", "samouczek przy pierwszym otwarciu")
+tap("Rozumiem|Got it", exact=True, required=False)
 shot("04-teraz-gra")
-expect("TERAZ GRA", "teraz gra")
-tap("Utwory", exact=True, required=False)
+expect("TERAZ GRA|NOW PLAYING", "teraz gra")
+tap("Utwory|Songs", exact=True, required=False)
 shot("05-tryb-utwory")
 # Klocki: włącz „Następne” i „Zegar” w edytorze układu
-if tap("Ułóż ekran", required=False, zone=LOW):
+if tap("Ułóż ekran|Arrange screen", required=False, zone=LOW):
     shot("05b-edytor-klockow")
-    tap("Włącz Następne", desc=True, required=False)
-    tap("Włącz Zegar", desc=True, required=False)
+    tap("Włącz Następne|Turn on Up next", desc=True, required=False)
+    tap("Włącz Zegar|Turn on Clock", desc=True, required=False)
     shot("05c-edytor-po-zmianie")
     back()
     time.sleep(1)
     shot("05d-teraz-gra-z-klockami")
-    expect("NASTĘPNE", "klocek Następne na ekranie", zone=LOW)
+    expect("NASTĘPNE|UP NEXT", "klocek Następne na ekranie", zone=LOW)
 
 back()
 back()
 
 # 4. Audiobooki
-tap("Audiobooki", exact=True)
+tap("Audiobooki|Audiobooks", exact=True)
 shot("06-audiobooki")
 expect("Lalka", "audiobooki")
 tap("Lalka")
@@ -218,12 +221,12 @@ back()
 back()
 
 # 5. Sesje + menu sygnału
-tap("Sesje", exact=True)
+tap("Sesje|Sessions", exact=True)
 shot("09-sesje")
-expect("Stoper muzyczny", "sesje")
-tap("♪ sygnał")
+expect("Stoper muzyczny|Music timer", "sesje")
+tap("♪ sygnał|♪ signal")
 shot("10-menu-sygnalu")
-tap("Dzwonek", required=False)
+tap("Dzwonek|Bell", required=False)
 tap("30", exact=True, required=False)
 time.sleep(1)
 shot("11-sesje-timer")
@@ -236,7 +239,7 @@ shot("12-radio")
 back()
 
 # 7. Przytrzymanie OK = pauza
-ok = find("Wybierz", desc=True)
+ok = find("Wybierz|Select", desc=True)
 if ok:
     adb("shell", "input", "swipe", str(ok[0]), str(ok[1]), str(ok[0]), str(ok[1]), "900")
     time.sleep(1)
@@ -259,16 +262,16 @@ time.sleep(4)
 W, H = screen_size()  # przewijanie musi znać nowy rozmiar ekranu
 note("  po rozłożeniu: " + " | ".join(t or d for t, d, *_ in nodes() if (t or d))[:300])
 shot("15-skladak-menu")
-tap("Muzyka", exact=True)
+tap("Muzyka|Music", exact=True)
 tap("Nocny przystanek")
 time.sleep(2)
 shot("16-skladak-teraz-gra")
-expect("TERAZ GRA", "składak: teraz gra")
+expect("TERAZ GRA|NOW PLAYING", "składak: teraz gra")
 # obrót = zmiana konfiguracji jak przy rozkładaniu: ekran ma zostać ten sam
 adb("shell", "settings", "put", "system", "user_rotation", "1")
 time.sleep(3)
 shot("17-skladak-poziomo")
-expect("TERAZ GRA", "składak: ekran zachowany po zmianie konfiguracji")
+expect("TERAZ GRA|NOW PLAYING", "składak: ekran zachowany po zmianie konfiguracji")
 adb("shell", "settings", "put", "system", "user_rotation", "0")
 adb("shell", "wm", "size", "reset")
 adb("shell", "wm", "density", "reset")
@@ -277,19 +280,19 @@ W, H = screen_size()
 
 # 9b. Playlisty: utwórz, dodaj utwór, sprawdź
 for _ in range(4):  # wróć do menu głównego
-    if find("Losuj wszystko"):
+    if find("Losuj wszystko|Shuffle all"):
         break
     back()
-tap("Playlisty", exact=True)
-tap("+ Nowa playlista")
-tap("Nazwa", exact=True, required=False)  # pole tekstowe w oknie
+tap("Playlisty|Playlists", exact=True)
+tap("+ Nowa playlista|+ New playlist")
+tap("Nazwa|Name", exact=True, required=False)  # pole tekstowe w oknie
 adb("shell", "input", "text", "Wieczorna")
 time.sleep(1)
-tap("Utwórz", exact=True)
+tap("Utwórz|Create", exact=True)
 time.sleep(1)
 shot("20-playlista-pusta")
 expect("Wieczorna", "playlista utworzona")
-tap("+ Dodaj")
+tap("+ Dodaj|+ Add")
 shot("21-dodawanie-utworow")
 tap("+", exact=True)          # pierwszy utwór na liście
 tap("+", exact=True)          # drugi
@@ -300,13 +303,13 @@ back()
 back()
 
 # 9c. Biblioteka: foldery i skanowanie telefonu
-tap("Biblioteka", exact=True)
+tap("Biblioteka|Library", exact=True)
 shot("23-biblioteka")
 expect("Testowe", "folder z muzyką widoczny")
-tap("Skanuj teraz")
+tap("Skanuj teraz|Scan now")
 time.sleep(12)
 shot("24-po-skanowaniu")
-expect("Znaleziono", "skanowanie telefonu")
+expect("Znaleziono|Found", "skanowanie telefonu")
 back()
 
 # 9d. Wykonawcy i wyszukiwarka
@@ -359,7 +362,7 @@ time.sleep(2)
 adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
 time.sleep(7)
 shot("27-po-ponownym-uruchomieniu")
-expect("SŁUCHAJ DALEJ", "wznowienie ostatniej sesji po zamknięciu aplikacji")
+expect("SŁUCHAJ DALEJ|KEEP LISTENING", "wznowienie ostatniej sesji po zamknięciu aplikacji")
 
 # 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
@@ -384,11 +387,11 @@ else:
     time.sleep(10)
     adb("shell", "cmd", "statusbar", "collapse")
     shot("18-kafelek-stoper")
-    expect("TERAZ GRA", "kafelek: stoper wystartował i otworzył odtwarzacz")
+    expect("TERAZ GRA|NOW PLAYING", "kafelek: stoper wystartował i otworzył odtwarzacz")
     back()
-    tap("Sesje", exact=True, required=False)
+    tap("Sesje|Sessions", exact=True, required=False)
     shot("19-sesje-stoper-dziala")
-    expect("Zatrzymaj stoper", "kafelek: stoper aktywny w Sesjach")
+    expect("Zatrzymaj stoper|Stop the timer", "kafelek: stoper aktywny w Sesjach")
 
 hits, logs = crashed()
 open(f"{OUT}/logcat.txt", "w", encoding="utf-8").write(logs)

@@ -86,7 +86,7 @@ object Chapters {
             val len = b.get().toInt() and 0xFF
             if (b.remaining() < len) return@repeat
             val title = ByteArray(len).also { b.get(it) }.toString(Charsets.UTF_8).trim()
-            out += Chapter(startMs = start / 10_000, title = title.ifBlank { "Rozdział ${out.size + 1}" })
+            out += Chapter(startMs = start / 10_000, title = title.ifBlank { io.github.marekmaro.equinox.tr("Rozdział ${out.size + 1}", "Chapter ${out.size + 1}") })
         }
         // pojedynczy „rozdział” nic nie daje
         return if (out.size >= 2) out.sortedBy { it.startMs } else emptyList()

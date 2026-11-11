@@ -1,5 +1,6 @@
 package io.github.marekmaro.equinox.ui
 
+import io.github.marekmaro.equinox.tr
 import androidx.compose.foundation.Canvas
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -180,7 +181,7 @@ fun TopBar(title: String, onBack: (() -> Unit)?, small: Boolean = false, trailin
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (onBack != null) {
-            CircleButton("Wróć", onBack) { GlyphIcon(Glyph.Back, Pal.Text, 20.dp) }
+            CircleButton(tr("Wróć", "Back"), onBack) { GlyphIcon(Glyph.Back, Pal.Text, 20.dp) }
         }
         if (small) {
             Text(title, color = Pal.Muted, fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 4.sp)
@@ -219,7 +220,7 @@ fun DayNightToggle() {
                 ThemeState.mode = next
                 Prefs(ctx).themeMode = next.name
             }
-            .semantics { contentDescription = "Motyw: ${ThemeState.mode.label}. Dotknij, aby zmienić." }
+            .semantics { contentDescription = tr("Motyw: ${ThemeState.mode.label}. Dotknij, aby zmienić.", "Theme: ${ThemeState.mode.label}. Tap to change.") }
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -391,7 +392,7 @@ fun MenuKnob(onStep: (Int) -> Unit, onOk: () -> Unit, onLongOk: () -> Unit = {},
                 .border(1.dp, Pal.Tick, CircleShape)
                 // dotknięcie = wybierz, przytrzymanie = pauza / odtwarzanie
                 .pointerInput(Unit) { detectTapGestures(onTap = { ok() }, onLongPress = { longOk() }) }
-                .semantics { contentDescription = "Wybierz. Przytrzymaj, aby wstrzymać lub wznowić" },
+                .semantics { contentDescription = tr("Wybierz. Przytrzymaj, aby wstrzymać lub wznowić", "Select. Hold to pause or resume") },
             contentAlignment = Alignment.Center,
         ) {
             Text("OK", color = Pal.Text, fontFamily = Mono, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)

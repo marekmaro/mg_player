@@ -179,7 +179,7 @@ class PlaybackService : MediaSessionService() {
             WidgetUpdater.State(
                 title = md.title?.toString().orEmpty().ifBlank { "Equinox" },
                 subtitle = when {
-                    radio -> "● na żywo"
+                    radio -> tr("● na żywo", "● live")
                     else -> md.artist?.toString().orEmpty()
                 },
                 playing = p.isPlaying,

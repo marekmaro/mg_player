@@ -16,30 +16,32 @@ enum class Timbre { DIGITAL, BELL, CHIP, SOFT }
 /** Jedna nuta: częstotliwość, start i długość (z wybrzmieniem) w ms. */
 data class Note(val freq: Double, val startMs: Int, val lenMs: Int)
 
-enum class Chime(val label: String, val timbre: Timbre, val notes: List<Note>) {
+enum class Chime(private val pl: String, private val en: String, val timbre: Timbre, val notes: List<Note>) {
 
     /** Mała fanfara w stylu starych konsol 8-bit. */
-    CHIP("Fanfara 8-bit", Timbre.CHIP, seq(
+    CHIP("Fanfara 8-bit", "8-bit fanfare", Timbre.CHIP, seq(
         G5 to 90, R to 20, C6 to 90, R to 20, E6 to 90, R to 20, G6 to 180, R to 90,
         E6 to 90, R to 20, G6 to 480,
     )),
 
     /** Klasyczne „pik-pik” z zegarka, ułożone w akord: mi–sol–DO ×2, potem sol–do–MI. */
-    CLASSIC("Klasyczny", Timbre.DIGITAL, seq(
+    CLASSIC("Klasyczny", "Classic", Timbre.DIGITAL, seq(
         E6 to 90, R to 50, G6 to 90, R to 50, C7 to 170, R to 280,
         E6 to 90, R to 50, G6 to 90, R to 50, C7 to 170, R to 280,
         G6 to 80, R to 40, C7 to 80, R to 40, E7 to 520,
     )),
 
     /** Wznoszący się arpeggio jak dzwonki rurowe; dźwięki nakładają się i wybrzmiewają. */
-    BELL("Dzwonek", Timbre.BELL, listOf(
+    BELL("Dzwonek", "Bell", Timbre.BELL, listOf(
         Note(C6, 0, 1100), Note(E6, 180, 1100), Note(G6, 360, 1100), Note(C7, 540, 1800),
     )),
 
     /** Spokojne „ding-dong”, jak sygnał na dworcu. Dobre po sesji nauki. */
-    SOFT("Delikatny", Timbre.SOFT, listOf(
+    SOFT("Delikatny", "Gentle", Timbre.SOFT, listOf(
         Note(E6, 0, 1300), Note(C6, 650, 1800),
     ));
+
+    val label: String get() = tr(pl, en)
 
     val durationMs: Long get() = notes.maxOf { it.startMs + it.lenMs }.toLong()
 

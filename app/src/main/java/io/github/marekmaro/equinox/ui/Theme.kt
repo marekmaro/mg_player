@@ -1,5 +1,6 @@
 package io.github.marekmaro.equinox.ui
 
+import io.github.marekmaro.equinox.tr
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +25,11 @@ import java.time.LocalTime
  * W trybie Auto przełącza się sama o świcie i zmierzchu.
  */
 /** SYSTEM = jak ustawienia telefonu (domyślnie), AUTO = wg pory dnia, DZIEŃ / NOC = na stałe. */
-enum class ThemeMode(val label: String) { SYSTEM("TELEFON"), AUTO("PORA DNIA"), DAY("DZIEŃ"), NIGHT("NOC") }
+enum class ThemeMode(private val pl: String, private val en: String) {
+    SYSTEM("TELEFON", "PHONE"), AUTO("PORA DNIA", "TIME OF DAY"), DAY("DZIEŃ", "DAY"), NIGHT("NOC", "NIGHT");
+
+    val label: String get() = tr(pl, en)
+}
 
 private class Palette(
     val bg: Color, val surface: Color, val surface2: Color, val line: Color, val tick: Color,
@@ -89,10 +94,10 @@ val Mono = FontFamily.Monospace
 
 /** Powitanie zależne od pory dnia. */
 fun greeting(hour: Int = LocalTime.now().hour): String = when (hour) {
-    in 5..11 -> "Dzień dobry"
-    in 12..17 -> "Miłego popołudnia"
-    in 18..21 -> "Dobry wieczór"
-    else -> "Spokojnej nocy"
+    in 5..11 -> tr("Dzień dobry", "Good morning")
+    in 12..17 -> tr("Miłego popołudnia", "Good afternoon")
+    in 18..21 -> tr("Dobry wieczór", "Good evening")
+    else -> tr("Spokojnej nocy", "Good night")
 }
 
 @Composable

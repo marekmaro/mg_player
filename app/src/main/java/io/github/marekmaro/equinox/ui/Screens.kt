@@ -138,12 +138,12 @@ fun HomeScreen(
                 MiniRing(progress = if (np.durationMs > 0) np.positionMs.toFloat() / np.durationMs else 0f)
                 Column(Modifier.weight(1f)) {
                     Text(
-                        if (np.isPlaying) "TERAZ GRA" else "SŁUCHAJ DALEJ",
+                        if (np.isPlaying) tr("TERAZ GRA", "NOW PLAYING") else tr("SŁUCHAJ DALEJ", "KEEP LISTENING"),
                         color = Pal.Muted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp,
                     )
                     Text(np.title, color = Pal.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        if (np.kind == Kind.RADIO) "na żywo" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
+                        if (np.kind == Kind.RADIO) tr("na żywo", "live") else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
                         color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
                     )
                 }
@@ -168,7 +168,7 @@ private fun MiniRing(progress: Float) {
 private fun permissionAction(vm: PlayerViewModel): Pair<String, () -> Unit>? {
     if (vm.permissionGranted) return null
     val ctx = LocalContext.current
-    return "Zezwól na dostęp do audio" to {
+    return tr("Zezwól na dostęp do audio", "Allow access to audio") to {
         ctx.startActivity(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -185,7 +185,7 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, 
     addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
-        title = "Muzyka",
+        title = tr("Muzyka", "Music"),
         emptyAction = permissionAction(vm),
         // „+” przy utworze = dodaj do playlisty
         rows = remember(tracks) { tracks.map { t -> ListRow(t.title, fmt(t.durationMs), trailing = "+", onTrailing = { addTrackId = t.id }) } },
@@ -194,9 +194,9 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, 
             vm.playTracks(tracks, i)
             onPlaying()
         },
-        emptyText = if (!vm.libraryLoaded) "Wczytuję bibliotekę…"
-        else if (!vm.permissionGranted) "Equinox potrzebuje dostępu do plików audio,\nżeby znaleźć Twoją muzykę."
-        else "Nie znalazłem muzyki.\nSkopiuj pliki MP3/FLAC na telefon.",
+        emptyText = if (!vm.libraryLoaded) tr("Wczytuję bibliotekę…", "Loading your library…")
+        else if (!vm.permissionGranted) tr("Equinox potrzebuje dostępu do plików audio,\nżeby znaleźć Twoją muzykę.", "Equinox needs access to audio files\nto find your music.")
+        else tr("Nie znalazłem muzyki.\nSkopiuj pliki MP3/FLAC na telefon.", "No music found.\nCopy MP3/FLAC files to your phone."),
     ) {
         if (tracks.isNotEmpty()) {
             // przeglądanie jak w klasycznym odtwarzaczu: wykonawcy, albumy, foldery
@@ -216,7 +216,7 @@ fun BooksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
     val books = vm.books
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
-        title = "Audiobooki",
+        title = tr("Audiobooki", "Audiobooks"),
         emptyAction = permissionAction(vm),
         rows = books.map { ListRow(it.title, "${(vm.bookProgress(it) * 100).toInt()}%") },
         onBack = onBack,
@@ -224,8 +224,8 @@ fun BooksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
             vm.playBook(books[i])
             onPlaying()
         },
-        emptyText = if (!vm.libraryLoaded) "Wczytuję bibliotekę…"
-        else "Brak audiobooków.\nUmieść pliki w folderze „Audiobooks”.\nJeden folder (album) = jedna książka.",
+        emptyText = if (!vm.libraryLoaded) tr("Wczytuję bibliotekę…", "Loading your library…")
+        else tr("Brak audiobooków.\nUmieść pliki w folderze „Audiobooks”.\nJeden folder (album) = jedna książka.", "No audiobooks.\nPut files in an “Audiobooks” folder.\nOne folder (album) = one book."),
     )
 }
 
@@ -258,16 +258,16 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
             onPlaying()
         },
         emptyText = when {
-            vm.radioLoading -> "Szukam stacji…"
+            vm.radioLoading -> tr("Szukam stacji…", "Looking for stations…")
             vm.radioError != null -> vm.radioError!!
-            else -> "Brak stacji. Wyszukaj lub dodaj własny link."
+            else -> tr("Brak stacji. Wyszukaj lub dodaj własny link.", "No stations. Search or add your own link.")
         },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Szukaj stacji…") },
+                placeholder = { Text(tr("Szukaj stacji…", "Search stations…")) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { vm.searchRadio(query) }),
@@ -277,7 +277,7 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
             Chip("+ link") { showAdd = true }
         }
         if (vm.radioLoading && all.isNotEmpty()) {
-            Text("Szukam…", color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp)
+            Text(tr("Szukam…", "Searching…"), color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp)
         }
     }
 
@@ -288,28 +288,28 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
         AlertDialog(
             onDismissRequest = { showAdd = false },
             containerColor = Pal.Surface,
-            title = { Text("Dodaj stację") },
+            title = { Text(tr("Dodaj stację", "Add station")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nazwa") }, singleLine = true)
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Nazwa", "Name")) }, singleLine = true)
                     OutlinedTextField(
                         value = url,
                         onValueChange = { url = it; error = false },
-                        label = { Text("Link do strumienia") },
+                        label = { Text(tr("Link do strumienia", "Stream link")) },
                         placeholder = { Text("https://…") },
                         singleLine = true,
                         isError = error,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     )
-                    if (error) Text("Link musi zaczynać się od http:// lub https://", color = Pal.Accent, fontSize = 12.sp)
+                    if (error) Text(tr("Link musi zaczynać się od http:// lub https://", "The link must start with http:// or https://"), color = Pal.Accent, fontSize = 12.sp)
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (vm.addCustomStation(name, url)) showAdd = false else error = true
-                }) { Text("Dodaj") }
+                }) { Text(tr("Dodaj", "Add")) }
             },
-            dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Anuluj") } },
+            dismissButton = { TextButton(onClick = { showAdd = false }) { Text(tr("Anuluj", "Cancel")) } },
         )
     }
 }
@@ -330,9 +330,9 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
     val wide = isWide()
 
     val title = when (np.kind) {
-        Kind.BOOK -> "AUDIOBOOK"
-        Kind.RADIO -> "RADIO"
-        else -> "TERAZ GRA"
+        Kind.BOOK -> tr("AUDIOBOOK", "AUDIOBOOK")
+        Kind.RADIO -> tr("RADIO", "RADIO")
+        else -> tr("TERAZ GRA", "NOW PLAYING")
     }
     var showTutorial by remember { mutableStateOf(!vm.tutorialSeen) }
     val base = Modifier
@@ -370,7 +370,7 @@ private fun PlayingContent(
         Column(base, horizontalAlignment = Alignment.CenterHorizontally) {
             TopBar(title, onBack, small = true, trailing = { HelpButton(onHelp) })
             Spacer(Modifier.height(200.dp))
-            Text("Nic teraz nie gra.", color = Pal.Muted, fontSize = 16.sp)
+            Text(tr("Nic teraz nie gra.", "Nothing is playing."), color = Pal.Muted, fontSize = 16.sp)
         }
         return
     }
@@ -427,7 +427,7 @@ private fun PlayingContent(
 
 @Composable
 private fun HelpButton(onClick: () -> Unit) {
-    CircleButton("Jak sterować kółkiem", onClick) {
+    CircleButton(tr("Jak sterować kółkiem", "How to use the dial"), onClick) {
         Text("?", color = Pal.Muted, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }
@@ -451,13 +451,13 @@ private fun DialTutorial(onDone: () -> Unit) {
                 .padding(20.dp),
         ) {
         Card {
-            Text("Jak sterować kółkiem", color = Pal.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            TutorialStep("↻", "Kręć po pierścieniu", "Przewija utwór, zmienia utwory albo głośność, zależnie od trybu pod kółkiem. Szybciej kręcisz, dalej skacze.")
-            TutorialStep("⏯", "Dotknij środka tarczy", "Pauza i odtwarzanie.")
-            TutorialStep("⏮⏭", "Dotknij lewej lub prawej strony", "Poprzedni albo następny utwór.")
-            TutorialStep("✋", "Przytrzymaj tarczę", "Zmienia tryb kręcenia: Przewiń → Utwory → Głośność.")
-            TutorialStep("OK", "W listach", "Kręć, żeby wybrać, środek OK otwiera, przytrzymanie OK to pauza.")
-            Chip("Rozumiem", modifier = Modifier.fillMaxWidth(), selected = true, onClick = onDone)
+            Text(tr("Jak sterować kółkiem", "How to use the dial"), color = Pal.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            TutorialStep("↻", tr("Kręć po pierścieniu", "Turn the ring"), tr("Przewija utwór, zmienia utwory albo głośność, zależnie od trybu pod kółkiem. Szybciej kręcisz, dalej skacze.", "Seeks, changes songs or volume, depending on the mode below the dial. Turn faster to jump further."))
+            TutorialStep("⏯", tr("Dotknij środka tarczy", "Tap the centre"), tr("Pauza i odtwarzanie.", "Pause and play."))
+            TutorialStep("⏮⏭", tr("Dotknij lewej lub prawej strony", "Tap the left or right side"), tr("Poprzedni albo następny utwór.", "Previous or next song."))
+            TutorialStep("✋", tr("Przytrzymaj tarczę", "Hold the dial"), tr("Zmienia tryb kręcenia: Przewiń → Utwory → Głośność.", "Changes what turning does: Seek → Songs → Volume."))
+            TutorialStep("OK", tr("W listach", "In lists"), tr("Kręć, żeby wybrać, środek OK otwiera, przytrzymanie OK to pauza.", "Turn to choose, the OK centre opens, holding OK pauses."))
+            Chip(tr("Rozumiem", "Got it"), modifier = Modifier.fillMaxWidth(), selected = true, onClick = onDone)
         }
         }
     }
@@ -529,7 +529,10 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
                     )
                 }
                 .semantics {
-                    contentDescription = "Tarcza: lewa strona poprzedni, środek ${if (np.isPlaying) "pauza" else "odtwórz"}, prawa strona następny. Przytrzymaj, aby zmienić tryb kręcenia."
+                    contentDescription = tr(
+                        "Tarcza: lewa strona poprzedni, środek ${if (np.isPlaying) "pauza" else "odtwórz"}, prawa strona następny. Przytrzymaj, aby zmienić tryb kręcenia.",
+                        "Dial: left side previous, centre ${if (np.isPlaying) "pause" else "play"}, right side next. Hold to change what turning does.",
+                    )
                 },
             contentAlignment = Alignment.Center,
         ) {
@@ -572,7 +575,7 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
 @Composable
 internal fun FactsCard(facts: Facts?, enabled: Boolean, onToggle: () -> Unit) {
     if (!enabled) {
-        Chip("ⓘ Pokaż ciekawostki o wykonawcy", modifier = Modifier.fillMaxWidth(), onClick = onToggle)
+        Chip(tr("ⓘ Pokaż ciekawostki o wykonawcy", "ⓘ Show artist fun facts"), modifier = Modifier.fillMaxWidth(), onClick = onToggle)
         return
     }
     if (facts == null) return
@@ -584,16 +587,16 @@ internal fun FactsCard(facts: Facts?, enabled: Boolean, onToggle: () -> Unit) {
     Card(
         Modifier
             .clickable { index = (index + 1) % count }
-            .semantics { contentDescription = "Ciekawostka. Dotknij, aby zobaczyć następną." },
+            .semantics { contentDescription = tr("Ciekawostka. Dotknij, aby zobaczyć następną.", "Fun fact. Tap to see the next one.") },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "CIEKAWOSTKA · ${index + 1}/$count",
+                tr("CIEKAWOSTKA · ${index + 1}/$count", "FUN FACT · ${index + 1}/$count"),
                 color = Pal.Accent, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.5.sp, modifier = Modifier.weight(1f),
             )
             Text(
-                "Ukryj",
+                tr("Ukryj", "Hide"),
                 color = Pal.Muted, fontSize = 12.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
@@ -605,7 +608,7 @@ internal fun FactsCard(facts: Facts?, enabled: Boolean, onToggle: () -> Unit) {
         Text(facts.sentences[index.coerceIn(0, count - 1)], color = Pal.Text, fontSize = 14.sp, lineHeight = 21.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (count > 1) "dotknij, by czytać dalej" else "",
+                if (count > 1) tr("dotknij, by czytać dalej", "tap to read more") else "",
                 color = Pal.Muted, fontSize = 11.sp, modifier = Modifier.weight(1f),
             )
             Text(
@@ -636,14 +639,14 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        TopBar("Sesje", onBack)
+        TopBar(tr("Sesje", "Sessions"), onBack)
 
-        SectionLabel("DZIEŃ · skupienie")
+        SectionLabel(tr("DZIEŃ · skupienie", "DAY · focus"))
 
         // --- Stoper muzyczny
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Stoper muzyczny", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(tr("Stoper muzyczny", "Music timer"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -665,10 +668,10 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
             ChimePicker(selected = vm.chime, onSelect = { vm.selectChime(it) })
             Text(
                 when {
-                    s.stopwatchDone -> "Czas minął! Muzyka ucichła."
-                    s.stopwatchInfo != null -> "Gra: ${s.stopwatchInfo}. Kiedy muzyka ucichnie, czas minie."
-                    swError -> "Za mało utworów w bibliotece, żeby ułożyć ten czas."
-                    else -> "Ułożę muzykę dokładnie na ten czas. Kiedy ucichnie, czas minął. Do nauki, treningu i gotowania."
+                    s.stopwatchDone -> tr("Czas minął! Muzyka ucichła.", "Time's up! The music has stopped.")
+                    s.stopwatchInfo != null -> tr("Gra: ${s.stopwatchInfo}. Kiedy muzyka ucichnie, czas minie.", "Playing: ${s.stopwatchInfo}. When the music stops, time's up.")
+                    swError -> tr("Za mało utworów w bibliotece, żeby ułożyć ten czas.", "Not enough songs in your library to fill this time.")
+                    else -> tr("Ułożę muzykę dokładnie na ten czas. Kiedy ucichnie, czas minął. Do nauki, treningu i gotowania.", "I'll line up music for exactly this long. When it stops, time's up. Great for studying, workouts and cooking.")
                 },
                 color = if (s.stopwatchDone) Pal.Accent else Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
             )
@@ -688,7 +691,7 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
                     Text("Start", color = Pal.Bg, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
             } else {
-                Chip("Zatrzymaj stoper", modifier = Modifier.fillMaxWidth()) { vm.stopStopwatch() }
+                Chip(tr("Zatrzymaj stoper", "Stop the timer"), modifier = Modifier.fillMaxWidth()) { vm.stopStopwatch() }
             }
         }
         // --- Wyzwanie
@@ -701,10 +704,10 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
                     color = Pal.Text,
                 )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Wyzwanie", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    Text("${s.goalMinutes} min audiobooka dziennie.", color = Pal.Muted, fontSize = 13.sp)
+                    Text(tr("Wyzwanie", "Challenge"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("${s.goalMinutes} min audiobooka dziennie.", "${s.goalMinutes} min of audiobooks a day."), color = Pal.Muted, fontSize = 13.sp)
                     Text(
-                        if (s.streak > 0) "${s.streak} dni z rzędu" else "Zacznij serię dziś",
+                        if (s.streak > 0) tr("${s.streak} dni z rzędu", "${s.streak}-day streak") else tr("Zacznij serię dziś", "Start a streak today"),
                         color = Pal.Text, fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -715,7 +718,7 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
             }
         }
 
-        SectionLabel("NOC · odpoczynek")
+        SectionLabel(tr("NOC · odpoczynek", "NIGHT · rest"))
         if (vm.batteryRestricted && !vm.batteryHintHidden) BatteryHint(vm)
 
         // --- Sen
@@ -723,23 +726,23 @@ fun SessionsScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 val label = when {
                     s.sleepRemainingMs != null -> fmt(s.sleepRemainingMs)
-                    s.sleepAfterItem -> "rozdz."
+                    s.sleepAfterItem -> tr("rozdz.", "chap.")
                     else -> "—"
                 }
                 RingStat(progress = if (s.sleepRemainingMs != null) 1f else 0f, label = label, color = Pal.Accent)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Sen", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    Text("Płynnie ścisza i zatrzymuje muzykę, książkę lub radio.", color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                    Text(tr("Sen", "Sleep"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Płynnie ścisza i zatrzymuje muzykę, książkę lub radio.", "Gently fades out and stops music, a book or the radio."), color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("15", modifier = Modifier.weight(1f)) { vm.setSleep(15) }
                 Chip("30", modifier = Modifier.weight(1f)) { vm.setSleep(30) }
                 Chip("60", modifier = Modifier.weight(1f)) { vm.setSleep(60) }
-                Chip("Rozdz.", selected = s.sleepAfterItem, modifier = Modifier.weight(1.3f)) { vm.setSleepAfterItem() }
+                Chip(tr("Rozdz.", "Chap."), selected = s.sleepAfterItem, modifier = Modifier.weight(1.3f)) { vm.setSleepAfterItem() }
             }
             if (s.sleepRemainingMs != null || s.sleepAfterItem) {
-                Chip("Wyłącz timer", modifier = Modifier.fillMaxWidth()) { vm.cancelSleep() }
+                Chip(tr("Wyłącz timer", "Turn off the timer"), modifier = Modifier.fillMaxWidth()) { vm.cancelSleep() }
             }
         }
 
@@ -758,11 +761,11 @@ private fun ChimePicker(selected: Chime, onSelect: (Chime) -> Unit) {
                 .clip(RoundedCornerShape(10.dp))
                 .clickable { open = true }
                 .padding(vertical = 8.dp, horizontal = 4.dp)
-                .semantics { contentDescription = "Sygnał końca: ${selected.label}. Dotknij, aby zmienić." },
+                .semantics { contentDescription = tr("Sygnał końca: ${selected.label}. Dotknij, aby zmienić.", "End signal: ${selected.label}. Tap to change.") },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("♪ sygnał $number · ${selected.label}", color = Pal.Muted, fontSize = 12.sp, fontFamily = Mono)
+            Text(tr("♪ sygnał $number · ${selected.label}", "♪ signal $number · ${selected.label}"), color = Pal.Muted, fontSize = 12.sp, fontFamily = Mono)
             Text(if (open) "▴" else "▾", color = Pal.Muted, fontSize = 12.sp)
         }
         DropdownMenu(
@@ -799,13 +802,13 @@ private fun BatteryHint(vm: PlayerViewModel) {
     val brand = Build.MANUFACTURER.lowercase().replace(" ", "-")
     val known = setOf("xiaomi", "huawei", "honor", "oppo", "realme", "oneplus", "vivo", "samsung", "meizu", "asus", "sony", "nokia", "google", "motorola", "lenovo", "tecno", "infinix")
     Card {
-        Text("Oszczędzanie baterii", color = Pal.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(tr("Oszczędzanie baterii", "Battery saving"), color = Pal.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         Text(
-            "Telefon może usypiać Equinox przy zgaszonym ekranie, a wtedy timer snu albo stoper nie zadziała na czas. Zezwól aplikacji na działanie w tle bez ograniczeń.",
+            tr("Telefon może usypiać Equinox przy zgaszonym ekranie, a wtedy timer snu albo stoper nie zadziała na czas. Zezwól aplikacji na działanie w tle bez ograniczeń.", "Your phone may put Equinox to sleep when the screen is off, and then the sleep timer or music timer won't fire on time. Let the app run in the background without restrictions."),
             color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("Ustawienia baterii", modifier = Modifier.weight(1f), selected = true) {
+            Chip(tr("Ustawienia baterii", "Battery settings"), modifier = Modifier.weight(1f), selected = true) {
                 val intents = listOf(
                     Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null)),
@@ -818,7 +821,7 @@ private fun BatteryHint(vm: PlayerViewModel) {
                     }
                 }
             }
-            Chip("Porady: ${Build.MANUFACTURER}", modifier = Modifier.weight(1f)) {
+            Chip(tr("Porady: ${Build.MANUFACTURER}", "Tips: ${Build.MANUFACTURER}"), modifier = Modifier.weight(1f)) {
                 val url = if (brand in known) "https://dontkillmyapp.com/$brand" else "https://dontkillmyapp.com"
                 try {
                     ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -827,7 +830,7 @@ private fun BatteryHint(vm: PlayerViewModel) {
             }
         }
         Text(
-            "Nie pokazuj więcej",
+            tr("Nie pokazuj więcej", "Don't show again"),
             color = Pal.Muted, fontSize = 12.sp,
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))

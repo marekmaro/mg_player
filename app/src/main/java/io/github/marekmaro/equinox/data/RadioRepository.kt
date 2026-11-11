@@ -43,7 +43,8 @@ object RadioRepository {
     suspend fun search(query: String): List<Station> = withContext(Dispatchers.IO) {
         val common = "order=clickcount&reverse=true&hidebroken=true&limit=60"
         val url = if (query.isBlank()) {
-            "$BASE?countrycode=PL&$common"
+            // na start popularne stacje z kraju telefonu
+            "$BASE?countrycode=${java.util.Locale.getDefault().country.ifBlank { "PL" }}&$common"
         } else {
             "$BASE?name=${URLEncoder.encode(query.trim(), "UTF-8")}&$common"
         }

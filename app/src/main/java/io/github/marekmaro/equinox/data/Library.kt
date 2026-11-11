@@ -12,8 +12,10 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 
 /** Co zrobić z plikami w folderze (i jego podfolderach). */
-enum class FolderRule(val label: String) {
-    AUTO("Auto"), MUSIC("Muzyka"), BOOK("Audiobook"), SKIP("Pomiń");
+enum class FolderRule(private val pl: String, private val en: String) {
+    AUTO("Auto", "Auto"), MUSIC("Muzyka", "Music"), BOOK("Audiobook", "Audiobook"), SKIP("Pomiń", "Skip");
+
+    val label: String get() = io.github.marekmaro.equinox.tr(pl, en)
 
     fun next(): FolderRule = entries[(ordinal + 1) % entries.size]
 }

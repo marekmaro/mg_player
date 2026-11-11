@@ -223,4 +223,18 @@ class LogicTest {
         val g = SoundPreset.gainAt(SoundPreset.BASS, 120)
         assertTrue(g in 4f..6f)
     }
+
+    @Test
+    fun language_switches() {
+        val before = Lang.mode
+        Lang.mode = LangMode.PL
+        assertEquals("Muzyka", tr("Muzyka", "Music"))
+        assertEquals("Przewiń", RingMode.SEEK.label)
+        Lang.mode = LangMode.EN
+        assertEquals("Music", tr("Muzyka", "Music"))
+        assertEquals("Seek", RingMode.SEEK.label)
+        assertEquals("Up next", Block.QUEUE.label)
+        assertEquals("8-bit fanfare", Chime.CHIP.label)
+        Lang.mode = before
+    }
 }

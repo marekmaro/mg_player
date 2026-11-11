@@ -28,8 +28,8 @@ class StopwatchTileService : TileService() {
         tile.label = getString(R.string.tile_stopwatch)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tile.subtitle = when {
-                remaining != null -> "zostało ${fmt(remaining)}"
-                Core.stopwatchDone -> "czas minął"
+                remaining != null -> tr("zostało ${fmt(remaining)}", "${fmt(remaining)} left")
+                Core.stopwatchDone -> tr("czas minął", "time's up")
                 else -> "${Core.stopwatchMinutes} min"
             }
         }

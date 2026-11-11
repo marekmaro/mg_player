@@ -1,5 +1,6 @@
 package io.github.marekmaro.equinox.widget
 
+import io.github.marekmaro.equinox.tr
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -76,7 +77,7 @@ object WidgetUpdater {
 
     fun idle(lastTitle: String? = null) = State(
         title = lastTitle ?: "Equinox",
-        subtitle = if (lastTitle != null) "Dotknij, by słuchać dalej" else "Dotknij, by słuchać",
+        subtitle = if (lastTitle != null) tr("Dotknij, by słuchać dalej", "Tap to keep listening") else tr("Dotknij, by słuchać", "Tap to listen"),
         playing = false,
         progress = 0f,
         active = false,

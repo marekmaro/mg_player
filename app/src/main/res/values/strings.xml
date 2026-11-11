@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Domyślnie po angielsku; polska wersja: values-pl/strings.xml -->
 <resources>
     <string name="app_name">Equinox</string>
 
     <string name="widget_label">EQUINOX</string>
-    <string name="widget_progress">Postęp odtwarzania</string>
-    <string name="widget_prev">Poprzedni</string>
-    <string name="widget_play">Odtwórz lub wstrzymaj</string>
-    <string name="widget_next">Następny</string>
-    <string name="widget_player_name">Odtwarzacz</string>
-    <string name="widget_ring_name">Pierścień</string>
-    <string name="widget_player_desc">Pierścień postępu, tytuł i przyciski sterowania</string>
-    <string name="widget_ring_desc">Sam pierścień postępu. Środek wstrzymuje i wznawia.</string>
+    <string name="widget_progress">Playback progress</string>
+    <string name="widget_prev">Previous</string>
+    <string name="widget_play">Play or pause</string>
+    <string name="widget_next">Next</string>
+    <string name="widget_player_name">Player</string>
+    <string name="widget_ring_name">Ring</string>
+    <string name="widget_player_desc">Progress ring, title and playback buttons</string>
+    <string name="widget_ring_desc">Just the progress ring. Tap the centre to pause or play.</string>
 
-    <string name="tile_stopwatch">Stoper muzyczny</string>
+    <string name="tile_stopwatch">Music timer</string>
 </resources>

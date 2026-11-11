@@ -1,5 +1,6 @@
 package io.github.marekmaro.equinox.data
 
+import io.github.marekmaro.equinox.tr
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
@@ -97,8 +98,8 @@ object MediaRepository {
                     val artist = c.getString(iArtist)
                     result += Track(
                         id = id,
-                        title = c.getString(iTitle) ?: "Bez tytułu",
-                        artist = if (artist.isNullOrBlank() || artist == "<unknown>") "Nieznany wykonawca" else artist,
+                        title = c.getString(iTitle) ?: tr("Bez tytułu", "Untitled"),
+                        artist = if (artist.isNullOrBlank() || artist == "<unknown>") tr("Nieznany wykonawca", "Unknown artist") else artist,
                         album = c.getString(iAlbum) ?: "",
                         trackNo = c.getInt(iTrack),
                         durationMs = c.getLong(iDuration),

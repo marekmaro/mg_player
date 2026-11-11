@@ -84,7 +84,7 @@ fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (vm.nowPlaying.kind == Kind.MUSIC) {
             Text(
-                "＋ Do playlisty",
+                tr("＋ Do playlisty", "＋ To playlist"),
                 color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
@@ -93,7 +93,7 @@ fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -
             )
         }
         Text(
-            "▦ Ułóż ekran",
+            tr("▦ Ułóż ekran", "▦ Arrange screen"),
             color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))
@@ -113,7 +113,7 @@ private fun TitleBlock(vm: PlayerViewModel) {
         np.chapter?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         PlayModeRow(vm)
         Text(
-            if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
+            if (isRadio) tr("● NA ŻYWO", "● LIVE") else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
             color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
         )
         Text(vm.effectiveRingMode.hint, color = Pal.Muted, fontSize = 11.sp)
@@ -178,11 +178,11 @@ private fun ModesBlock(vm: PlayerViewModel) {
 private fun ControlsBlock(vm: PlayerViewModel) {
     val np = vm.nowPlaying
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-        CircleButton("Poprzedni", { vm.previous() }, size = 52.dp) { GlyphIcon(Glyph.Prev, Pal.Text, 24.dp) }
-        CircleButton(if (np.isPlaying) "Pauza" else "Odtwórz", { vm.togglePlay() }, size = 72.dp, filled = true) {
+        CircleButton(tr("Poprzedni", "Previous"), { vm.previous() }, size = 52.dp) { GlyphIcon(Glyph.Prev, Pal.Text, 24.dp) }
+        CircleButton(if (np.isPlaying) tr("Pauza", "Pause") else tr("Odtwórz", "Play"), { vm.togglePlay() }, size = 72.dp, filled = true) {
             GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Bg, 28.dp)
         }
-        CircleButton("Następny", { vm.next() }, size = 52.dp) { GlyphIcon(Glyph.Next, Pal.Text, 24.dp) }
+        CircleButton(tr("Następny", "Next"), { vm.next() }, size = 52.dp) { GlyphIcon(Glyph.Next, Pal.Text, 24.dp) }
     }
 }
 
@@ -220,7 +220,7 @@ private fun QueueBlock(vm: PlayerViewModel) {
     val next = vm.upNext
     if (next.isEmpty()) return
     Card {
-        Text("NASTĘPNE", color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+        Text(tr("NASTĘPNE", "UP NEXT"), color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
         next.forEachIndexed { i, title ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("${i + 1}", color = Pal.Accent, fontFamily = Mono, fontSize = 13.sp, modifier = Modifier.width(22.dp))
@@ -236,11 +236,11 @@ private fun TodayBlock(vm: PlayerViewModel) {
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("DZIŚ", color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
-                Text("${s.todayMs / 60_000} z ${s.goalMinutes} min książki", color = Pal.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(tr("DZIŚ", "TODAY"), color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+                Text(tr("${s.todayMs / 60_000} z ${s.goalMinutes} min książki", "${s.todayMs / 60_000} of ${s.goalMinutes} min of books"), color = Pal.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
             Text(
-                if (s.streak > 0) "seria ${s.streak} d" else "zacznij serię",
+                if (s.streak > 0) tr("seria ${s.streak} d", "${s.streak}-day streak") else tr("zacznij serię", "start a streak"),
                 color = Pal.Accent, fontFamily = Mono, fontSize = 13.sp,
             )
         }
@@ -259,7 +259,7 @@ private fun ClockBlock() {
     Text(
         "%02d:%02d".format(now.hour, now.minute),
         color = Pal.Text, fontFamily = Mono, fontSize = 56.sp, fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.semantics { contentDescription = "Godzina ${now.hour}:${now.minute}" },
+        modifier = Modifier.semantics { contentDescription = tr("Godzina ${now.hour}:${now.minute}", "Time ${now.hour}:${now.minute}") },
     )
 }
 
@@ -267,10 +267,10 @@ private fun ClockBlock() {
 private fun SessionsBlock(vm: PlayerViewModel, onSessions: () -> Unit) {
     val s = vm.sessions
     val text = when {
-        s.sleepRemainingMs != null -> "Sen ${fmt(s.sleepRemainingMs)}"
-        s.sleepAfterItem -> "Sen: po rozdziale"
-        s.stopwatchRemainingMs != null -> "Stoper ${fmt(s.stopwatchRemainingMs)}"
-        else -> "Sesje: sen · stoper"
+        s.sleepRemainingMs != null -> tr("Sen ${fmt(s.sleepRemainingMs)}", "Sleep ${fmt(s.sleepRemainingMs)}")
+        s.sleepAfterItem -> tr("Sen: po rozdziale", "Sleep: after chapter")
+        s.stopwatchRemainingMs != null -> tr("Stoper ${fmt(s.stopwatchRemainingMs)}", "Timer ${fmt(s.stopwatchRemainingMs)}")
+        else -> tr("Sesje: sen · stoper", "Sessions: sleep · timer")
     }
     val active = s.sleepRemainingMs != null || s.sleepAfterItem || s.stopwatchRemainingMs != null
     Chip(text, modifier = Modifier.fillMaxWidth(), selected = active, onClick = onSessions)
@@ -293,13 +293,13 @@ fun LayoutEditorScreen(vm: PlayerViewModel, onBack: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        TopBar("Ułóż ekran", onBack)
+        TopBar(tr("Ułóż ekran", "Arrange screen"), onBack)
         Text(
-            "Ekran odtwarzania składa się z klocków. Włącz te, których potrzebujesz, i ustaw je w swojej kolejności. Pierścień jest zawsze na górze.",
+            tr("Ekran odtwarzania składa się z klocków. Włącz te, których potrzebujesz, i ustaw je w swojej kolejności. Pierścień jest zawsze na górze.", "The player screen is made of blocks. Turn on the ones you need and put them in your own order. The ring is always on top."),
             color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
         )
 
-        Text("NA EKRANIE", color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp, modifier = Modifier.padding(top = 6.dp))
+        Text(tr("NA EKRANIE", "ON SCREEN"), color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp, modifier = Modifier.padding(top = 6.dp))
         layout.forEachIndexed { i, b ->
             BlockRow(
                 block = b, on = true,
@@ -311,14 +311,14 @@ fun LayoutEditorScreen(vm: PlayerViewModel, onBack: () -> Unit) {
         }
 
         if (off.isNotEmpty()) {
-            Text("SCHOWANE", color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp, modifier = Modifier.padding(top = 10.dp))
+            Text(tr("SCHOWANE", "HIDDEN"), color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp, modifier = Modifier.padding(top = 10.dp))
             off.forEach { b ->
                 BlockRow(block = b, on = false, canUp = false, canDown = false, onToggle = { vm.toggleBlock(b) }, onUp = {}, onDown = {})
             }
         }
 
         Spacer(Modifier.height(6.dp))
-        Chip("Przywróć domyślny układ", modifier = Modifier.fillMaxWidth()) { vm.resetLayout() }
+        Chip(tr("Przywróć domyślny układ", "Restore default layout"), modifier = Modifier.fillMaxWidth()) { vm.resetLayout() }
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -348,7 +348,7 @@ private fun BlockRow(
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .clickable(enabled = !block.required, onClick = onToggle)
-                .semantics { contentDescription = if (on) "Wyłącz ${block.label}" else "Włącz ${block.label}" },
+                .semantics { contentDescription = if (on) tr("Wyłącz ${block.label}", "Turn off ${block.label}") else tr("Włącz ${block.label}", "Turn on ${block.label}") },
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -361,12 +361,12 @@ private fun BlockRow(
             )
         }
         Column(Modifier.weight(1f).padding(start = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(block.label + if (block.required) "  ·  zawsze" else "", color = if (on) Pal.Text else Pal.Muted, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(block.label + if (block.required) tr("  ·  zawsze", "  ·  always") else "", color = if (on) Pal.Text else Pal.Muted, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Text(block.description, color = Pal.Muted, fontSize = 12.sp, lineHeight = 16.sp)
         }
         if (on) {
-            ArrowButton("▲", "Wyżej: ${block.label}", canUp, onUp)
-            ArrowButton("▼", "Niżej: ${block.label}", canDown, onDown)
+            ArrowButton("▲", tr("Wyżej: ${block.label}", "Up: ${block.label}"), canUp, onUp)
+            ArrowButton("▼", tr("Niżej: ${block.label}", "Down: ${block.label}"), canDown, onDown)
         }
     }
 }

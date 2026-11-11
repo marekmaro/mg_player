@@ -18,6 +18,11 @@ android {
         versionName = "0.10.0"
     }
 
+    androidResources {
+        // tylko języki, które aplikacja naprawdę obsługuje (mniejszy plik)
+        localeFilters += listOf("en", "pl")
+    }
+
     // Klucz do podpisu wersji sklepowej podajemy przez zmienne środowiskowe
     // (lokalnie albo jako sekrety GitHub) – nigdy nie trafia do repozytorium.
     val keystorePath: String? = System.getenv("EQUINOX_KEYSTORE")

@@ -51,10 +51,13 @@ import io.github.marekmaro.equinox.data.toMediaItem
 import java.time.LocalDate
 
 /** Co robi obrót pierścienia na ekranie „Teraz gra”. */
-enum class RingMode(val label: String, val stepDegrees: Float, val hint: String) {
-    SEEK("Przewiń", 15f, "kręć: ±10 s"),
-    TRACKS("Utwory", 60f, "kręć: następny / poprzedni"),
-    VOLUME("Głośność", 20f, "kręć: głośniej / ciszej"),
+enum class RingMode(private val pl: String, private val en: String, val stepDegrees: Float, private val hintPl: String, private val hintEn: String) {
+    SEEK("Przewiń", "Seek", 15f, "kręć: ±10 s", "turn: ±10 s"),
+    TRACKS("Utwory", "Songs", 60f, "kręć: następny / poprzedni", "turn: next / previous"),
+    VOLUME("Głośność", "Volume", 20f, "kręć: głośniej / ciszej", "turn: louder / quieter");
+
+    val label: String get() = tr(pl, en)
+    val hint: String get() = tr(hintPl, hintEn)
 }
 
 data class NowPlaying(
@@ -182,8 +185,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private val listener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
             playerError = when (Core.kind) {
-                Kind.RADIO -> "Nie mogę połączyć się ze stacją. Sprawdź internet albo wybierz inną."
-                else -> "Nie mogę odtworzyć tego pliku."
+                Kind.RADIO -> tr("Nie mogę połączyć się ze stacją. Sprawdź internet albo wybierz inną.", "Can't connect to the station. Check your internet or pick another one.")
+                else -> tr("Nie mogę odtworzyć tego pliku.", "Can't play this file.")
             }
             tickNow()
         }
@@ -319,9 +322,9 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             libraryLoaded = true
             val added = (allTracks.size - before).coerceAtLeast(0)
             scanMessage = when {
-                result == null -> "Nie udało się przeszukać pamięci telefonu."
-                added > 0 -> "Znaleziono ${result.filesFound} plików audio, w tym $added nowych w bibliotece."
-                else -> "Znaleziono ${result.filesFound} plików audio. Biblioteka jest aktualna."
+                result == null -> tr("Nie udało się przeszukać pamięci telefonu.", "Couldn't search the phone's storage.")
+                added > 0 -> tr("Znaleziono ${result.filesFound} plików audio, w tym $added nowych w bibliotece.", "Found ${result.filesFound} audio files, $added of them new in your library.")
+                else -> tr("Znaleziono ${result.filesFound} plików audio. Biblioteka jest aktualna.", "Found ${result.filesFound} audio files. Your library is up to date.")
             }
             scanProgress = null
         }
@@ -341,7 +344,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun createPlaylist(name: String): Long {
         val id = System.currentTimeMillis()
-        savePlaylists(playlists + Playlist(id, name.trim().ifBlank { "Nowa playlista" }, emptyList()))
+        savePlaylists(playlists + Playlist(id, name.trim().ifBlank { tr("Nowa playlista", "New playlist") }, emptyList()))
         return id
     }
 
@@ -696,7 +699,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 val resolved = try { RadioRepository.resolvePlaylist(s.url) } catch (e: Exception) { null }
                 if (resolved != null) playStationNow(s.copy(url = resolved))
                 else {
-                    playerError = "Ten link nie zawiera adresu stacji."
+                    playerError = tr("Ten link nie zawiera adresu stacji.", "This link doesn't contain a station address.")
                     tickNow()
                 }
             }
@@ -868,7 +871,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         playTracks(picked, 0)
         Core.stopwatchDurations = picked.map { it.durationMs }
         Core.stopwatchDone = false
-        Core.stopwatchInfo = "${picked.size} utw. · ${fmt(total)}"
+        Core.stopwatchInfo = tr("${picked.size} utw. · ${fmt(total)}", "${picked.size} songs · ${fmt(total)}")
         StopwatchTileService.requestRefresh(getApplication())
         tickNow()
         return true
@@ -891,7 +894,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 radioResults = RadioRepository.search(query)
             } catch (e: Exception) {
-                radioError = "Nie udało się pobrać stacji. Sprawdź internet."
+                radioError = tr("Nie udało się pobrać stacji. Sprawdź internet.", "Couldn't load stations. Check your internet.")
             }
             radioLoading = false
         }
@@ -907,7 +910,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     fun addCustomStation(name: String, url: String): Boolean {
         val u = url.trim()
         if (!(u.startsWith("http://") || u.startsWith("https://"))) return false
-        val s = Station(name.trim().ifBlank { "Moja stacja" }, u, "")
+        val s = Station(name.trim().ifBlank { tr("Moja stacja", "My station") }, u, "")
         if (!isFavorite(s)) {
             radioFavorites = radioFavorites + s
             prefs.setFavorites(radioFavorites)
@@ -932,7 +935,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         val kind = np.kind
         val isBook = kind == Kind.BOOK
         val name = if (kind == Kind.MUSIC || isBook) FactsRepository.primaryName(np.subtitle) else ""
-        val key = if (name.isBlank() || name == "Nieznany wykonawca") "" else "${if (isBook) "b" else "m"}:${name.lowercase()}"
+        val key = if (name.isBlank() || name == tr("Nieznany wykonawca", "Unknown artist")) "" else "${io.github.marekmaro.equinox.Lang.code}:${if (isBook) "b" else "m"}:${name.lowercase()}"
         if (key == factsKey) return
 
         factsKey = key
@@ -992,7 +995,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             val ch = currentChapters()
             val chapterLabel = if (ch.isEmpty()) null else {
                 val i = Chapters.indexAt(ch, c.currentPosition)
-                "Rozdział ${i + 1}/${ch.size} · ${ch[i].title}"
+                tr("Rozdział ${i + 1}/${ch.size} · ${ch[i].title}", "Chapter ${i + 1}/${ch.size} · ${ch[i].title}")
             }
             nowPlaying = NowPlaying(
                 title = md?.title?.toString().orEmpty(),
@@ -1047,7 +1050,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         while (out.size < 3) {
             i = timeline.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, c.shuffleModeEnabled)
             if (i == C.INDEX_UNSET) break
-            out += c.getMediaItemAt(i).mediaMetadata.title?.toString().orEmpty().ifBlank { "Bez tytułu" }
+            out += c.getMediaItemAt(i).mediaMetadata.title?.toString().orEmpty().ifBlank { tr("Bez tytułu", "Untitled") }
         }
         return out
     }

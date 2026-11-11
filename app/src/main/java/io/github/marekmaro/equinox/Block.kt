@@ -6,22 +6,27 @@ package io.github.marekmaro.equinox
  * w ui/Blocks.kt. Pierścień jest zawsze na górze, więc nie ma go na liście.
  */
 enum class Block(
-    val label: String,
-    val description: String,
+    private val pl: String,
+    private val en: String,
+    private val descPl: String,
+    private val descEn: String,
     val onByDefault: Boolean,
     /** klocka nie da się wyłączyć (bez niego ekran nie ma sensu) */
     val required: Boolean = false,
 ) {
-    MODES("Tryby pierścienia", "Przewiń / Utwory / Głośność", true),
-    TITLE("Tytuł i czas", "Co gra, kto to wykonuje i ile minęło", true, required = true),
+    MODES("Tryby pierścienia", "Ring modes", "Przewiń / Utwory / Głośność", "Seek / Songs / Volume", true),
+    TITLE("Tytuł i czas", "Title and time", "Co gra, kto to wykonuje i ile minęło", "What’s playing, who it’s by and how far in", true, required = true),
     // przyciski są teraz na tarczy w środku pierścienia; duże przyciski można włączyć
-    CONTROLS("Duże przyciski", "Poprzedni, pauza, następny pod pierścieniem", false),
-    BOOK("Audiobook", "±30 s i prędkość (tylko przy książkach)", true),
-    FACTS("Ciekawostki", "Fakty o wykonawcy lub autorze", true),
-    QUEUE("Następne", "Trzy kolejne utwory lub rozdziały", false),
-    TODAY("Dziś", "Ile dziś słuchałeś i seria dni", false),
-    CLOCK("Zegar", "Duży zegar, np. przy łóżku", false),
-    SESSIONS("Sesje", "Skrót do snu i stopera", true);
+    CONTROLS("Duże przyciski", "Big buttons", "Poprzedni, pauza, następny pod pierścieniem", "Previous, pause, next below the ring", false),
+    BOOK("Audiobook", "Audiobook", "±30 s i prędkość (tylko przy książkach)", "±30 s and speed (books only)", true),
+    FACTS("Ciekawostki", "Fun facts", "Fakty o wykonawcy lub autorze", "Facts about the artist or author", true),
+    QUEUE("Następne", "Up next", "Trzy kolejne utwory lub rozdziały", "The next three songs or chapters", false),
+    TODAY("Dziś", "Today", "Ile dziś słuchałeś i seria dni", "How much you listened today and your streak", false),
+    CLOCK("Zegar", "Clock", "Duży zegar, np. przy łóżku", "A big clock, e.g. on your nightstand", false),
+    SESSIONS("Sesje", "Sessions", "Skrót do snu i stopera", "Shortcut to sleep and the timer", true);
+
+    val label: String get() = tr(pl, en)
+    val description: String get() = tr(descPl, descEn)
 
     companion object {
         val defaultLayout: List<Block> = entries.filter { it.onByDefault }

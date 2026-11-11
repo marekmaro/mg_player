@@ -53,9 +53,9 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
 
     if (creating) {
         NameDialog(
-            title = "Nowa playlista",
+            title = tr("Nowa playlista", "New playlist"),
             initial = "",
-            confirm = "Utwórz",
+            confirm = tr("Utwórz", "Create"),
             onDismiss = { creating = false },
             onConfirm = { name ->
                 creating = false
@@ -67,7 +67,7 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
 
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
-        title = "Playlisty",
+        title = tr("Playlisty", "Playlists"),
         rows = smart.map { ListRow(it.title, "${it.count}") } + lists.map { ListRow(it.name, "${vm.playlistTracks(it).size}") },
         onBack = onBack,
         onOpen = { i ->
@@ -79,9 +79,9 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
                 onOpenPlaylist()
             }
         },
-        emptyText = "Nie masz jeszcze playlist.\nUtwórz pierwszą przyciskiem powyżej.",
+        emptyText = tr("Nie masz jeszcze playlist.\nUtwórz pierwszą przyciskiem powyżej.", "No playlists yet.\nCreate your first one with the button above."),
     ) {
-        Chip("+ Nowa playlista", modifier = Modifier.fillMaxWidth(), selected = true) { creating = true }
+        Chip(tr("+ Nowa playlista", "+ New playlist"), modifier = Modifier.fillMaxWidth(), selected = true) { creating = true }
     }
 }
 
@@ -92,7 +92,7 @@ fun PlaylistScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
     val p = vm.playlist(vm.openPlaylistId)
     if (p == null) {
         // np. playlista usunięta albo aplikacja wznowiona po zamknięciu przez system
-        KnobListScreen(title = "Playlista", rows = emptyList(), onBack = onBack, onOpen = {}, emptyText = "Tej playlisty już nie ma.")
+        KnobListScreen(title = tr("Playlista", "Playlist"), rows = emptyList(), onBack = onBack, onOpen = {}, emptyText = tr("Tej playlisty już nie ma.", "This playlist no longer exists."))
         return
     }
     val tracks = vm.playlistTracks(p)
@@ -100,7 +100,7 @@ fun PlaylistScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
     var deleting by remember { mutableStateOf(false) }
 
     if (renaming) {
-        NameDialog("Zmień nazwę", p.name, "Zapisz", onDismiss = { renaming = false }) { name ->
+        NameDialog(tr("Zmień nazwę", "Rename"), p.name, tr("Zapisz", "Save"), onDismiss = { renaming = false }) { name ->
             vm.renamePlaylist(p.id, name)
             renaming = false
         }
@@ -109,16 +109,16 @@ fun PlaylistScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         AlertDialog(
             onDismissRequest = { deleting = false },
             containerColor = Pal.Surface,
-            title = { Text("Usunąć „${p.name}”?") },
-            text = { Text("Usunięta zostanie tylko playlista. Pliki muzyczne zostaną na telefonie.") },
+            title = { Text(tr("Usunąć „${p.name}”?", "Delete “${p.name}”?")) },
+            text = { Text(tr("Usunięta zostanie tylko playlista. Pliki muzyczne zostaną na telefonie.", "Only the playlist will be deleted. Your music files stay on the phone.")) },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = false
                     vm.deletePlaylist(p.id)
                     onBack()
-                }) { Text("Usuń") }
+                }) { Text(tr("Usuń", "Delete")) }
             },
-            dismissButton = { TextButton(onClick = { deleting = false }) { Text("Anuluj") } },
+            dismissButton = { TextButton(onClick = { deleting = false }) { Text(tr("Anuluj", "Cancel")) } },
         )
     }
 
@@ -129,18 +129,18 @@ fun PlaylistScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         rows = tracks.map { t -> ListRow(t.title, fmt(t.durationMs), trailing = "✕", onTrailing = { vm.removeFromPlaylist(p.id, t.id) }) },
         onBack = onBack,
         onOpen = { i -> if (vm.playPlaylist(p, start = i)) onPlaying() },
-        emptyText = "Playlista jest pusta.\nDodaj utwory przyciskiem „+ Dodaj”.",
+        emptyText = tr("Playlista jest pusta.\nDodaj utwory przyciskiem „+ Dodaj”.", "The playlist is empty.\nAdd songs with the “+ Add” button."),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Chip("▶ Graj", modifier = Modifier.weight(1f), selected = tracks.isNotEmpty()) {
+            Chip(tr("▶ Graj", "▶ Play"), modifier = Modifier.weight(1f), selected = tracks.isNotEmpty()) {
                 if (vm.playPlaylist(p)) onPlaying()
             }
-            Chip("⤨ Losowo", modifier = Modifier.weight(1f)) { if (vm.playPlaylist(p, shuffle = true)) onPlaying() }
-            Chip("+ Dodaj", modifier = Modifier.weight(1f)) { onAddTracks() }
+            Chip(tr("⤨ Losowo", "⤨ Shuffle"), modifier = Modifier.weight(1f)) { if (vm.playPlaylist(p, shuffle = true)) onPlaying() }
+            Chip(tr("+ Dodaj", "+ Add"), modifier = Modifier.weight(1f)) { onAddTracks() }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Chip("Zmień nazwę", modifier = Modifier.weight(1f)) { renaming = true }
-            Chip("Usuń playlistę", modifier = Modifier.weight(1f)) { deleting = true }
+            Chip(tr("Zmień nazwę", "Rename"), modifier = Modifier.weight(1f)) { renaming = true }
+            Chip(tr("Usuń playlistę", "Delete playlist"), modifier = Modifier.weight(1f)) { deleting = true }
         }
     }
 }
@@ -152,14 +152,14 @@ fun PickTracksScreen(vm: PlayerViewModel, onBack: () -> Unit) {
     val p = vm.playlist(vm.openPlaylistId)
     var query by remember { mutableStateOf("") }
     if (p == null) {
-        KnobListScreen(title = "Dodaj utwory", rows = emptyList(), onBack = onBack, onOpen = {}, emptyText = "Tej playlisty już nie ma.")
+        KnobListScreen(title = tr("Dodaj utwory", "Add songs"), rows = emptyList(), onBack = onBack, onOpen = {}, emptyText = tr("Tej playlisty już nie ma.", "This playlist no longer exists."))
         return
     }
     val q = query.trim().lowercase()
     val shown = vm.tracks.filter { q.isEmpty() || it.title.lowercase().contains(q) || it.artist.lowercase().contains(q) }
 
     KnobListScreen(
-        title = "Dodaj do: ${p.name}",
+        title = tr("Dodaj do: ${p.name}", "Add to: ${p.name}"),
         // „+” dodaje, „✓” oznacza, że utwór już jest na playliście (dotknięcie go usuwa)
         rows = shown.map { t ->
             val inList = t.id in p.trackIds
@@ -167,17 +167,17 @@ fun PickTracksScreen(vm: PlayerViewModel, onBack: () -> Unit) {
         },
         onBack = onBack,
         onOpen = { i -> vm.toggleInPlaylist(p.id, shown[i].id) },
-        emptyText = if (vm.tracks.isEmpty()) "Brak muzyki w bibliotece." else "Nic nie pasuje do „$query”.",
+        emptyText = if (vm.tracks.isEmpty()) tr("Brak muzyki w bibliotece.", "No music in your library.") else tr("Nic nie pasuje do „$query”.", "Nothing matches “$query”."),
     ) {
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Szukaj tytułu lub wykonawcy…") },
+            placeholder = { Text(tr("Szukaj tytułu lub wykonawcy…", "Search title or artist…")) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
         )
-        Text("Na playliście: ${p.trackIds.size}", color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp)
+        Text(tr("Na playliście: ${p.trackIds.size}", "On the playlist: ${p.trackIds.size}"), color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp)
     }
 }
 
@@ -228,11 +228,11 @@ fun AddToPlaylistDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Uni
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        placeholder = { Text("Nowa playlista…") },
+                        placeholder = { Text(tr("Nowa playlista…", "New playlist…")) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    Chip("Utwórz", selected = newName.isNotBlank()) {
+                    Chip(tr("Utwórz", "Create"), selected = newName.isNotBlank()) {
                         if (newName.isNotBlank()) {
                             val id = vm.createPlaylist(newName)
                             vm.addToPlaylist(id, trackId)
@@ -242,7 +242,7 @@ fun AddToPlaylistDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Uni
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Gotowe") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Gotowe", "Done")) } },
     )
 }
 
@@ -254,10 +254,10 @@ fun NameDialog(title: String, initial: String, confirm: String, onDismiss: () ->
         containerColor = Pal.Surface,
         title = { Text(title) },
         text = {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nazwa") }, singleLine = true)
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Nazwa", "Name")) }, singleLine = true)
         },
         confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text(confirm) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Anuluj") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Anuluj", "Cancel")) } },
     )
 }
 
@@ -274,33 +274,33 @@ fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit, onPrivacy: () -> Unit
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        TopBar("Biblioteka", onBack)
+        TopBar(tr("Biblioteka", "Library"), onBack)
 
         // --- Skanowanie
         Card {
-            Text("Skanuj telefon", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Skanuj telefon", "Scan the phone"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
             Text(
-                "Przeszukam pamięć telefonu i dodam pliki audio, których system jeszcze nie zauważył (np. świeżo skopiowane). Foldery z plikiem .nomedia są pomijane.",
+                tr("Przeszukam pamięć telefonu i dodam pliki audio, których system jeszcze nie zauważył (np. świeżo skopiowane). Foldery z plikiem .nomedia są pomijane.", "I'll search the phone's storage and add audio files the system hasn't noticed yet (e.g. freshly copied). Folders with a .nomedia file are skipped."),
                 color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
             )
             val progress = vm.scanProgress
             if (progress != null) {
-                Text("Szukam… znaleziono $progress plików", color = Pal.Accent, fontFamily = Mono, fontSize = 13.sp)
+                Text(tr("Szukam… znaleziono $progress plików", "Searching… found $progress files"), color = Pal.Accent, fontFamily = Mono, fontSize = 13.sp)
             } else {
                 vm.scanMessage?.let { Text(it, color = Pal.Text, fontSize = 13.sp, lineHeight = 19.sp) }
-                Chip("Skanuj teraz", modifier = Modifier.fillMaxWidth(), selected = true) { vm.scanPhone() }
+                Chip(tr("Skanuj teraz", "Scan now"), modifier = Modifier.fillMaxWidth(), selected = true) { vm.scanPhone() }
             }
         }
 
         // --- Foldery
         Card {
-            Text("Foldery", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Foldery", "Folders"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
             Text(
-                "Dotknij folderu, żeby zmienić, czym jest: Auto (rozpoznaj sam) → Muzyka → Audiobook → Pomiń. Ustawienie obejmuje też podfoldery.",
+                tr("Dotknij folderu, żeby zmienić, czym jest: Auto (rozpoznaj sam) → Muzyka → Audiobook → Pomiń. Ustawienie obejmuje też podfoldery.", "Tap a folder to change what it is: Auto (detect) → Music → Audiobook → Skip. The setting also covers subfolders."),
                 color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
             )
             if (vm.folders.isEmpty()) {
-                Text(if (vm.libraryLoaded) "Nie znalazłem folderów z muzyką." else "Wczytuję…", color = Pal.Muted, fontSize = 13.sp)
+                Text(if (vm.libraryLoaded) tr("Nie znalazłem folderów z muzyką.", "No music folders found.") else tr("Wczytuję…", "Loading…"), color = Pal.Muted, fontSize = 13.sp)
             }
             vm.folders.forEach { f ->
                 Row(
@@ -309,7 +309,7 @@ fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit, onPrivacy: () -> Unit
                         .heightIn(min = 52.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .clickable { vm.cycleFolderRule(f.path) }
-                        .semantics { contentDescription = "Folder ${f.name}: ${f.rule.label}. Dotknij, aby zmienić." }
+                        .semantics { contentDescription = tr("Folder ${f.name}: ${f.rule.label}. Dotknij, aby zmienić.", "Folder ${f.name}: ${f.rule.label}. Tap to change.") }
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -329,8 +329,8 @@ fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit, onPrivacy: () -> Unit
         Card(Modifier.clickable(onClick = onPrivacy)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Prywatność", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    Text("Bez kont, reklam i śledzenia. Zobacz, z czym łączy się aplikacja.", color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                    Text(tr("Prywatność", "Privacy"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Bez kont, reklam i śledzenia. Zobacz, z czym łączy się aplikacja.", "No accounts, ads or tracking. See what the app connects to."), color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp)
                 }
                 Text("›", color = Pal.Muted, fontSize = 22.sp)
             }
@@ -338,12 +338,12 @@ fun LibraryScreen(vm: PlayerViewModel, onBack: () -> Unit, onPrivacy: () -> Unit
 
         // --- Formaty
         Card {
-            Text("Obsługiwane formaty", color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Obsługiwane formaty", "Supported formats"), color = Pal.Text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
             Text(
-                "Zawsze: MP3, AAC/M4A, M4B, FLAC, OGG, Opus, WAV, AMR.\n" +
-                    "Zależnie od telefonu: ALAC, AC-3.\n" +
-                    "Radio: strumienie MP3/AAC, HLS (.m3u8) i linki .pls / .m3u.\n" +
-                    "Nieobsługiwane: WMA, APE, DSD.",
+                tr("Zawsze: MP3, AAC/M4A, M4B, FLAC, OGG, Opus, WAV, AMR.\n", "Always: MP3, AAC/M4A, M4B, FLAC, OGG, Opus, WAV, AMR.\n") +
+                    tr("Zależnie od telefonu: ALAC, AC-3.\n", "Depending on the phone: ALAC, AC-3.\n") +
+                    tr("Radio: strumienie MP3/AAC, HLS (.m3u8) i linki .pls / .m3u.\n", "Radio: MP3/AAC streams, HLS (.m3u8) and .pls / .m3u links.\n") +
+                    tr("Nieobsługiwane: WMA, APE, DSD.", "Not supported: WMA, APE, DSD."),
                 color = Pal.Muted, fontSize = 13.sp, lineHeight = 20.sp,
             )
         }
@@ -381,28 +381,28 @@ fun PrivacyScreen(onBack: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        TopBar("Prywatność", onBack)
-        Text("Equinox nie zbiera o Tobie żadnych danych.", color = Pal.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        TopBar(tr("Prywatność", "Privacy"), onBack)
+        Text(tr("Equinox nie zbiera o Tobie żadnych danych.", "Equinox doesn't collect any data about you."), color = Pal.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         PrivacySection(
-            "Co zostaje na telefonie",
-            "Twoje pliki, playlisty, ustawienia, postęp audiobooków i statystyki wyzwania. Nie wysyłam ich nikomu i nie mam do nich dostępu.",
+            tr("Co zostaje na telefonie", "What stays on your phone"),
+            tr("Twoje pliki, playlisty, ustawienia, postęp audiobooków i statystyki wyzwania. Nie wysyłam ich nikomu i nie mam do nich dostępu.", "Your files, playlists, settings, audiobook progress and stats. I don't send them anywhere and I have no access to them."),
         )
         PrivacySection(
-            "Z czym łączy się aplikacja",
-            "• radio-browser.info: lista stacji radiowych (i Twoje hasło wyszukiwania)\n" +
-                "• serwery stacji radiowych: sam strumień dźwięku\n" +
-                "• Wikipedia: tylko nazwa wykonawcy lub autora, żeby pokazać ciekawostki (wyłączysz to przyciskiem „Ukryj”)",
+            tr("Z czym łączy się aplikacja", "What the app connects to"),
+            tr("• radio-browser.info: lista stacji radiowych (i Twoje hasło wyszukiwania)\n", "• radio-browser.info: the list of radio stations (and your search term)\n") +
+                tr("• serwery stacji radiowych: sam strumień dźwięku\n", "• radio station servers: just the audio stream\n") +
+                tr("• Wikipedia: tylko nazwa wykonawcy lub autora, żeby pokazać ciekawostki (wyłączysz to przyciskiem „Ukryj”)", "• Wikipedia: only the artist's or author's name, to show fun facts (turn it off with “Hide”)"),
         )
-        PrivacySection("Czego tu nie ma", "Kont, reklam, analityki, śledzenia i sprzedawania danych.")
+        PrivacySection(tr("Czego tu nie ma", "What's not here"), tr("Kont, reklam, analityki, śledzenia i sprzedawania danych.", "Accounts, ads, analytics, tracking or selling data."))
         PrivacySection(
-            "Uprawnienia",
-            "Pliki audio – żeby je odtwarzać. Powiadomienia – przyciski odtwarzania. Internet – radio i ciekawostki. Wibracje – pokrętło i sygnał stopera.",
+            tr("Uprawnienia", "Permissions"),
+            tr("Pliki audio – żeby je odtwarzać. Powiadomienia – przyciski odtwarzania. Internet – radio i ciekawostki. Wibracje – pokrętło i sygnał stopera.", "Audio files – to play them. Notifications – playback buttons. Internet – radio and fun facts. Vibration – the dial and the timer signal."),
         )
         PrivacySection(
-            "Jak usunąć dane",
-            "Ustawienia telefonu → Aplikacje → Equinox → Pamięć → Wyczyść dane. Twoje pliki muzyczne zostaną nietknięte.",
+            tr("Jak usunąć dane", "How to delete your data"),
+            tr("Ustawienia telefonu → Aplikacje → Equinox → Pamięć → Wyczyść dane. Twoje pliki muzyczne zostaną nietknięte.", "Phone settings → Apps → Equinox → Storage → Clear data. Your music files stay untouched."),
         )
-        Text("Pełna polityka prywatności jest dostępna na stronie aplikacji w Google Play.", color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp)
+        Text(tr("Pełna polityka prywatności jest dostępna na stronie aplikacji w Google Play.", "The full privacy policy is available on the app's Google Play page."), color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp)
         Spacer(Modifier.height(8.dp))
     }
 }

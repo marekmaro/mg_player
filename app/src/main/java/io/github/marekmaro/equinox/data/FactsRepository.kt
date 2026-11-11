@@ -69,7 +69,9 @@ object FactsRepository {
      */
     suspend fun find(name: String, isBook: Boolean): Facts? = withContext(Dispatchers.IO) {
         val words = if (isBook) bookWords else musicWords
-        for (lang in listOf("pl", "en")) {
+        // najpierw Wikipedia w języku aplikacji, potem druga
+        val first = io.github.marekmaro.equinox.Lang.code
+        for (lang in listOf(first, if (first == "pl") "en" else "pl")) {
             val hint = when {
                 isBook && lang == "pl" -> "pisarz"
                 isBook -> "writer"
