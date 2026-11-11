@@ -53,6 +53,13 @@ def nodes():
 
 
 def find(text, exact=False, desc=False):
+    """Szuka napisu; „A|B” = wariant polski albo angielski (aplikacja jest dwujęzyczna)."""
+    if "|" in text:
+        for alt in text.split("|"):
+            r = find(alt, exact, desc)
+            if r:
+                return r
+        return None
     for t, d, x, y, w in nodes():
         v = d if desc else t
         if (v == text) if exact else (text in v):
@@ -303,23 +310,27 @@ expect("Znaleziono", "skanowanie telefonu")
 back()
 
 # 9d. Wykonawcy i wyszukiwarka
-for _ in range(4):
-    if find("Losuj wszystko"):
-        break
-    back()
-tap("Muzyka", exact=True)
-tap("Wykonawcy", exact=True)
+def go_home():
+    """Wstecz aż do menu głównego; gdyby aplikacja się zamknęła – uruchom ją ponownie."""
+    for _ in range(5):
+        if find("Losuj wszystko|Shuffle all"):
+            return
+        back()
+    adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
+    time.sleep(4)
+
+go_home()
+tap("Muzyka|Music", exact=True)
+tap("Wykonawcy|Artists", exact=True)
 shot("25-wykonawcy")
-expect("wykonawca", "lista wykonawców")
-back()
-back()
-tap("Szukaj", exact=True)
+expect("Nieznany wykonawca|Unknown artist", "lista wykonawców")
+go_home()
+tap("Szukaj|Search", exact=True)
 adb("shell", "input", "text", "Nocny")
 time.sleep(1.5)
 shot("26-szukaj")
 expect("Nocny przystanek", "wyszukiwarka")
-back()
-back()
+go_home()
 
 # 9e. Wznawianie: zamknij aplikację całkowicie i uruchom ponownie – ma pamiętać, co grało
 adb("shell", "am", "force-stop", PKG)

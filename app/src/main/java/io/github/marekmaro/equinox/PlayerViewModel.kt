@@ -13,6 +13,7 @@ import android.provider.MediaStore
 import android.media.AudioManager
 import android.os.SystemClock
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
@@ -385,6 +386,64 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---------------------------------------------------------------- Odtwarzanie
+
+    // ---------------------------------------------------------------- Okładki
+
+    /** Okładka bieżącego utworu (z metadanych pliku), pomniejszona do ~600 px. */
+    var artwork by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null); private set
+    var showCovers by mutableStateOf(prefs.showCovers); private set
+    private var artworkFor: String? = null
+
+    fun setShowCovers(on: Boolean) {
+        showCovers = on
+        prefs.showCovers = on
+    }
+
+    private fun updateArtwork(c: MediaController) {
+        val data = c.mediaMetadata.artworkData
+        val key = "${c.currentMediaItem?.mediaId}:${data?.size}"
+        if (key == artworkFor) return
+        artworkFor = key
+        if (data == null) {
+            artwork = null
+            return
+        }
+        viewModelScope.launch {
+            val bmp = withContext(Dispatchers.Default) { decodeArtwork(data) }
+            if (artworkFor == key) artwork = bmp
+        }
+    }
+
+    private fun decodeArtwork(data: ByteArray): androidx.compose.ui.graphics.ImageBitmap? = try {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= 600 && bounds.outHeight / (sample * 2) >= 600) sample *= 2
+        android.graphics.BitmapFactory.decodeByteArray(data, 0, data.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+            ?.asImageBitmap()
+    } catch (e: Exception) {
+        null
+    }
+
+    // ---------------------------------------------------------------- Brzmienie (korektor)
+
+    var soundPreset by mutableStateOf(SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE); private set
+    var voiceForBooks by mutableStateOf(prefs.voiceForBooks); private set
+    val soundAvailable: Boolean get() = PlaybackService.soundAvailable
+
+    fun setSound(p: SoundPreset) {
+        soundPreset = p
+        Core.soundPreset = p
+        prefs.soundPreset = p.name
+        PlaybackService.refreshSound()
+    }
+
+    fun setVoiceForBooks(on: Boolean) {
+        voiceForBooks = on
+        Core.voiceForBooks = on
+        prefs.voiceForBooks = on
+        PlaybackService.refreshSound()
+    }
 
     // ---------------------------------------------------------------- Ulubione, powtarzanie, losowo
 
@@ -875,6 +934,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 trackId = if (Core.kind == Kind.MUSIC || Core.kind == null) item?.mediaId?.toLongOrNull() else null,
             )
             restoreSessionIfNeeded(c)
+            updateArtwork(c)
             if (c.isPlaying) playerError = null
             updateFacts(nowPlaying)
             upNext = if (Block.QUEUE in layout) nextTitles(c) else emptyList()

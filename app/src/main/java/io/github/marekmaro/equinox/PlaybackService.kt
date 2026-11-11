@@ -43,16 +43,23 @@ class PlaybackService : MediaSessionService() {
     private var lastChapterPos = 0L
     private var skippedInRow = 0
     private var itemPlayedMs = 0L
+    private val sound = SoundEngine()
     private var countedFor: String? = null
 
     private val listener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             itemPlayedMs = 0
+            applySound() // audiobook ↔ muzyka mogą mieć inne brzmienie
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Core.sleepAfterItem) {
                 session?.player?.pause()
                 Core.sleepAfterItem = false
             }
             pushWidget()
+        }
+
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            sound.attach(audioSessionId)
+            applySound()
         }
 
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
@@ -108,6 +115,8 @@ class PlaybackService : MediaSessionService() {
         prefs = Prefs(this)
         Core.chime = Chime.entries.firstOrNull { it.name == prefs.chime } ?: Chime.CHIP
         if (Core.playCounts == null) Core.playCounts = prefs.playCounts().toMutableMap()
+        Core.soundPreset = SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE
+        Core.voiceForBooks = prefs.voiceForBooks
 
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -148,6 +157,9 @@ class PlaybackService : MediaSessionService() {
             })
             .build()
         Companion.player = player
+        instance = this
+        sound.attach(player.audioSessionId)
+        applySound()
         startTicker()
         pushWidget()
     }
@@ -275,8 +287,17 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    /** Ustawia korektor: dla audiobooków (gdy włączone) „Czysty głos”, w innych przypadkach wybrane brzmienie. */
+    fun applySound() {
+        val preset = if (Core.kind == Kind.BOOK && Core.voiceForBooks) SoundPreset.VOICE else Core.soundPreset
+        sound.apply(preset)
+        soundAvailable = sound.available
+    }
+
     override fun onDestroy() {
         persist()
+        sound.release()
+        instance = null
         val lastTitle = session?.player?.mediaMetadata?.title?.toString()
         Companion.player = null
         WidgetUpdater.push(this, WidgetUpdater.idle(lastTitle?.takeIf { it.isNotBlank() }), force = true)
@@ -294,5 +315,16 @@ class PlaybackService : MediaSessionService() {
         /** Odtwarzacz serwisu (ten sam proces) – dla widżetów i kafelka. Tylko wątek główny. */
         var player: Player? = null
             private set
+
+        private var instance: PlaybackService? = null
+
+        /** false = telefon nie obsługuje korektora. */
+        var soundAvailable = true
+            private set
+
+        /** Wywoływane po zmianie brzmienia w aplikacji. */
+        fun refreshSound() {
+            instance?.applySound()
+        }
     }
 }

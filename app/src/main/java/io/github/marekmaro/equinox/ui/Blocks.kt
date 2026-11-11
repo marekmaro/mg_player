@@ -54,6 +54,8 @@ import java.time.LocalTime
 fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -> Unit) {
     var addTrackId by remember { mutableStateOf<Long?>(null) }
     addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
+    var soundOpen by remember { mutableStateOf(false) }
+    if (soundOpen) SoundSheet(vm, onDismiss = { soundOpen = false })
     vm.layout.forEach { block ->
         when (block) {
             Block.TITLE -> TitleBlock(vm)
@@ -67,6 +69,18 @@ fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -
             Block.SESSIONS -> SessionsBlock(vm, onSessions)
         }
     }
+    // brzmienie: schowane w małym napisie z nazwą bieżącego ustawienia
+    val effective = if (vm.nowPlaying.kind == Kind.BOOK && vm.voiceForBooks) io.github.marekmaro.equinox.SoundPreset.VOICE else vm.soundPreset
+    Text(
+        "♪ " + effective.label,
+        color = if (effective == io.github.marekmaro.equinox.SoundPreset.PURE) Pal.Muted else Pal.Accent,
+        fontFamily = Mono, fontSize = 12.sp,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { soundOpen = true }
+            .semantics { contentDescription = tr("Brzmienie: ", "Sound: ") + effective.label }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    )
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (vm.nowPlaying.kind == Kind.MUSIC) {
             Text(

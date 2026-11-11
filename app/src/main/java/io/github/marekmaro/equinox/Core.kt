@@ -37,6 +37,10 @@ object Core {
     var chapters: List<io.github.marekmaro.equinox.data.Chapter> = emptyList()
     var chaptersFor: String? = null
 
+    /** Brzmienie (korektor) i automatyczny „Czysty głos” dla audiobooków. */
+    var soundPreset: SoundPreset = SoundPreset.PURE
+    var voiceForBooks: Boolean = true
+
     /** Liczba odtworzeń utworów (id -> ile razy); wczytywana raz, zapisywana co kilka sekund. */
     var playCounts: MutableMap<Long, Int>? = null
     var playCountsDirty = false

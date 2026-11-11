@@ -11,6 +11,8 @@
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- korektor dźwięku (efekty audio dla własnego odtwarzania) -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!-- Chromebooki, telewizory z myszką itp.: dotyk nie jest wymagany (pokrętło działa też kółkiem myszy) -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />

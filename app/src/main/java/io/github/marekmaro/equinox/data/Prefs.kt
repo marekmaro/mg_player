@@ -49,6 +49,20 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Środek pierścienia: okładka (true) albo opis wykonawcy ---
+    var showCovers: Boolean
+        get() = sp.getBoolean("show_covers", true)
+        set(v) = sp.edit().putBoolean("show_covers", v).apply()
+
+    // --- Brzmienie ---
+    var soundPreset: String
+        get() = sp.getString("sound_preset", "PURE") ?: "PURE"
+        set(v) = sp.edit().putString("sound_preset", v).apply()
+
+    var voiceForBooks: Boolean
+        get() = sp.getBoolean("voice_for_books", true)
+        set(v) = sp.edit().putBoolean("voice_for_books", v).apply()
+
     // --- Ostatnia sesja odtwarzania (do wznowienia po zamknięciu aplikacji) ---
     var lastSession: String?
         get() = sp.getString("last_session", null)

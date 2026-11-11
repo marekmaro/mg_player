@@ -1,6 +1,8 @@
 package io.github.marekmaro.equinox.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -532,17 +534,29 @@ private fun PlayerRing(vm: PlayerViewModel, ringSize: androidx.compose.ui.unit.D
                 },
             contentAlignment = Alignment.Center,
         ) {
+            // Okładka z pliku (jeśli jest i jest włączona) – pod przyciskami, z przyciemnieniem
+            val cover = if (vm.showCovers) vm.artwork else null
+            if (cover != null) {
+                Image(
+                    bitmap = cover,
+                    contentDescription = tr("Okładka", "Cover art"),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize().clip(CircleShape),
+                )
+                Box(Modifier.matchParentSize().clip(CircleShape).background(Color.Black.copy(alpha = 0.42f)))
+            }
+            val side = if (cover != null) Color.White.copy(alpha = 0.85f) else Pal.Muted
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = face * 0.08f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                GlyphIcon(Glyph.Prev, Pal.Muted, (face * 0.13f).coerceAtMost(26.dp))
+                GlyphIcon(Glyph.Prev, side, (face * 0.13f).coerceAtMost(26.dp))
                 GlyphIcon(if (np.isPlaying) Glyph.Pause else Glyph.Play, Pal.Accent, (face * 0.3f).coerceAtMost(60.dp))
-                GlyphIcon(Glyph.Next, Pal.Muted, (face * 0.13f).coerceAtMost(26.dp))
+                GlyphIcon(Glyph.Next, side, (face * 0.13f).coerceAtMost(26.dp))
             }
-            // W miejscu okładki: krótki opis wykonawcy / autora
-            vm.facts?.headline?.takeIf { it.isNotBlank() }?.let { headline ->
+            // Bez okładki: krótki opis wykonawcy / autora (ciekawostka)
+            if (cover == null) vm.facts?.headline?.takeIf { it.isNotBlank() }?.let { headline ->
                 Text(
                     headline,
                     color = Pal.Muted, fontSize = 11.sp, lineHeight = 14.sp,

@@ -207,4 +207,20 @@ class LogicTest {
         val ms2 = (System.nanoTime() - t1) / 1_000_000
         assertTrue("reguły folderów dla 20 000 plików trwały $ms2 ms", ms2 < 3_000)
     }
+
+    @Test
+    fun sound_presetsInterpolate() {
+        SoundPreset.entries.forEach { p ->
+            SoundPreset.referenceHz.forEachIndexed { i, hz ->
+                assertEquals("${p.name} @ $hz", p.gainsDb[i].toFloat(), SoundPreset.gainAt(p, hz), 0.01f)
+            }
+            // poza zakresem: wartości skrajne, bez szalonych wzmocnień
+            assertEquals(p.gainsDb.first().toFloat(), SoundPreset.gainAt(p, 20), 0.01f)
+            assertEquals(p.gainsDb.last().toFloat(), SoundPreset.gainAt(p, 20_000), 0.01f)
+            assertTrue(p.gainsDb.all { it in -6..6 })
+        }
+        // między 60 a 230 Hz wartość leży między sąsiednimi pasmami
+        val g = SoundPreset.gainAt(SoundPreset.BASS, 120)
+        assertTrue(g in 4f..6f)
+    }
 }
