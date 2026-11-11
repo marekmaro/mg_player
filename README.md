@@ -6,8 +6,15 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.8)
+## Co już działa (wersja 0.10)
 
+- **Wznawianie**: aplikacja pamięta, co i gdzie grało (muzyka, audiobook, radio), także po zamknięciu aplikacji lub restarcie telefonu. Słuchawki Bluetooth i systemowe kontrolki multimediów mogą wznowić odtwarzanie.
+- **Jak w każdym dobrym odtwarzaczu**: powtarzanie (wszystko / jeden), losowo, ulubione ♥, wykonawcy, albumy, foldery, wyszukiwarka, „zagraj jako następny” i „do kolejki”, playlisty automatyczne (Ulubione, Ostatnio dodane, Najczęściej słuchane).
+- **Brzmienie**: korektor z 10 ustawieniami o ludzkich nazwach (Ciepły wieczór, Bas w kościach, Klub o północy, Czysty głos…), schowany pod napisem ♪ na ekranie odtwarzania.
+- **Okładki**: okładka zapisana w pliku w środku pierścienia (albo ciekawostka o wykonawcy).
+- **Statystyki** (tylko na telefonie, do ukrycia): zegar słuchania w ciągu doby, wykonawca tygodnia, odkrycia z przyciskiem „Zagraj coś nieodkrytego”.
+- **Ustawienia** wysuwane jak wschód słońca: język, wygląd, brzmienie, pokrętło, dodatki.
+- **Dwa języki**: polski i angielski, domyślnie język telefonu.
 - **Pokrętło**: każda lista przewija się obrotem kciuka po okręgu. Im szybciej kręcisz, tym dalej skacze. Przy długich listach pojawia się duża litera, a zaznaczenie zawsze nadąża. Środek „OK” wybiera, przytrzymanie „OK” to pauza.
 - **Muzyka**: automatycznie wczytuje pliki z telefonu. Jest „Losuj wszystko” na samej górze menu.
 - **Audiobooki**: jeden folder lub album to jedna książka. Aplikacja pamięta rozdział i pozycję każdej książki, a po wznowieniu cofa o 5 s. Prędkość 0.8–2×, przyciski ±30 s.
