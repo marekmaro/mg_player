@@ -42,6 +42,8 @@ import io.github.marekmaro.equinox.Kind
 import io.github.marekmaro.equinox.PlayerViewModel
 import io.github.marekmaro.equinox.RingMode
 import io.github.marekmaro.equinox.fmt
+import io.github.marekmaro.equinox.tr
+import androidx.media3.common.Player
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 
@@ -95,12 +97,53 @@ private fun TitleBlock(vm: PlayerViewModel) {
         Text(np.title, color = Pal.Text, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
         Text(np.subtitle, color = Pal.Muted, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         np.chapter?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        PlayModeRow(vm)
         Text(
             if (isRadio) "● NA ŻYWO" else "${fmt(np.positionMs)} / ${fmt(np.durationMs)}",
             color = if (isRadio) Pal.Accent else Pal.Text, fontFamily = Mono, fontSize = 13.sp,
         )
         Text(vm.effectiveRingMode.hint, color = Pal.Muted, fontSize = 11.sp)
         np.error?.let { Text(it, color = Pal.Accent, fontSize = 13.sp, textAlign = TextAlign.Center) }
+    }
+}
+
+/** ♥ ulubione · ⤨ losowo · ↻ powtarzaj – małe przełączniki pod tytułem. */
+@Composable
+private fun PlayModeRow(vm: PlayerViewModel) {
+    val np = vm.nowPlaying
+    if (np.kind == Kind.RADIO) return
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+        np.trackId?.let { id ->
+            val fav = id in vm.favoriteIds
+            ToggleGlyph(if (fav) "♥" else "♡", fav, if (fav) tr("Usuń z ulubionych", "Remove from favourites") else tr("Dodaj do ulubionych", "Add to favourites")) {
+                vm.toggleFavorite(id)
+            }
+        }
+        if (np.kind == Kind.MUSIC) {
+            ToggleGlyph("⤨", np.shuffle, if (np.shuffle) tr("Losowo: włączone", "Shuffle: on") else tr("Losowo: wyłączone", "Shuffle: off")) { vm.toggleShuffle() }
+        }
+        val (glyph, label) = when (np.repeat) {
+            Player.REPEAT_MODE_ALL -> "↻" to tr("Powtarzaj wszystko", "Repeat all")
+            Player.REPEAT_MODE_ONE -> "↻1" to tr("Powtarzaj jeden", "Repeat one")
+            else -> "↻" to tr("Powtarzanie wyłączone", "Repeat off")
+        }
+        ToggleGlyph(glyph, np.repeat != Player.REPEAT_MODE_OFF, label) { vm.cycleRepeat() }
+    }
+}
+
+@Composable
+private fun ToggleGlyph(text: String, active: Boolean, description: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (active) Pal.AccentDim else Pal.Bg)
+            .border(1.dp, if (active) Pal.Accent else Pal.Line, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = if (active) Pal.Accent else Pal.Muted, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

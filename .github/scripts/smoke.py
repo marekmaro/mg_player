@@ -302,6 +302,33 @@ shot("24-po-skanowaniu")
 expect("Znaleziono", "skanowanie telefonu")
 back()
 
+# 9d. Wykonawcy i wyszukiwarka
+for _ in range(4):
+    if find("Losuj wszystko"):
+        break
+    back()
+tap("Muzyka", exact=True)
+tap("Wykonawcy", exact=True)
+shot("25-wykonawcy")
+expect("wykonawca", "lista wykonawców")
+back()
+back()
+tap("Szukaj", exact=True)
+adb("shell", "input", "text", "Nocny")
+time.sleep(1.5)
+shot("26-szukaj")
+expect("Nocny przystanek", "wyszukiwarka")
+back()
+back()
+
+# 9e. Wznawianie: zamknij aplikację całkowicie i uruchom ponownie – ma pamiętać, co grało
+adb("shell", "am", "force-stop", PKG)
+time.sleep(2)
+adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
+time.sleep(7)
+shot("27-po-ponownym-uruchomieniu")
+expect("SŁUCHAJ DALEJ", "wznowienie ostatniej sesji po zamknięciu aplikacji")
+
 # 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
 for w in ["PlayerWidget", "RingWidget"]:
@@ -339,7 +366,7 @@ if hits:
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
 # tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
-KEY = ("01-start", "04-teraz", "13-", "14-", "15-", "16-", "22-", "23-")
+KEY = ("04-teraz", "05d-", "25-", "26-", "27-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
     if not f.split("/")[-1].startswith(KEY):
         continue

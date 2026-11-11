@@ -40,13 +40,16 @@ import androidx.compose.ui.unit.sp
 import io.github.marekmaro.equinox.PlayerViewModel
 import io.github.marekmaro.equinox.data.FolderRule
 import io.github.marekmaro.equinox.fmt
+import io.github.marekmaro.equinox.tr
 
 // ================================================================== Lista playlist
 
 @Composable
-fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () -> Unit) {
+fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () -> Unit, onOpenGroup: () -> Unit) {
     var creating by remember { mutableStateOf(false) }
     val lists = vm.playlists
+    // na górze trzy playlisty automatyczne: Ulubione, Ostatnio dodane, Najczęściej słuchane
+    val smart = remember(vm.tracks, vm.favoriteIds) { vm.smartGroups() }
 
     if (creating) {
         NameDialog(
@@ -65,11 +68,16 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = "Playlisty",
-        rows = lists.map { ListRow(it.name, "${vm.playlistTracks(it).size}") },
+        rows = smart.map { ListRow(it.title, "${it.count}") } + lists.map { ListRow(it.name, "${vm.playlistTracks(it).size}") },
         onBack = onBack,
         onOpen = { i ->
-            vm.openPlaylistId = lists[i].id
-            onOpenPlaylist()
+            if (i < smart.size) {
+                vm.openGroup = smart[i]
+                onOpenGroup()
+            } else {
+                vm.openPlaylistId = lists[i - smart.size].id
+                onOpenPlaylist()
+            }
         },
         emptyText = "Nie masz jeszcze playlist.\nUtwórz pierwszą przyciskiem powyżej.",
     ) {
@@ -182,9 +190,23 @@ fun AddToPlaylistDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Uni
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Pal.Surface,
-        title = { Text("Dodaj do playlisty") },
+        title = { Text(tr("Dodaj…", "Add…")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // kolejka: tuż po bieżącym albo na koniec
+                vm.track(trackId)?.let { t ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Chip(tr("▶ Jako następny", "▶ Play next"), modifier = Modifier.weight(1f), selected = true) {
+                            vm.playNext(t)
+                            onDismiss()
+                        }
+                        Chip(tr("+ Do kolejki", "+ Add to queue"), modifier = Modifier.weight(1f)) {
+                            vm.addToQueue(t)
+                            onDismiss()
+                        }
+                    }
+                    Text(tr("Do playlisty:", "To playlist:"), color = Pal.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                }
                 LazyColumn(Modifier.heightIn(max = 260.dp)) {
                     items(vm.playlists, key = { it.id }) { p ->
                         val inList = trackId in p.trackIds

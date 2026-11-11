@@ -13,6 +13,9 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import io.github.marekmaro.equinox.data.Prefs
+import io.github.marekmaro.equinox.data.SessionStore
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import io.github.marekmaro.equinox.widget.WidgetUpdater
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -39,9 +42,12 @@ class PlaybackService : MediaSessionService() {
     private var radioRetries = 0
     private var lastChapterPos = 0L
     private var skippedInRow = 0
+    private var itemPlayedMs = 0L
+    private var countedFor: String? = null
 
     private val listener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            itemPlayedMs = 0
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Core.sleepAfterItem) {
                 session?.player?.pause()
                 Core.sleepAfterItem = false
@@ -101,6 +107,7 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         prefs = Prefs(this)
         Core.chime = Chime.entries.firstOrNull { it.name == prefs.chime } ?: Chime.CHIP
+        if (Core.playCounts == null) Core.playCounts = prefs.playCounts().toMutableMap()
 
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -119,7 +126,27 @@ class PlaybackService : MediaSessionService() {
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider.Builder(this).build().also { it.setSmallIcon(R.drawable.ic_notification) }
         )
-        session = MediaSession.Builder(this, player).build()
+        session = MediaSession.Builder(this, player)
+            .setCallback(object : MediaSession.Callback {
+                /**
+                 * Wznowienie „z zewnątrz”: przycisk odtwarzania na słuchawkach Bluetooth
+                 * albo karta „Wznów” w systemowych kontrolkach multimediów, gdy aplikacja
+                 * była zamknięta. Zwracamy ostatnią zapisaną sesję.
+                 */
+                override fun onPlaybackResumption(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                    val saved = SessionStore.decode(prefs.lastSession)
+                        ?: return Futures.immediateFailedFuture(UnsupportedOperationException("Brak zapisanej sesji"))
+                    Core.kind = saved.kind
+                    Core.bookKey = saved.bookKey
+                    return Futures.immediateFuture(
+                        MediaSession.MediaItemsWithStartPosition(SessionStore.toMediaItems(saved), saved.index, saved.positionMs)
+                    )
+                }
+            })
+            .build()
         Companion.player = player
         startTicker()
         pushWidget()
@@ -172,10 +199,22 @@ class PlaybackService : MediaSessionService() {
                     ticks++
                     // pierścień na widżecie co ~5 s (rzadziej = mniej pracy dla baterii)
                     if (ticks % 10 == 0) pushWidget()
-                    if (Core.kind == Kind.BOOK) {
-                        Core.pendingListenMs += dt
-                        if (ticks % 10 == 0) persist()
+                    if (Core.kind == Kind.BOOK) Core.pendingListenMs += dt
+                    // utwór liczy się jako odtworzony po 30 s słuchania
+                    if (Core.kind == Kind.MUSIC) {
+                        itemPlayedMs += dt
+                        val id = player.currentMediaItem?.mediaId
+                        if (itemPlayedMs >= 30_000 && id != null && id != countedFor) {
+                            countedFor = id
+                            id.toLongOrNull()?.let { tid ->
+                                val counts = Core.playCounts ?: mutableMapOf<Long, Int>().also { Core.playCounts = it }
+                                counts[tid] = (counts[tid] ?: 0) + 1
+                                Core.playCountsDirty = true
+                            }
+                        }
                     }
+                    // zapis miejsca odtwarzania co ~5 s (wznowienie po zamknięciu aplikacji)
+                    if (ticks % 10 == 0) persist()
                 }
 
                 // „Sen po rozdziale” dla rozdziałów wewnątrz jednego pliku (M4B)
@@ -210,9 +249,14 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    /** Zapisuje pozycję audiobooka i zaległe minuty wyzwania. */
+    /** Zapisuje miejsce odtwarzania (sesję), pozycję audiobooka, minuty wyzwania i liczniki. */
     private fun persist() {
         val player = session?.player ?: return
+        SessionStore.capture(player, Core.kind, Core.bookKey)?.let { prefs.lastSession = SessionStore.encode(it) }
+        if (Core.playCountsDirty) {
+            Core.playCounts?.let { prefs.setPlayCounts(it) }
+            Core.playCountsDirty = false
+        }
         if (Core.kind == Kind.BOOK) {
             Core.bookKey?.let { prefs.saveBook(it, player.currentMediaItemIndex, player.currentPosition) }
         }

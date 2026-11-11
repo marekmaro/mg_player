@@ -37,6 +37,10 @@ object Core {
     var chapters: List<io.github.marekmaro.equinox.data.Chapter> = emptyList()
     var chaptersFor: String? = null
 
+    /** Liczba odtworzeń utworów (id -> ile razy); wczytywana raz, zapisywana co kilka sekund. */
+    var playCounts: MutableMap<Long, Int>? = null
+    var playCountsDirty = false
+
     /** Minuty audiobooka jeszcze niezapisane na dysk (zapis co kilka sekund). */
     var pendingListenMs: Long = 0L
 }

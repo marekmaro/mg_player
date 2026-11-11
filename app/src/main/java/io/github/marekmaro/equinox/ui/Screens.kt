@@ -68,6 +68,7 @@ import io.github.marekmaro.equinox.Kind
 import io.github.marekmaro.equinox.PlayerViewModel
 import io.github.marekmaro.equinox.RingMode
 import io.github.marekmaro.equinox.fmt
+import io.github.marekmaro.equinox.tr
 import io.github.marekmaro.equinox.data.Facts
 import androidx.compose.runtime.mutableIntStateOf
 
@@ -83,6 +84,7 @@ fun HomeScreen(
     onPlaying: () -> Unit,
     onPlaylists: () -> Unit,
     onLibrary: () -> Unit,
+    onSearch: () -> Unit,
 ) {
     val np = vm.nowPlaying
     val s = vm.sessions
@@ -92,6 +94,7 @@ fun HomeScreen(
         ListRow("Audiobooki", if (vm.books.isEmpty()) "" else "${vm.books.size}"),
         ListRow("Playlisty", if (vm.playlists.isEmpty()) "" else "${vm.playlists.size}"),
         ListRow("Radio", "na żywo"),
+        ListRow(tr("Szukaj", "Search")),
         ListRow("Sesje", "${s.todayMs / 60_000}/${s.goalMinutes} min"),
         ListRow("Biblioteka", "foldery"),
     )
@@ -109,8 +112,9 @@ fun HomeScreen(
                 2 -> onBooks()
                 3 -> onPlaylists()
                 4 -> onRadio()
-                5 -> onSessions()
-                6 -> onLibrary()
+                5 -> onSearch()
+                6 -> onSessions()
+                7 -> onLibrary()
             }
         },
     ) {
@@ -174,7 +178,7 @@ private fun permissionAction(vm: PlayerViewModel): Pair<String, () -> Unit>? {
 // ================================================================== Muzyka
 
 @Composable
-fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) {
+fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, onGroups: (io.github.marekmaro.equinox.GroupType) -> Unit) {
     val tracks = vm.tracks
     var addTrackId by remember { mutableStateOf<Long?>(null) }
     addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
@@ -192,7 +196,16 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
         emptyText = if (!vm.libraryLoaded) "Wczytuję bibliotekę…"
         else if (!vm.permissionGranted) "Equinox potrzebuje dostępu do plików audio,\nżeby znaleźć Twoją muzykę."
         else "Nie znalazłem muzyki.\nSkopiuj pliki MP3/FLAC na telefon.",
-    )
+    ) {
+        if (tracks.isNotEmpty()) {
+            // przeglądanie jak w klasycznym odtwarzaczu: wykonawcy, albumy, foldery
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Chip(tr("Wykonawcy", "Artists"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.ARTIST) }
+                Chip(tr("Albumy", "Albums"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.ALBUM) }
+                Chip(tr("Foldery", "Folders"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.FOLDER) }
+            }
+        }
+    }
 }
 
 // ================================================================== Audiobooki

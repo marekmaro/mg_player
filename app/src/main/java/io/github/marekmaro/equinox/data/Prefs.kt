@@ -49,6 +49,38 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Ostatnia sesja odtwarzania (do wznowienia po zamknięciu aplikacji) ---
+    var lastSession: String?
+        get() = sp.getString("last_session", null)
+        set(v) = sp.edit().putString("last_session", v).apply()
+
+    // --- Ulubione utwory (id) ---
+    fun favoriteTracks(): Set<Long> = try {
+        val a = JSONArray(sp.getString("fav_tracks", "[]") ?: "[]")
+        (0 until a.length()).map { a.getLong(it) }.toSet()
+    } catch (e: Exception) { emptySet() }
+
+    fun setFavoriteTracks(ids: Set<Long>) {
+        sp.edit().putString("fav_tracks", JSONArray(ids.toList()).toString()).apply()
+    }
+
+    // --- Liczba odtworzeń (id -> ile razy) ---
+    fun playCounts(): Map<Long, Int> = try {
+        val o = JSONObject(sp.getString("play_counts", "{}") ?: "{}")
+        o.keys().asSequence().mapNotNull { k -> k.toLongOrNull()?.let { it to o.optInt(k) } }.toMap()
+    } catch (e: Exception) { emptyMap() }
+
+    fun setPlayCounts(m: Map<Long, Int>) {
+        val o = JSONObject()
+        m.forEach { (k, v) -> o.put(k.toString(), v) }
+        sp.edit().putString("play_counts", o.toString()).apply()
+    }
+
+    // --- Język: SYSTEM / PL / EN ---
+    var language: String
+        get() = sp.getString("language", "SYSTEM") ?: "SYSTEM"
+        set(v) = sp.edit().putString("language", v).apply()
+
     // --- Reguły folderów: ścieżka -> Muzyka / Audiobook / Pomiń ---
     fun folderRules(): Map<String, FolderRule> {
         val o = try { JSONObject(sp.getString("folder_rules", "{}") ?: "{}") } catch (e: Exception) { JSONObject() }

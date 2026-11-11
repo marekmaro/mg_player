@@ -33,6 +33,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.marekmaro.equinox.data.Book
+import io.github.marekmaro.equinox.data.SessionStore
 import io.github.marekmaro.equinox.data.Chapters
 import io.github.marekmaro.equinox.data.FolderInfo
 import io.github.marekmaro.equinox.data.FolderRule
@@ -66,7 +67,19 @@ data class NowPlaying(
     val error: String? = null,
     /** rozdział wewnątrz pliku (M4B): np. „3/12 · Pan Tadeusz”, null gdy brak */
     val chapter: String? = null,
+    val shuffle: Boolean = false,
+    /** Player.REPEAT_MODE_OFF / ALL / ONE */
+    val repeat: Int = 0,
+    /** id utworu z biblioteki (do serduszka i „Do playlisty”), null dla radia */
+    val trackId: Long? = null,
 )
+
+/** Rodzaj grupy utworów do przeglądania. */
+enum class GroupType { ARTIST, ALBUM, FOLDER, FAVORITES, RECENT, TOP }
+
+data class TrackGroup(val type: GroupType, val key: String, val title: String, val count: Int)
+
+data class SearchResult(val title: String, val hint: String, val track: Track? = null, val group: TrackGroup? = null)
 
 data class SessionsUi(
     val sleepRemainingMs: Long? = null,
@@ -372,6 +385,142 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---------------------------------------------------------------- Odtwarzanie
+
+    // ---------------------------------------------------------------- Ulubione, powtarzanie, losowo
+
+    var favoriteIds by mutableStateOf(prefs.favoriteTracks()); private set
+
+    fun toggleFavorite(id: Long) {
+        favoriteIds = if (id in favoriteIds) favoriteIds - id else favoriteIds + id
+        prefs.setFavoriteTracks(favoriteIds)
+    }
+
+    fun toggleShuffle() {
+        controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+        tickNow()
+    }
+
+    /** Wyłączone → całość → jeden utwór → wyłączone. */
+    fun cycleRepeat() {
+        controller?.let {
+            it.repeatMode = when (it.repeatMode) {
+                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                else -> Player.REPEAT_MODE_OFF
+            }
+        }
+        tickNow()
+    }
+
+    // ---------------------------------------------------------------- Kolejka
+
+    fun track(id: Long): Track? = trackById[id]
+
+    /** „Zagraj jako następny” – wstawia utwór tuż po bieżącym (albo gra od razu, gdy nic nie gra). */
+    fun playNext(t: Track) {
+        val c = controller ?: return
+        if (Core.kind == Kind.MUSIC && c.mediaItemCount > 0) c.addMediaItem(c.currentMediaItemIndex + 1, t.toMediaItem())
+        else playTracks(listOf(t), 0)
+    }
+
+    /** „Dodaj do kolejki” – na koniec bieżącej kolejki. */
+    fun addToQueue(t: Track) {
+        val c = controller ?: return
+        if (Core.kind == Kind.MUSIC && c.mediaItemCount > 0) c.addMediaItem(t.toMediaItem())
+        else playTracks(listOf(t), 0)
+    }
+
+    // ---------------------------------------------------------------- Przeglądanie: wykonawcy, albumy, foldery, automatyczne
+
+    var openGroup by mutableStateOf<TrackGroup?>(null)
+    var groupListType by mutableStateOf(GroupType.ARTIST)
+
+    fun groups(type: GroupType): List<TrackGroup> = when (type) {
+        GroupType.ARTIST -> tracks.groupBy { it.artist }.map { (a, l) -> TrackGroup(type, a, a, l.size) }
+        GroupType.ALBUM -> tracks.filter { it.album.isNotBlank() }.groupBy { it.album }
+            .map { (a, l) -> TrackGroup(type, a, a, l.size) }
+        GroupType.FOLDER -> tracks.groupBy { it.folder }
+            .map { (f, l) -> TrackGroup(type, f, f.substringAfterLast('/').ifBlank { f }, l.size) }
+        else -> emptyList()
+    }.sortedBy { it.title.lowercase() }
+
+    /** Playlisty automatyczne: Ulubione, Ostatnio dodane, Najczęściej słuchane. */
+    fun smartGroups(): List<TrackGroup> = listOf(
+        TrackGroup(GroupType.FAVORITES, "fav", tr("♥ Ulubione", "♥ Favourites"), groupTracks(GroupType.FAVORITES, "").size),
+        TrackGroup(GroupType.RECENT, "recent", tr("Ostatnio dodane", "Recently added"), groupTracks(GroupType.RECENT, "").size),
+        TrackGroup(GroupType.TOP, "top", tr("Najczęściej słuchane", "Most played"), groupTracks(GroupType.TOP, "").size),
+    )
+
+    fun groupTracks(type: GroupType, key: String): List<Track> = when (type) {
+        GroupType.ARTIST -> tracks.filter { it.artist == key }.sortedWith(compareBy({ it.album.lowercase() }, { it.trackNo }, { it.title.lowercase() }))
+        GroupType.ALBUM -> tracks.filter { it.album == key }.sortedWith(compareBy({ it.trackNo }, { it.title.lowercase() }))
+        GroupType.FOLDER -> tracks.filter { it.folder == key }.sortedBy { it.title.lowercase() }
+        GroupType.FAVORITES -> tracks.filter { it.id in favoriteIds }
+        GroupType.RECENT -> tracks.sortedByDescending { it.dateAdded }.take(50)
+        GroupType.TOP -> {
+            val counts = Core.playCounts ?: prefs.playCounts().toMutableMap().also { Core.playCounts = it }
+            tracks.filter { (counts[it.id] ?: 0) > 0 }.sortedByDescending { counts[it.id] ?: 0 }.take(50)
+        }
+    }
+
+    fun playGroup(g: TrackGroup, start: Int = 0, shuffle: Boolean = false): Boolean {
+        val list = groupTracks(g.type, g.key)
+        if (list.isEmpty()) return false
+        if (shuffle) playTracks(list.shuffled(), 0) else playTracks(list, start.coerceIn(0, list.lastIndex))
+        return true
+    }
+
+    // ---------------------------------------------------------------- Wyszukiwanie
+
+    fun search(query: String): List<SearchResult> {
+        val q = query.trim().lowercase()
+        if (q.length < 2) return emptyList()
+        val artistHits = groups(GroupType.ARTIST).filter { it.title.lowercase().contains(q) }.take(10)
+            .map { SearchResult(it.title, tr("wykonawca", "artist"), group = it) }
+        val albumHits = groups(GroupType.ALBUM).filter { it.title.lowercase().contains(q) }.take(10)
+            .map { SearchResult(it.title, tr("album", "album"), group = it) }
+        val trackHits = tracks.filter { it.title.lowercase().contains(q) || it.artist.lowercase().contains(q) || it.album.lowercase().contains(q) }
+            .take(100).map { SearchResult(it.title, it.artist.take(20), track = it) }
+        return artistHits + albumHits + trackHits
+    }
+
+    // ---------------------------------------------------------------- Wznawianie ostatniej sesji
+
+    private var restoreChecked = false
+
+    /**
+     * Po uruchomieniu aplikacji: jeśli odtwarzacz jest pusty, wczytujemy ostatnią sesję
+     * (bez włączania dźwięku) – „Słuchaj dalej” od razu pokazuje, gdzie skończyłeś.
+     */
+    private fun restoreSessionIfNeeded(c: MediaController) {
+        if (restoreChecked || !libraryLoaded) return
+        restoreChecked = true
+        if (c.mediaItemCount > 0) return
+        val saved = SessionStore.decode(prefs.lastSession) ?: return
+        val items = mutableListOf<MediaItem>()
+        var index = 0
+        saved.ids.forEachIndexed { i, id ->
+            val item = when {
+                id.startsWith("radio:") -> MediaItem.Builder().setMediaId(id).setUri(id.removePrefix("radio:"))
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(saved.titles.getOrNull(i)).setArtist(saved.artists.getOrNull(i)).build())
+                    .build()
+                else -> id.toLongOrNull()?.let { trackById[it] }?.toMediaItem()
+            }
+            if (item != null) {
+                if (i == saved.index) index = items.size
+                items += item
+            }
+        }
+        if (items.isEmpty()) return
+        Core.kind = saved.kind
+        Core.bookKey = saved.bookKey
+        c.setMediaItems(items, index, saved.positionMs)
+        c.shuffleModeEnabled = saved.shuffle
+        c.repeatMode = saved.repeat
+        if (saved.kind == Kind.BOOK) c.setPlaybackSpeed(prefs.bookSpeed)
+        c.prepare()
+        tickNow()
+    }
 
     fun shuffleAll(): Boolean {
         if (tracks.isEmpty()) return false
@@ -721,7 +870,11 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 speed = c.playbackParameters.speed,
                 error = playerError,
                 chapter = chapterLabel,
+                shuffle = c.shuffleModeEnabled,
+                repeat = c.repeatMode,
+                trackId = if (Core.kind == Kind.MUSIC || Core.kind == null) item?.mediaId?.toLongOrNull() else null,
             )
+            restoreSessionIfNeeded(c)
             if (c.isPlaying) playerError = null
             updateFacts(nowPlaying)
             upNext = if (Block.QUEUE in layout) nextTitles(c) else emptyList()

@@ -19,6 +19,8 @@ data class Track(
     val isBook: Boolean,
     /** folder, w którym leży plik (do reguł Muzyka / Audiobook / Pomiń) */
     val folder: String = "",
+    /** kiedy plik trafił na telefon (sekundy), do „Ostatnio dodane” */
+    val dateAdded: Long = 0,
 )
 
 /** Audiobook = jeden album / folder. Rozdziały to kolejne pliki. */
@@ -63,6 +65,7 @@ object MediaRepository {
             MediaStore.Audio.Media.TRACK,
             MediaStore.Audio.Media.DURATION,
             @Suppress("DEPRECATION") MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.DATE_ADDED,
         )
         if (hasBookFlag) columns += MediaStore.Audio.Media.IS_AUDIOBOOK
 
@@ -83,6 +86,7 @@ object MediaRepository {
                 val iDuration = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                 @Suppress("DEPRECATION")
                 val iData = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                val iAdded = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
                 val iBook = if (hasBookFlag) c.getColumnIndex(MediaStore.Audio.Media.IS_AUDIOBOOK) else -1
 
                 while (c.moveToNext()) {
@@ -101,6 +105,7 @@ object MediaRepository {
                         uri = ContentUris.withAppendedId(collection, id),
                         isBook = flagged || bookHints.any { path.contains(it) },
                         folder = rawPath.substringBeforeLast('/', ""),
+                        dateAdded = c.getLong(iAdded),
                     )
                 }
             }
