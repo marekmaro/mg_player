@@ -228,9 +228,15 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
 
 @Composable
 private fun <T> ChoiceRow(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        options.forEach { (label, value) ->
-            Chip(label, modifier = Modifier.weight(1f), selected = value == selected) { onSelect(value) }
+    // więcej niż 3 opcje = dwa rzędy, żeby napisy mieściły się także na małych telefonach
+    val rows = if (options.size > 3) options.chunked(2) else listOf(options)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        rows.forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEach { (label, value) ->
+                    Chip(label, modifier = Modifier.weight(1f), selected = value == selected) { onSelect(value) }
+                }
+            }
         }
     }
 }
