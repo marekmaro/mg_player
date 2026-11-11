@@ -245,6 +245,14 @@ fun Card(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> U
 
 // ------------------------------------------------------------------ Pokrętło
 
+/** Ustawienia pokrętła z panelu ustawień: czułość i wibracje. */
+object KnobSettings {
+    /** 0 = spokojne (większy kąt na krok), 1 = zwykłe, 2 = szybkie */
+    var speed by mutableIntStateOf(1)
+    var haptics by mutableStateOf(true)
+    val factor: Float get() = when (speed) { 0 -> 1.4f; 2 -> 0.7f; else -> 1f }
+}
+
 /**
  * Pokrętło: obrót kciukiem po okręgu.
  * - Krok co [stepDegrees] stopni wywołuje [onStep] (+ zgodnie z ruchem wskazówek zegara).
@@ -313,13 +321,13 @@ fun RotaryKnob(
 
                     // 0,3°/ms (ok. 300°/s) = zwykłe tempo; powyżej przyspieszamy do 5×
                     val boost = if (accelerate) 1f + ((velocity - 0.3f) / 0.3f).coerceIn(0f, 4f) else 1f
-                    val effStep = stepDegrees / boost
+                    val effStep = stepDegrees * KnobSettings.factor / boost
                     var steps = 0
                     while (acc >= effStep) { acc -= effStep; steps++ }
                     while (acc <= -effStep) { acc += effStep; steps-- }
                     if (steps != 0) {
                         step(steps)
-                        if (now - lastHaptic >= 30L) {
+                        if (KnobSettings.haptics && now - lastHaptic >= 30L) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             lastHaptic = now
                         }

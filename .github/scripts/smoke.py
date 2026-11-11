@@ -326,11 +326,32 @@ shot("25-wykonawcy")
 expect("Nieznany wykonawca|Unknown artist", "lista wykonawców")
 go_home()
 tap("Szukaj|Search", exact=True)
+time.sleep(1)
+if not find("Nocny"):
+    tap("Tytuł, wykonawca|Title, artist", required=False)  # gdyby kursor nie trafił sam do pola
 adb("shell", "input", "text", "Nocny")
 time.sleep(1.5)
 shot("26-szukaj")
 expect("Nocny przystanek", "wyszukiwarka")
 go_home()
+
+# 9f. Statystyki i ustawienia („wschód słońca”)
+tap("Statystyki|Stats", exact=True)
+shot("28-statystyki")
+expect("Odkrycia|Discoveries", "ekran statystyk")
+go_home()
+tap("Ustawienia|Settings", desc=True)
+time.sleep(1.5)
+shot("29-ustawienia")
+expect("Brzmienie|Sound", "panel ustawień")
+tap("Zmień|Change", exact=True, required=False)
+time.sleep(1)
+shot("30-brzmienie")
+expect("Ciepły wieczór|Warm evening", "karty brzmienia")
+tap("Ciepły wieczór|Warm evening", required=False)
+tap("Gotowe|Done", exact=True, required=False)
+back()  # zamyka ustawienia (zachód słońca)
+time.sleep(1)
 
 # 9e. Wznawianie: zamknij aplikację całkowicie i uruchom ponownie – ma pamiętać, co grało
 adb("shell", "am", "force-stop", PKG)
@@ -377,7 +398,7 @@ if hits:
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
 # tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
-KEY = ("04-teraz", "05d-", "25-", "26-", "27-")
+KEY = ("04-teraz", "26-", "28-", "29-", "30-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
     if not f.split("/")[-1].startswith(KEY):
         continue

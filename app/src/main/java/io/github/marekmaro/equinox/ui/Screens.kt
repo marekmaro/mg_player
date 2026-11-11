@@ -87,38 +87,37 @@ fun HomeScreen(
     onPlaylists: () -> Unit,
     onLibrary: () -> Unit,
     onSearch: () -> Unit,
+    onStats: () -> Unit,
 ) {
     val np = vm.nowPlaying
     val s = vm.sessions
-    val rows = listOf(
-        ListRow("Losuj wszystko", if (vm.tracks.isEmpty()) "" else "${vm.tracks.size}"),
-        ListRow("Muzyka"),
-        ListRow("Audiobooki", if (vm.books.isEmpty()) "" else "${vm.books.size}"),
-        ListRow("Playlisty", if (vm.playlists.isEmpty()) "" else "${vm.playlists.size}"),
-        ListRow("Radio", "na żywo"),
-        ListRow(tr("Szukaj", "Search")),
-        ListRow("Sesje", "${s.todayMs / 60_000}/${s.goalMinutes} min"),
-        ListRow("Biblioteka", "foldery"),
-    )
+    // każdy wiersz menu razem ze swoją akcją – kolejność można dowolnie zmieniać
+    val entries = buildList<Pair<ListRow, () -> Unit>> {
+        add(ListRow(tr("Losuj wszystko", "Shuffle all"), if (vm.tracks.isEmpty()) "" else "${vm.tracks.size}") to { if (vm.shuffleAll()) onPlaying() })
+        add(ListRow(tr("Muzyka", "Music")) to onMusic)
+        add(ListRow(tr("Audiobooki", "Audiobooks"), if (vm.books.isEmpty()) "" else "${vm.books.size}") to onBooks)
+        add(ListRow(tr("Playlisty", "Playlists"), if (vm.playlists.isEmpty()) "" else "${vm.playlists.size}") to onPlaylists)
+        add(ListRow("Radio", tr("na żywo", "live")) to onRadio)
+        add(ListRow(tr("Szukaj", "Search")) to onSearch)
+        add(ListRow(tr("Sesje", "Sessions"), "${s.todayMs / 60_000}/${s.goalMinutes} min") to onSessions)
+        if (vm.showStats) add(ListRow(tr("Statystyki", "Stats")) to onStats)
+        add(ListRow(tr("Biblioteka", "Library"), tr("foldery", "folders")) to onLibrary)
+    }
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = "EQUINOX",
         smallTitle = true,
-        topTrailing = { DayNightToggle() },
-        rows = rows,
-        onBack = null,
-        onOpen = { i ->
-            when (i) {
-                0 -> if (vm.shuffleAll()) onPlaying()
-                1 -> onMusic()
-                2 -> onBooks()
-                3 -> onPlaylists()
-                4 -> onRadio()
-                5 -> onSearch()
-                6 -> onSessions()
-                7 -> onLibrary()
+        topTrailing = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                DayNightToggle()
+                CircleButton(tr("Ustawienia", "Settings"), { vm.settingsOpen = true }) {
+                    Text("☼", color = Pal.Text, fontSize = 18.sp)
+                }
             }
         },
+        rows = entries.map { it.first },
+        onBack = null,
+        onOpen = { i -> entries.getOrNull(i)?.second?.invoke() },
     ) {
         // na małych ekranach przy aktywnej karcie „Teraz gra” oszczędzamy miejsce na listę
         if (np.kind == null || LocalConfiguration.current.screenHeightDp >= 720) {

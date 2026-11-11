@@ -29,6 +29,8 @@ import io.github.marekmaro.equinox.ui.LocalPosture
 import io.github.marekmaro.equinox.ui.Posture
 import io.github.marekmaro.equinox.ui.LayoutEditorScreen
 import io.github.marekmaro.equinox.ui.LibraryScreen
+import io.github.marekmaro.equinox.ui.SettingsPanel
+import io.github.marekmaro.equinox.ui.StatsScreen
 import io.github.marekmaro.equinox.ui.GroupsScreen
 import io.github.marekmaro.equinox.ui.GroupTracksScreen
 import io.github.marekmaro.equinox.ui.SearchScreen
@@ -68,7 +70,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        ThemeState.mode = ThemeMode.entries.firstOrNull { it.name == Prefs(this).themeMode } ?: ThemeMode.SYSTEM
+        val prefs = Prefs(this)
+        ThemeState.mode = ThemeMode.entries.firstOrNull { it.name == prefs.themeMode } ?: ThemeMode.SYSTEM
+        Lang.mode = LangMode.entries.firstOrNull { it.name == prefs.language } ?: LangMode.SYSTEM
+        io.github.marekmaro.equinox.ui.KnobSettings.speed = prefs.knobSpeed
+        io.github.marekmaro.equinox.ui.KnobSettings.haptics = prefs.knobHaptics
         watchFold()
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
         val openExtra = intent?.getStringExtra(EXTRA_OPEN)
@@ -82,6 +88,8 @@ class MainActivity : ComponentActivity() {
                     Box(Modifier.fillMaxSize()) {
                         PermissionRequest(onDone = { vm.loadLibrary() })
                         App(vm)
+                        // ustawienia „wschodzą” nad każdym ekranem
+                        SettingsPanel(vm, onPrivacy = { vm.navRequest = Screen.Privacy })
                         if (showIntro) WelcomeIntro(onDone = { showIntro = false })
                     }
                 }
@@ -140,7 +148,7 @@ private fun PermissionRequest(onDone: () -> Unit) {
     }
 }
 
-enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library, Privacy, Groups, GroupTracks, Search }
+enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library, Privacy, Groups, GroupTracks, Search, Stats }
 
 @Composable
 private fun App(vm: PlayerViewModel) {
@@ -180,6 +188,7 @@ private fun App(vm: PlayerViewModel) {
             onPlaylists = { go(Screen.Playlists) },
             onLibrary = { go(Screen.Library) },
             onSearch = { go(Screen.Search) },
+            onStats = { go(Screen.Stats) },
         )
         Screen.Music -> MusicScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onGroups = { t ->
             vm.groupListType = t
@@ -187,6 +196,7 @@ private fun App(vm: PlayerViewModel) {
         })
         Screen.Groups -> GroupsScreen(vm, onBack = ::back, onOpenGroup = { go(Screen.GroupTracks) })
         Screen.GroupTracks -> GroupTracksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
+        Screen.Stats -> StatsScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Search -> SearchScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onOpenGroup = { go(Screen.GroupTracks) })
         Screen.Books -> BooksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Radio -> RadioScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })

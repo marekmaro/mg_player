@@ -212,6 +212,12 @@ class PlaybackService : MediaSessionService() {
                     // pierścień na widżecie co ~5 s (rzadziej = mniej pracy dla baterii)
                     if (ticks % 10 == 0) pushWidget()
                     if (Core.kind == Kind.BOOK) Core.pendingListenMs += dt
+                    // statystyki: pora dnia (wszystko) i wykonawca (tylko muzyka)
+                    io.github.marekmaro.equinox.data.Stats.add(
+                        java.time.LocalTime.now().hour,
+                        if (Core.kind == Kind.MUSIC) player.mediaMetadata.artist?.toString() else null,
+                        dt,
+                    )
                     // utwór liczy się jako odtworzony po 30 s słuchania
                     if (Core.kind == Kind.MUSIC) {
                         itemPlayedMs += dt
@@ -265,6 +271,7 @@ class PlaybackService : MediaSessionService() {
     private fun persist() {
         val player = session?.player ?: return
         SessionStore.capture(player, Core.kind, Core.bookKey)?.let { prefs.lastSession = SessionStore.encode(it) }
+        io.github.marekmaro.equinox.data.Stats.flush(prefs)
         if (Core.playCountsDirty) {
             Core.playCounts?.let { prefs.setPlayCounts(it) }
             Core.playCountsDirty = false

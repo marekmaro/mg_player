@@ -7,7 +7,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -81,6 +84,9 @@ fun GroupTracksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> 
 fun SearchScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, onOpenGroup: () -> Unit) {
     var query by remember { mutableStateOf("") }
     val results = remember(query, vm.tracks) { vm.search(query) }
+    // kursor od razu w polu wyszukiwania – można pisać bez dodatkowego dotknięcia
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { try { focus.requestFocus() } catch (e: Exception) {} }
     var addTrackId by remember { mutableStateOf<Long?>(null) }
     addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
 
@@ -117,7 +123,7 @@ fun SearchScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit,
             onValueChange = { query = it },
             placeholder = { Text(tr("Tytuł, wykonawca, album…", "Title, artist, album…")) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(focus),
             shape = RoundedCornerShape(14.dp),
         )
     }

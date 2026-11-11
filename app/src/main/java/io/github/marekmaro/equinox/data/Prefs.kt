@@ -49,6 +49,41 @@ class Prefs(context: Context) {
         return count
     }
 
+    // --- Statystyki ---
+    var showStats: Boolean
+        get() = sp.getBoolean("show_stats", true)
+        set(v) = sp.edit().putBoolean("show_stats", v).apply()
+
+    fun statsHours(): LongArray = try {
+        val a = JSONArray(sp.getString("stats_hours", "[]") ?: "[]")
+        LongArray(24) { if (it < a.length()) a.optLong(it) else 0L }
+    } catch (e: Exception) { LongArray(24) }
+
+    fun setStatsHours(h: LongArray) {
+        sp.edit().putString("stats_hours", JSONArray(h.toList()).toString()).apply()
+    }
+
+    fun statsArtists(): Pair<String, Map<String, Long>> = try {
+        val o = JSONObject(sp.getString("stats_artists", "{}") ?: "{}")
+        val m = o.optJSONObject("m") ?: JSONObject()
+        o.optString("week") to m.keys().asSequence().associateWith { m.optLong(it) }
+    } catch (e: Exception) { "" to emptyMap() }
+
+    fun setStatsArtists(week: String, m: Map<String, Long>) {
+        val mo = JSONObject()
+        m.forEach { (k, v) -> mo.put(k, v) }
+        sp.edit().putString("stats_artists", JSONObject().put("week", week).put("m", mo).toString()).apply()
+    }
+
+    // --- Pokrętło: czułość (0 spokojne, 1 zwykłe, 2 szybkie) i wibracje ---
+    var knobSpeed: Int
+        get() = sp.getInt("knob_speed", 1)
+        set(v) = sp.edit().putInt("knob_speed", v).apply()
+
+    var knobHaptics: Boolean
+        get() = sp.getBoolean("knob_haptics", true)
+        set(v) = sp.edit().putBoolean("knob_haptics", v).apply()
+
     // --- Środek pierścienia: okładka (true) albo opis wykonawcy ---
     var showCovers: Boolean
         get() = sp.getBoolean("show_covers", true)

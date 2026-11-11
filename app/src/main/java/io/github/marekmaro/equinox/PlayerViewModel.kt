@@ -387,6 +387,81 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- Odtwarzanie
 
+    // ---------------------------------------------------------------- Statystyki
+
+    var showStats by mutableStateOf(prefs.showStats); private set
+
+    fun changeShowStats(on: Boolean) {
+        showStats = on
+        prefs.showStats = on
+    }
+
+    data class StatsUi(
+        val hours: LongArray,
+        val peakHour: Int,
+        val topArtist: String?,
+        val topArtistMs: Long,
+        val topArtistShare: Float,
+        val heard: Int,
+        val total: Int,
+    )
+
+    fun stats(): StatsUi {
+        val hours = io.github.marekmaro.equinox.data.Stats.hours(prefs)
+        val artists = io.github.marekmaro.equinox.data.Stats.artistsThisWeek(prefs)
+        val top = artists.maxByOrNull { it.value }
+        val sum = artists.values.sum().coerceAtLeast(1)
+        val counts = Core.playCounts ?: prefs.playCounts().toMutableMap().also { Core.playCounts = it }
+        val heard = tracks.count { (counts[it.id] ?: 0) > 0 }
+        return StatsUi(
+            hours = hours,
+            peakHour = io.github.marekmaro.equinox.data.Stats.peakHour(hours),
+            topArtist = top?.key,
+            topArtistMs = top?.value ?: 0,
+            topArtistShare = (top?.value ?: 0).toFloat() / sum,
+            heard = heard,
+            total = tracks.size,
+        )
+    }
+
+    /** „Zagraj coś nieodkrytego”: losowo utwory, które jeszcze nigdy nie zagrały. */
+    fun playUndiscovered(): Boolean {
+        val counts = Core.playCounts ?: emptyMap<Long, Int>()
+        val fresh = tracks.filter { (counts[it.id] ?: 0) == 0 }.shuffled()
+        if (fresh.isEmpty()) return false
+        playTracks(fresh, 0)
+        return true
+    }
+
+    // ---------------------------------------------------------------- Ustawienia
+
+    var settingsOpen by mutableStateOf(false)
+
+    fun changeLanguage(m: LangMode) {
+        Lang.mode = m
+        prefs.language = m.name
+    }
+
+    fun changeTheme(m: io.github.marekmaro.equinox.ui.ThemeMode) {
+        io.github.marekmaro.equinox.ui.ThemeState.mode = m
+        prefs.themeMode = m.name
+    }
+
+    fun changeKnobSpeed(v: Int) {
+        io.github.marekmaro.equinox.ui.KnobSettings.speed = v
+        prefs.knobSpeed = v
+    }
+
+    fun changeKnobHaptics(on: Boolean) {
+        io.github.marekmaro.equinox.ui.KnobSettings.haptics = on
+        prefs.knobHaptics = on
+    }
+
+    fun showTutorialAgain() {
+        tutorialSeen = false
+        prefs.tutorialSeen = false
+    }
+
     // ---------------------------------------------------------------- Okładki
 
     /** Okładka bieżącego utworu (z metadanych pliku), pomniejszona do ~600 px. */
