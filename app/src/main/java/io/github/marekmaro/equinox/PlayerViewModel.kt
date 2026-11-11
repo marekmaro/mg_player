@@ -394,7 +394,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var showCovers by mutableStateOf(prefs.showCovers); private set
     private var artworkFor: String? = null
 
-    fun setShowCovers(on: Boolean) {
+    fun changeShowCovers(on: Boolean) {
         showCovers = on
         prefs.showCovers = on
     }
@@ -438,7 +438,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         PlaybackService.refreshSound()
     }
 
-    fun setVoiceForBooks(on: Boolean) {
+    fun changeVoiceForBooks(on: Boolean) {
         voiceForBooks = on
         Core.voiceForBooks = on
         prefs.voiceForBooks = on

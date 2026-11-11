@@ -96,7 +96,7 @@ fun SoundSheet(vm: PlayerViewModel, onDismiss: () -> Unit) {
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .clickable { vm.setVoiceForBooks(!vm.voiceForBooks) }
+                        .clickable { vm.changeVoiceForBooks(!vm.voiceForBooks) }
                         .padding(vertical = 10.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
