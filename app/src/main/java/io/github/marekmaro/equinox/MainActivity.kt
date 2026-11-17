@@ -78,9 +78,11 @@ class MainActivity : ComponentActivity() {
         watchFold()
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
         val openExtra = intent?.getStringExtra(EXTRA_OPEN)
-        if (savedInstanceState == null) vm.handleOpen(openExtra)
+        // plik/link/polecenie głosowe z innej aplikacji, w przeciwnym razie akcja z widżetu/kafelka
+        val external = savedInstanceState == null && vm.handleIntent(intent)
+        if (savedInstanceState == null && !external) vm.handleOpen(openExtra)
         // powitanie tylko przy zwykłym uruchomieniu (nie z widżetu/kafelka, nie po obrocie)
-        val playIntro = savedInstanceState == null && openExtra == null
+        val playIntro = savedInstanceState == null && openExtra == null && !external
         setContent {
             EquinoxTheme {
                 CompositionLocalProvider(LocalPosture provides posture.value) {
@@ -118,7 +120,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        vm.handleOpen(intent.getStringExtra(EXTRA_OPEN))
+        if (!vm.handleIntent(intent)) vm.handleOpen(intent.getStringExtra(EXTRA_OPEN))
     }
 
     override fun onStart() {

@@ -1,6 +1,11 @@
 package io.github.marekmaro.equinox.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.provider.Settings
+import android.net.Uri
+import android.content.Intent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -183,6 +188,10 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    DefaultPlayerSection(vm)
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Pomoc", "Help")) {
                         LinkRow(tr("Pokaż samouczek pokrętła", "Show the dial tutorial")) {
                             vm.showTutorialAgain()
@@ -210,6 +219,46 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
             Canvas(Modifier.fillMaxSize()) {
                 val r = hypot(size.width / 2f, size.height) * 1.05f * progress
                 drawCircle(accent, radius = r, center = Offset(size.width / 2f, size.height), style = Stroke(3.dp.toPx()), alpha = 1f - progress * 0.6f)
+            }
+        }
+    }
+}
+
+/**
+ * Domyślny odtwarzacz: Android nie ma jednego przełącznika – aplikacja staje się domyślna,
+ * gdy przy otwieraniu pliku audio wybierzesz „Equinox” → „Zawsze”.
+ */
+@Composable
+private fun DefaultPlayerSection(vm: PlayerViewModel) {
+    val ctx = LocalContext.current
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            vm.settingsOpen = false
+            vm.openExternal(uri)
+        }
+    }
+    Section(tr("Domyślny odtwarzacz", "Default player")) {
+        Text(
+            tr(
+                "Otwórz dowolny plik muzyczny (np. w Plikach albo Pobranych) i wybierz Equinox → „Zawsze”. Od tej pory pliki audio, listy .m3u/.pls i linki do radia będą otwierać się w Equinox.",
+                "Open any music file (e.g. in Files or Downloads) and choose Equinox → “Always”. From then on audio files, .m3u/.pls lists and radio links will open in Equinox.",
+            ),
+            color = Pal.Muted, fontSize = 13.sp, lineHeight = 19.sp,
+        )
+        LinkRow(tr("Otwórz plik audio…", "Open an audio file…")) {
+            try { picker.launch(arrayOf("audio/*", "application/x-mpegurl", "audio/x-scpls")) } catch (e: Exception) {}
+        }
+        LinkRow(tr("Aplikacje domyślne w systemie", "System default apps")) {
+            val intents = listOf(
+                Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS),
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null)),
+            )
+            for (i in intents) {
+                try {
+                    ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    break
+                } catch (e: Exception) {
+                }
             }
         }
     }

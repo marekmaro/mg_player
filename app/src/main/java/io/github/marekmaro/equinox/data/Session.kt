@@ -90,6 +90,7 @@ object SessionStore {
     /** Odtwarza listę pozycji z zapisu (bez dostępu do biblioteki – np. dla wznowienia z systemu). */
     fun toMediaItems(s: SavedSession): List<MediaItem> = s.ids.mapIndexed { i, id ->
         val uri = if (id.startsWith("radio:")) android.net.Uri.parse(id.removePrefix("radio:"))
+        else if (id.startsWith("ext:")) android.net.Uri.parse(id.removePrefix("ext:"))
         else ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toLongOrNull() ?: -1)
         MediaItem.Builder()
             .setMediaId(id)

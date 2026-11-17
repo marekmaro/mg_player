@@ -187,6 +187,148 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---------------------------------------------------------------- Domyślny odtwarzacz: otwieranie z zewnątrz
+
+    private var pendingExternal: Pair<android.net.Uri, String?>? = null
+    private var pendingVoice: String? = null
+
+    /**
+     * Plik audio, lista .m3u/.pls, link do strumienia albo polecenie głosowe z innej aplikacji.
+     * Zwraca true, jeśli intencja została rozpoznana.
+     */
+    fun handleIntent(intent: android.content.Intent?): Boolean {
+        when (intent?.action) {
+            android.content.Intent.ACTION_VIEW -> {
+                val uri = intent.data ?: return false
+                pendingExternal = uri to intent.type
+            }
+            MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH -> {
+                pendingVoice = intent.getStringExtra(android.app.SearchManager.QUERY).orEmpty()
+            }
+            else -> return false
+        }
+        navRequest = Screen.Playing
+        processPendingExternal()
+        return true
+    }
+
+    /** „Otwórz plik audio…” z ustawień (wybór pliku systemowym oknem). */
+    fun openExternal(uri: android.net.Uri) {
+        try {
+            getApplication<Application>().contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: Exception) {
+        }
+        pendingExternal = uri to null
+        navRequest = Screen.Playing
+        processPendingExternal()
+    }
+
+    /** Wykonuje zaległe otwarcie, gdy odtwarzacz (i dla poleceń głosowych – biblioteka) jest gotowy. */
+    private fun processPendingExternal() {
+        val c = controller ?: return
+        pendingExternal?.let { (uri, mime) ->
+            pendingExternal = null
+            openExternalNow(c, uri, mime)
+        }
+        val voice = pendingVoice
+        if (voice != null && libraryLoaded) {
+            pendingVoice = null
+            playFromVoice(voice)
+        }
+    }
+
+    private fun isPlaylistFile(uri: android.net.Uri, mime: String?): Boolean {
+        val m = mime.orEmpty().lowercase()
+        val p = (uri.lastPathSegment ?: uri.toString()).lowercase().substringBefore('?')
+        return m.contains("mpegurl") || m.contains("scpls") || p.endsWith(".m3u") || p.endsWith(".pls") || p.endsWith(".m3u8")
+    }
+
+    private fun displayName(uri: android.net.Uri): String {
+        try {
+            getApplication<Application>().contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cur ->
+                if (cur.moveToFirst()) cur.getString(0)?.let { return it.substringBeforeLast('.') }
+            }
+        } catch (e: Exception) {
+        }
+        return (uri.lastPathSegment ?: tr("Plik audio", "Audio file")).substringAfterLast('/').substringBeforeLast('.')
+    }
+
+    private fun openExternalNow(c: MediaController, uri: android.net.Uri, mime: String?) {
+        val scheme = uri.scheme.orEmpty().lowercase()
+        // link do strumienia albo do listy radiowej – jak stacja radiowa
+        if (scheme == "http" || scheme == "https") {
+            playStation(Station(displayName(uri), uri.toString(), ""))
+            return
+        }
+        // lokalna lista .m3u/.pls – bierzemy pierwszy adres strumienia
+        if (isPlaylistFile(uri, mime)) {
+            viewModelScope.launch {
+                val text = withContext(Dispatchers.IO) {
+                    try {
+                        getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes().take(64_000).toByteArray().decodeToString() }
+                    } catch (e: Exception) { null }
+                }
+                val url = text?.let { RadioRepository.parsePlaylist(it) }
+                if (url != null) playStation(Station(displayName(uri), url, ""))
+                else {
+                    playerError = tr("W tej liście nie ma adresu do odtworzenia.", "This playlist has no address to play.")
+                    tickNow()
+                }
+            }
+            return
+        }
+        // plik z biblioteki telefonu – używamy pełnych danych z biblioteki (znaczniki, okładka, wykonawca)
+        val libTrack = if (uri.authority == MediaStore.AUTHORITY) {
+            try { android.content.ContentUris.parseId(uri) } catch (e: Exception) { -1L }.let { trackById[it] }
+        } else null
+        if (libTrack != null && !libTrack.isBook) {
+            playTracks(listOf(libTrack), 0)
+            return
+        }
+        val name = displayName(uri)
+        val isBook = libTrack?.isBook == true || name.lowercase().endsWith(".m4b") || mime == "audio/x-m4b"
+        Core.stopwatchDurations = null
+        Core.kind = if (isBook) Kind.BOOK else Kind.MUSIC
+        Core.bookKey = null
+        playerError = null
+        queueShuffled = false
+        unshuffledIds = null
+        val item = MediaItem.Builder()
+            .setMediaId("ext:$uri")
+            .setUri(uri)
+            .setMediaMetadata(MediaMetadata.Builder().setTitle(libTrack?.title ?: name).setArtist(libTrack?.artist).build())
+            .build()
+        c.setMediaItem(item)
+        c.setPlaybackSpeed(if (isBook) prefs.bookSpeed else 1f)
+        c.prepare()
+        c.play()
+        tickNow()
+    }
+
+    /** „Odtwórz Kult w Equinox”: najlepsze dopasowanie albo, bez zapytania, wszystko losowo. */
+    private fun playFromVoice(query: String) {
+        if (query.isBlank()) {
+            shuffleAll()
+            return
+        }
+        val results = search(query)
+        val first = results.firstOrNull()
+        when {
+            first == null -> {
+                playerError = tr("Nie znalazłem: „$query”.", "Couldn't find “$query”.")
+                tickNow()
+            }
+            first.group != null -> playGroup(first.group)
+            first.book != null -> playBook(first.book)
+            first.station != null -> playStation(first.station)
+            first.playlist != null -> playPlaylist(first.playlist)
+            else -> {
+                val list = results.mapNotNull { it.track }
+                if (list.isNotEmpty()) playTracks(list, 0)
+            }
+        }
+    }
+
     /** Ekran odświeżamy tylko, gdy aplikacja jest widoczna (oszczędza baterię). */
     var visible = true
 
@@ -770,6 +912,9 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         var index = 0
         saved.ids.forEachIndexed { i, id ->
             val item = when {
+                id.startsWith("ext:") -> MediaItem.Builder().setMediaId(id).setUri(id.removePrefix("ext:"))
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(saved.titles.getOrNull(i)).setArtist(saved.artists.getOrNull(i)).build())
+                    .build()
                 id.startsWith("radio:") -> MediaItem.Builder().setMediaId(id).setUri(id.removePrefix("radio:"))
                     .setMediaMetadata(MediaMetadata.Builder().setTitle(saved.titles.getOrNull(i)).setArtist(saved.artists.getOrNull(i)).build())
                     .build()
@@ -1146,6 +1291,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 repeat = c.repeatMode,
                 trackId = if (Core.kind == Kind.MUSIC || Core.kind == null) item?.mediaId?.toLongOrNull() else null,
             )
+            processPendingExternal()
             restoreSessionIfNeeded(c)
             updateArtwork(c)
             if (c.isPlaying) playerError = null

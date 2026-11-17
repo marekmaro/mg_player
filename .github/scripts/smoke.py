@@ -386,6 +386,27 @@ time.sleep(7)
 shot("27-po-ponownym-uruchomieniu")
 expect("SŁUCHAJ DALEJ|KEEP LISTENING", "wznowienie ostatniej sesji po zamknięciu aplikacji", critical=True)
 
+# 9g. Domyślny odtwarzacz: system widzi Equinox jako aplikację do plików audio,
+#     a otwarcie pliku z zewnątrz od razu go odtwarza
+handlers = adb("shell", "cmd", "package", "query-activities", "-a", "android.intent.action.VIEW", "-t", "audio/mpeg", "-d", "content://media/x")
+if PKG in handlers:
+    note("OK [domyślny odtwarzacz]: Equinox na liście aplikacji do plików audio")
+elif "Unknown command" in handlers or "query-activities" in handlers:
+    note("pomijam: ten Android nie ma polecenia query-activities")
+else:
+    problems.append("[domyślny odtwarzacz] system nie proponuje Equinox do plików audio")
+row = adb("shell", "content", "query", "--uri", "content://media/external/audio/media", "--projection", "_id:_display_name")
+mid = re.search(r"_id=(\d+), _display_name=Szum miasta", row)
+if mid:
+    adb("shell", "am", "start", "-a", "android.intent.action.VIEW", "-t", "audio/wav",
+        "-d", f"content://media/external/audio/media/{mid.group(1)}", "-n", f"{PKG}/.MainActivity")
+    time.sleep(5)
+    shot("31-otwarty-z-zewnatrz")
+    expect("Szum miasta", "plik otwarty z innej aplikacji gra w Equinox", zone=LOW)
+else:
+    note("pomijam: nie znalazłem pliku testowego w bibliotece systemu")
+go_home()
+
 # 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
 for w in ["PlayerWidget", "RingWidget"]:
@@ -423,7 +444,7 @@ if hits:
 # zrzuty do logu (base64), żeby dało się je obejrzeć bez pobierania artefaktów
 import base64, glob
 # tylko kluczowe ekrany (log GitHuba ma limit rozmiaru)
-KEY = ("04-teraz", "26-", "28-", "29-", "30-")
+KEY = ("04-teraz", "28-", "29-", "31-")
 for f in sorted(glob.glob(f"{OUT}/*.png")):
     if not f.split("/")[-1].startswith(KEY):
         continue
