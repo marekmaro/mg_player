@@ -289,6 +289,7 @@ for _ in range(4):  # wróć do menu głównego
         break
     back()
 tap("Playlisty|Playlists", exact=True)
+expect("Perełki|Gems", "playlista automatyczna ze znacznika")
 tap("+ Nowa playlista|+ New playlist")
 tap("Nazwa|Name", exact=True, required=False)  # pole tekstowe w oknie
 adb("shell", "input", "text", "Wieczorna")
@@ -297,7 +298,6 @@ tap("Utwórz|Create", exact=True)
 time.sleep(1)
 shot("20-playlista-pusta")
 expect("Wieczorna", "playlista utworzona")
-expect("Perełki|Gems", "playlista automatyczna ze znacznika")
 tap("+ Dodaj|+ Add")
 shot("21-dodawanie-utworow")
 tap("+", exact=True)          # pierwszy utwór na liście
