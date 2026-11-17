@@ -228,6 +228,10 @@ class PlaybackService : MediaSessionService() {
                                 val counts = Core.playCounts ?: mutableMapOf<Long, Int>().also { Core.playCounts = it }
                                 counts[tid] = (counts[tid] ?: 0) + 1
                                 Core.playCountsDirty = true
+                                val hist = Core.recentPlayed ?: ArrayDeque(prefs.recentPlayed()).also { Core.recentPlayed = it }
+                                hist.remove(tid)
+                                hist.addFirst(tid)
+                                while (hist.size > 100) hist.removeLast()
                             }
                         }
                     }
@@ -274,6 +278,7 @@ class PlaybackService : MediaSessionService() {
         io.github.marekmaro.equinox.data.Stats.flush(prefs)
         if (Core.playCountsDirty) {
             Core.playCounts?.let { prefs.setPlayCounts(it) }
+            Core.recentPlayed?.let { prefs.setRecentPlayed(it.toList()) }
             Core.playCountsDirty = false
         }
         if (Core.kind == Kind.BOOK) {

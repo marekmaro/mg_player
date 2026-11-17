@@ -189,21 +189,22 @@ private fun App(vm: PlayerViewModel) {
             onLibrary = { go(Screen.Library) },
             onSearch = { go(Screen.Search) },
             onStats = { go(Screen.Stats) },
+            onGroup = { go(Screen.GroupTracks) },
         )
         Screen.Music -> MusicScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onGroups = { t ->
             vm.groupListType = t
             go(Screen.Groups)
-        })
+        }, onSearch = { go(Screen.Search) })
         Screen.Groups -> GroupsScreen(vm, onBack = ::back, onOpenGroup = { go(Screen.GroupTracks) })
         Screen.GroupTracks -> GroupTracksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Stats -> StatsScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
-        Screen.Search -> SearchScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onOpenGroup = { go(Screen.GroupTracks) })
-        Screen.Books -> BooksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
+        Screen.Search -> SearchScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onOpenGroup = { go(Screen.GroupTracks) }, onOpenPlaylist = { go(Screen.Playlist) })
+        Screen.Books -> BooksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onSearch = { go(Screen.Search) })
         Screen.Radio -> RadioScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Sessions -> SessionsScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Playing -> PlayingScreen(vm, onBack = ::back, onSessions = { go(Screen.Sessions) }, onEditLayout = { go(Screen.Layout) })
         Screen.Layout -> LayoutEditorScreen(vm, onBack = ::back)
-        Screen.Playlists -> PlaylistsScreen(vm, onBack = ::back, onOpenPlaylist = { go(Screen.Playlist) }, onOpenGroup = { go(Screen.GroupTracks) })
+        Screen.Playlists -> PlaylistsScreen(vm, onBack = ::back, onOpenPlaylist = { go(Screen.Playlist) }, onOpenGroup = { go(Screen.GroupTracks) }, onSearch = { go(Screen.Search) })
         Screen.Playlist -> PlaylistScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onAddTracks = { go(Screen.PickTracks) })
         Screen.PickTracks -> PickTracksScreen(vm, onBack = ::back)
         Screen.Library -> LibraryScreen(vm, onBack = ::back, onPrivacy = { go(Screen.Privacy) })

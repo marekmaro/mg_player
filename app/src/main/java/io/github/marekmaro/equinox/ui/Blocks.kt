@@ -132,6 +132,15 @@ private fun PlayModeRow(vm: PlayerViewModel) {
             ToggleGlyph(if (fav) "♥" else "♡", fav, if (fav) tr("Usuń z ulubionych", "Remove from favourites") else tr("Dodaj do ulubionych", "Add to favourites")) {
                 vm.toggleFavorite(id)
             }
+            // ✦ pozostałe znaczniki: ★ Perełki, ☼ Na dzień, ☾ Na noc
+            val others = vm.marksOf(id) - io.github.marekmaro.equinox.Mark.HEART
+            var picking by remember { mutableStateOf(false) }
+            if (picking) MarksDialog(vm, id, onDismiss = { picking = false })
+            ToggleGlyph(
+                if (others.isEmpty()) "✦" else io.github.marekmaro.equinox.marksGlyphs(others),
+                others.isNotEmpty(),
+                tr("Znaczniki", "Marks"),
+            ) { picking = true }
         }
         if (np.kind == Kind.MUSIC) {
             ToggleGlyph("⤨", np.shuffle, if (np.shuffle) tr("Losowo: włączone", "Shuffle: on") else tr("Losowo: wyłączone", "Shuffle: off")) { vm.toggleShuffle() }
@@ -143,6 +152,42 @@ private fun PlayModeRow(vm: PlayerViewModel) {
         }
         ToggleGlyph(glyph, np.repeat != Player.REPEAT_MODE_OFF, label) { vm.cycleRepeat() }
     }
+}
+
+/** Wybór znaczników dla utworu: każdy ze znaczników ma własną playlistę automatyczną. */
+@Composable
+fun MarksDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Pal.Surface,
+        title = { Text(tr("Oznacz utwór", "Mark this song")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                io.github.marekmaro.equinox.Mark.entries.forEach { m ->
+                    val on = m in vm.marksOf(trackId)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (on) Pal.AccentDim else Pal.Bg)
+                            .border(1.dp, if (on) Pal.Accent else Pal.Line, RoundedCornerShape(14.dp))
+                            .clickable { vm.toggleMark(trackId, m) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(m.glyph, color = if (on) Pal.Accent else Pal.Muted, fontSize = 22.sp, modifier = Modifier.width(36.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(m.label, color = Pal.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Text(m.note, color = Pal.Muted, fontSize = 12.sp)
+                        }
+                        Text(if (on) "✓" else "", color = Pal.Accent, fontSize = 18.sp)
+                    }
+                }
+                Text(tr("Każdy znacznik ma swoją playlistę w zakładce Playlisty.", "Each mark has its own list under Playlists."), color = Pal.Muted, fontSize = 12.sp)
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(tr("Gotowe", "Done")) } },
+    )
 }
 
 @Composable

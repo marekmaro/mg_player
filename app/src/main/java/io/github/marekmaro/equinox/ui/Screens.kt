@@ -88,6 +88,7 @@ fun HomeScreen(
     onLibrary: () -> Unit,
     onSearch: () -> Unit,
     onStats: () -> Unit,
+    onGroup: () -> Unit,
 ) {
     val np = vm.nowPlaying
     val s = vm.sessions
@@ -95,6 +96,12 @@ fun HomeScreen(
     val entries = buildList<Pair<ListRow, () -> Unit>> {
         add(ListRow(tr("Losuj wszystko", "Shuffle all"), if (vm.tracks.isEmpty()) "" else "${vm.tracks.size}") to { if (vm.shuffleAll()) onPlaying() })
         add(ListRow(tr("Muzyka", "Music")) to onMusic)
+        // Nowości: tylko gdy w ostatnich 30 dniach pojawiło się coś nowego
+        val fresh = vm.newTracks()
+        if (fresh.isNotEmpty()) add(ListRow(tr("✦ Nowości", "✦ New"), "${fresh.size}") to {
+            vm.openGroup = io.github.marekmaro.equinox.TrackGroup(io.github.marekmaro.equinox.GroupType.NEW, "new", tr("✦ Nowości", "✦ New"), fresh.size)
+            onGroup()
+        })
         add(ListRow(tr("Audiobooki", "Audiobooks"), if (vm.books.isEmpty()) "" else "${vm.books.size}") to onBooks)
         add(ListRow(tr("Playlisty", "Playlists"), if (vm.playlists.isEmpty()) "" else "${vm.playlists.size}") to onPlaylists)
         add(ListRow("Radio", tr("na żywo", "live")) to onRadio)
@@ -179,7 +186,7 @@ private fun permissionAction(vm: PlayerViewModel): Pair<String, () -> Unit>? {
 // ================================================================== Muzyka
 
 @Composable
-fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, onGroups: (io.github.marekmaro.equinox.GroupType) -> Unit) {
+fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, onGroups: (io.github.marekmaro.equinox.GroupType) -> Unit, onSearch: () -> Unit = {}) {
     val tracks = vm.tracks
     var addTrackId by remember { mutableStateOf<Long?>(null) }
     addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
@@ -188,7 +195,9 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, 
         title = tr("Muzyka", "Music"),
         emptyAction = permissionAction(vm),
         // „+” przy utworze = dodaj do playlisty
-        rows = remember(tracks) { tracks.map { t -> ListRow(t.title, fmt(t.durationMs), trailing = "+", onTrailing = { addTrackId = t.id }) } },
+        topTrailing = { SearchButton(onSearch) },
+        // podpis: znaczniki ♥★☼☾, „nowe” i czas trwania
+        rows = remember(tracks, vm.marks) { tracks.map { t -> ListRow(t.title, trackHint(vm, t), trailing = "+", onTrailing = { addTrackId = t.id }) } },
         onBack = onBack,
         onOpen = { i ->
             vm.playTracks(tracks, i)
@@ -212,11 +221,12 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, 
 // ================================================================== Audiobooki
 
 @Composable
-fun BooksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) {
+fun BooksScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, onSearch: () -> Unit = {}) {
     val books = vm.books
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = tr("Audiobooki", "Audiobooks"),
+        topTrailing = { SearchButton(onSearch) },
         emptyAction = permissionAction(vm),
         rows = books.map { ListRow(it.title, "${(vm.bookProgress(it) * 100).toInt()}%") },
         onBack = onBack,

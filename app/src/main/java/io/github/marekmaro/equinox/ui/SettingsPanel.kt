@@ -150,6 +150,22 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    Section(tr("Losowanie", "Shuffle")) {
+                        ChoiceRow(
+                            listOf(tr("Mądre", "Smart") to true, tr("Zwykłe", "Plain") to false),
+                            vm.smartShuffleOn,
+                        ) { vm.changeSmartShuffle(it) }
+                        Text(
+                            if (vm.smartShuffleOn) tr(
+                                "Bez tego samego wykonawcy pod rząd, niedawno słuchane na koniec, ♥ i ★ częściej.",
+                                "No same artist back to back, recently played go last, ♥ and ★ come up more often.",
+                            ) else tr("Czysty przypadek.", "Pure chance."),
+                            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+                        )
+                    }
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Pokrętło", "Dial")) {
                         ChoiceRow(
                             listOf(tr("Spokojne", "Calm") to 0, tr("Zwykłe", "Normal") to 1, tr("Szybkie", "Fast") to 2),

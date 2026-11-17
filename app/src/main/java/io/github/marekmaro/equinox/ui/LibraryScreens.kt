@@ -45,11 +45,11 @@ import io.github.marekmaro.equinox.tr
 // ================================================================== Lista playlist
 
 @Composable
-fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () -> Unit, onOpenGroup: () -> Unit) {
+fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () -> Unit, onOpenGroup: () -> Unit, onSearch: () -> Unit = {}) {
     var creating by remember { mutableStateOf(false) }
     val lists = vm.playlists
     // na górze trzy playlisty automatyczne: Ulubione, Ostatnio dodane, Najczęściej słuchane
-    val smart = remember(vm.tracks, vm.favoriteIds) { vm.smartGroups() }
+    val smart = remember(vm.tracks, vm.marks) { vm.smartGroups() }
 
     if (creating) {
         NameDialog(
@@ -68,6 +68,7 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
     KnobListScreen(
         onLongOk = { vm.togglePlay() },
         title = tr("Playlisty", "Playlists"),
+        topTrailing = { SearchButton(onSearch) },
         rows = smart.map { ListRow(it.title, "${it.count}") } + lists.map { ListRow(it.name, "${vm.playlistTracks(it).size}") },
         onBack = onBack,
         onOpen = { i ->
@@ -203,6 +204,12 @@ fun AddToPlaylistDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Uni
                         Chip(tr("+ Do kolejki", "+ Add to queue"), modifier = Modifier.weight(1f)) {
                             vm.addToQueue(t)
                             onDismiss()
+                        }
+                    }
+                    // znaczniki – można oznaczyć utwór bez włączania go
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        io.github.marekmaro.equinox.Mark.entries.forEach { m ->
+                            Chip(m.glyph, modifier = Modifier.weight(1f), selected = m in vm.marksOf(trackId)) { vm.toggleMark(trackId, m) }
                         }
                     }
                     Text(tr("Do playlisty:", "To playlist:"), color = Pal.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))

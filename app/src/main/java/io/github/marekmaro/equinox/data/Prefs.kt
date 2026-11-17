@@ -113,6 +113,54 @@ class Prefs(context: Context) {
         sp.edit().putString("fav_tracks", JSONArray(ids.toList()).toString()).apply()
     }
 
+    // --- Znaczniki utworów: id -> zestaw (♥ ★ ☼ ☾) ---
+    fun marks(): Map<Long, Set<io.github.marekmaro.equinox.Mark>> {
+        val raw = sp.getString("track_marks", null)
+        if (raw == null) {
+            // przejście ze starszej wersji: dotychczasowe ulubione = ♥
+            return favoriteTracks().associateWith { setOf(io.github.marekmaro.equinox.Mark.HEART) }
+        }
+        return try {
+            val o = JSONObject(raw)
+            o.keys().asSequence().mapNotNull { k ->
+                val id = k.toLongOrNull() ?: return@mapNotNull null
+                val set = o.optString(k).split(',').mapNotNull { n -> io.github.marekmaro.equinox.Mark.entries.firstOrNull { it.name == n } }.toSet()
+                if (set.isEmpty()) null else id to set
+            }.toMap()
+        } catch (e: Exception) { emptyMap() }
+    }
+
+    fun setMarks(m: Map<Long, Set<io.github.marekmaro.equinox.Mark>>) {
+        val o = JSONObject()
+        m.forEach { (id, set) -> if (set.isNotEmpty()) o.put(id.toString(), set.joinToString(",") { it.name }) }
+        sp.edit().putString("track_marks", o.toString()).apply()
+    }
+
+    // --- Historia: ostatnio odtworzone utwory (najnowszy pierwszy, maks. 100) ---
+    fun recentPlayed(): List<Long> = try {
+        val a = JSONArray(sp.getString("recent_played", "[]") ?: "[]")
+        (0 until a.length()).map { a.getLong(it) }
+    } catch (e: Exception) { emptyList() }
+
+    fun setRecentPlayed(ids: List<Long>) {
+        sp.edit().putString("recent_played", JSONArray(ids.take(100)).toString()).apply()
+    }
+
+    // --- Losowanie: mądre (domyślnie) albo zwykłe ---
+    var smartShuffle: Boolean
+        get() = sp.getBoolean("smart_shuffle", true)
+        set(v) = sp.edit().putBoolean("smart_shuffle", v).apply()
+
+    // --- Ostatnie wyszukiwania ---
+    fun recentSearches(): List<String> = try {
+        val a = JSONArray(sp.getString("recent_searches", "[]") ?: "[]")
+        (0 until a.length()).map { a.getString(it) }
+    } catch (e: Exception) { emptyList() }
+
+    fun setRecentSearches(list: List<String>) {
+        sp.edit().putString("recent_searches", JSONArray(list.take(8)).toString()).apply()
+    }
+
     // --- Liczba odtworzeń (id -> ile razy) ---
     fun playCounts(): Map<Long, Int> = try {
         val o = JSONObject(sp.getString("play_counts", "{}") ?: "{}")

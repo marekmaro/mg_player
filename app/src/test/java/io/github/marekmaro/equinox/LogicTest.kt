@@ -237,4 +237,61 @@ class LogicTest {
         assertEquals("8-bit fanfare", Chime.CHIP.label)
         Lang.mode = before
     }
+
+    // ---------- mądre losowanie ----------
+
+    private fun library(artists: Int, perArtist: Int) = (0 until artists * perArtist).map {
+        ShuffleItem(id = it.toLong(), artist = "A${it % artists}", album = "A${it % artists}-album${it % 2}", weight = 1.0)
+    }
+
+    @Test
+    fun smartShuffle_neverSameArtistBackToBack() {
+        val items = library(artists = 5, perArtist = 6)
+        repeat(50) { seed ->
+            val out = smartShuffle(items, Random(seed))
+            assertEquals(items.size, out.size)
+            assertEquals(items.map { it.id }.toSet(), out.map { it.id }.toSet())
+            out.zipWithNext().forEach { (a, b) -> assertTrue("seed $seed: ${a.artist} dwa razy", a.artist != b.artist) }
+        }
+    }
+
+    @Test
+    fun smartShuffle_oneArtistStillWorks() {
+        val items = library(artists = 1, perArtist = 10)
+        assertEquals(10, smartShuffle(items, Random(1)).size)
+    }
+
+    @Test
+    fun smartShuffle_recentGoLast_starsGoFirst() {
+        val n = 40
+        var recentPos = 0.0
+        var starPos = 0.0
+        repeat(300) { seed ->
+            val items = (0 until n).map { i ->
+                val w = when (i) {
+                    0 -> shuffleWeight(null, recentRank = 0)                 // zagrany przed chwilą
+                    1 -> shuffleWeight(setOf(Mark.STAR, Mark.HEART), null)    // perełka
+                    else -> shuffleWeight(null, null)
+                }
+                ShuffleItem(i.toLong(), "A$i", "", w)
+            }
+            val out = smartShuffle(items, Random(seed))
+            recentPos += out.indexOfFirst { it.id == 0L }
+            starPos += out.indexOfFirst { it.id == 1L }
+        }
+        assertTrue("niedawny średnio na pozycji ${recentPos / 300}", recentPos / 300 > n * 0.6)
+        assertTrue("perełka średnio na pozycji ${starPos / 300}", starPos / 300 < n * 0.3)
+    }
+
+    // ---------- wyszukiwanie ----------
+
+    @Test
+    fun search_ignoresPolishLettersAndCase() {
+        assertTrue(matchesQuery("Cisza przed burzą", "burza"))
+        assertTrue(matchesQuery("Żółw i zając", "zolw"))
+        assertTrue(matchesQuery("Łąka", "laka"))
+        assertTrue(matchesQuery("Nocny przystanek — Mira Sol", "mira nocny"))
+        assertTrue(!matchesQuery("Nocny przystanek", "dzienny"))
+        assertEquals("♥★", marksGlyphs(setOf(Mark.STAR, Mark.HEART)))
+    }
 }

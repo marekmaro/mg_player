@@ -79,11 +79,19 @@ data class NowPlaying(
 )
 
 /** Rodzaj grupy utworów do przeglądania. */
-enum class GroupType { ARTIST, ALBUM, FOLDER, FAVORITES, RECENT, TOP }
+enum class GroupType { ARTIST, ALBUM, FOLDER, MARK, NEW, TOP }
 
 data class TrackGroup(val type: GroupType, val key: String, val title: String, val count: Int)
 
-data class SearchResult(val title: String, val hint: String, val track: Track? = null, val group: TrackGroup? = null)
+data class SearchResult(
+    val title: String,
+    val hint: String,
+    val track: Track? = null,
+    val group: TrackGroup? = null,
+    val book: Book? = null,
+    val playlist: Playlist? = null,
+    val station: Station? = null,
+)
 
 data class SessionsUi(
     val sleepRemainingMs: Long? = null,
@@ -367,7 +375,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     fun playPlaylist(p: Playlist, start: Int = 0, shuffle: Boolean = false): Boolean {
         val list = playlistTracks(p)
         if (list.isEmpty()) return false
-        if (shuffle) playTracks(list.shuffled(), 0) else playTracks(list, start.coerceIn(0, list.lastIndex))
+        if (shuffle) playShuffled(list) else playTracks(list, start.coerceIn(0, list.lastIndex))
         return true
     }
 
@@ -525,16 +533,93 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- Ulubione, powtarzanie, losowo
 
-    var favoriteIds by mutableStateOf(prefs.favoriteTracks()); private set
+    // ---------------------------------------------------------------- Znaczniki ♥ ★ ☼ ☾
 
-    fun toggleFavorite(id: Long) {
-        favoriteIds = if (id in favoriteIds) favoriteIds - id else favoriteIds + id
-        prefs.setFavoriteTracks(favoriteIds)
+    var marks by mutableStateOf(prefs.marks()); private set
+
+    /** Utwory z sercem (dla zgodności z dotychczasowym kodem). */
+    val favoriteIds: Set<Long> get() = marks.filterValues { Mark.HEART in it }.keys
+
+    fun marksOf(id: Long): Set<Mark> = marks[id].orEmpty()
+
+    fun toggleMark(id: Long, mark: Mark) {
+        val cur = marksOf(id)
+        val next = if (mark in cur) cur - mark else cur + mark
+        marks = if (next.isEmpty()) marks - id else marks + (id to next)
+        prefs.setMarks(marks)
     }
 
+    fun toggleFavorite(id: Long) = toggleMark(id, Mark.HEART)
+
+    // ---------------------------------------------------------------- Mądre losowanie
+
+    /** true = mądre losowanie (domyślnie), false = zwykłe. */
+    var smartShuffleOn by mutableStateOf(prefs.smartShuffle); private set
+
+    fun changeSmartShuffle(on: Boolean) {
+        smartShuffleOn = on
+        prefs.smartShuffle = on
+    }
+
+    /** Czy kolejka jest teraz przemieszana (przez nas – bez przerywania utworu). */
+    private var queueShuffled = false
+    /** Kolejność przed przemieszaniem (id pozycji) – do przywrócenia po wyłączeniu. */
+    private var unshuffledIds: List<String>? = null
+
+    /** Kolejność losowa: mądra (wykonawcy rozłożeni, niedawne na koniec, ♥★ wcześniej) albo zwykła. */
+    fun orderShuffled(list: List<Track>): List<Track> {
+        if (!smartShuffleOn) return list.shuffled()
+        val recent = (Core.recentPlayed ?: ArrayDeque(prefs.recentPlayed()).also { Core.recentPlayed = it })
+            .withIndex().associate { (i, id) -> id to i }
+        val byId = list.associateBy { it.id }
+        return smartShuffle(list.map { ShuffleItem(it.id, it.artist, it.album, shuffleWeight(marks[it.id], recent[it.id])) })
+            .mapNotNull { byId[it.id] }
+    }
+
+    /**
+     * Losowo włącz/wyłącz w trakcie słuchania: bieżący utwór gra dalej,
+     * przestawiamy tylko resztę kolejki; wyłączenie przywraca pierwotną kolejność.
+     */
     fun toggleShuffle() {
-        controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+        val c = controller ?: return
+        c.shuffleModeEnabled = false // kolejnością zarządzamy sami
+        val n = c.mediaItemCount
+        if (n < 2) { queueShuffled = !queueShuffled; tickNow(); return }
+        val cur = c.currentMediaItemIndex
+        val items = (0 until n).map { c.getMediaItemAt(it) }
+        val current = items[cur]
+        val others = items.filterIndexed { i, _ -> i != cur }
+        if (!queueShuffled) {
+            unshuffledIds = items.map { it.mediaId }
+            val tracksOf = others.mapNotNull { it.mediaId.toLongOrNull()?.let { id -> trackById[id] } }
+            val ordered = orderShuffled(tracksOf).map { it.toMediaItem() }
+            val known = ordered.map { it.mediaId }.toSet()
+            val rest = ordered + others.filter { it.mediaId !in known }.shuffled() // np. pozycje spoza biblioteki
+            replaceAround(c, cur, n, emptyList(), rest)
+            queueShuffled = true
+        } else {
+            val original = unshuffledIds
+            if (original != null) {
+                val byId = items.associateBy { it.mediaId }
+                val pos = original.indexOf(current.mediaId)
+                if (pos >= 0) {
+                    val before = original.take(pos).mapNotNull { byId[it] }
+                    val after = original.drop(pos + 1).mapNotNull { byId[it] }
+                    replaceAround(c, cur, n, before, after)
+                }
+            }
+            queueShuffled = false
+            unshuffledIds = null
+        }
         tickNow()
+    }
+
+    /** Zostawia bieżącą pozycję i zastępuje wszystko przed nią i po niej (bez przerwy w dźwięku). */
+    private fun replaceAround(c: MediaController, cur: Int, n: Int, before: List<MediaItem>, after: List<MediaItem>) {
+        if (cur + 1 < n) c.removeMediaItems(cur + 1, n)
+        if (cur > 0) c.removeMediaItems(0, cur)
+        if (before.isNotEmpty()) c.addMediaItems(0, before)
+        if (after.isNotEmpty()) c.addMediaItems(after)
     }
 
     /** Wyłączone → całość → jeden utwór → wyłączone. */
@@ -582,18 +667,32 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }.sortedBy { it.title.lowercase() }
 
     /** Playlisty automatyczne: Ulubione, Ostatnio dodane, Najczęściej słuchane. */
-    fun smartGroups(): List<TrackGroup> = listOf(
-        TrackGroup(GroupType.FAVORITES, "fav", tr("♥ Ulubione", "♥ Favourites"), groupTracks(GroupType.FAVORITES, "").size),
-        TrackGroup(GroupType.RECENT, "recent", tr("Ostatnio dodane", "Recently added"), groupTracks(GroupType.RECENT, "").size),
-        TrackGroup(GroupType.TOP, "top", tr("Najczęściej słuchane", "Most played"), groupTracks(GroupType.TOP, "").size),
-    )
+    /** Playlisty automatyczne: po jednej na znacznik, Nowości i Najczęściej słuchane. */
+    fun smartGroups(): List<TrackGroup> =
+        Mark.entries.map { m -> TrackGroup(GroupType.MARK, m.name, "${m.glyph} ${m.label}", groupTracks(GroupType.MARK, m.name).size) } +
+            listOf(
+                TrackGroup(GroupType.NEW, "new", tr("✦ Nowości", "✦ New"), groupTracks(GroupType.NEW, "").size),
+                TrackGroup(GroupType.TOP, "top", tr("Najczęściej słuchane", "Most played"), groupTracks(GroupType.TOP, "").size),
+            )
+
+    /** Utwór „nowy” = trafił na telefon w ostatnich 14 dniach. */
+    fun isNew(t: Track): Boolean = t.dateAdded > System.currentTimeMillis() / 1000 - 14 * 24 * 3600
+
+    /** Nowości: dodane w ostatnich 30 dniach (najnowsze najpierw). */
+    fun newTracks(): List<Track> {
+        val since = System.currentTimeMillis() / 1000 - 30 * 24 * 3600
+        return tracks.filter { it.dateAdded > since }.sortedByDescending { it.dateAdded }
+    }
 
     fun groupTracks(type: GroupType, key: String): List<Track> = when (type) {
         GroupType.ARTIST -> tracks.filter { it.artist == key }.sortedWith(compareBy({ it.album.lowercase() }, { it.trackNo }, { it.title.lowercase() }))
         GroupType.ALBUM -> tracks.filter { it.album == key }.sortedWith(compareBy({ it.trackNo }, { it.title.lowercase() }))
         GroupType.FOLDER -> tracks.filter { it.folder == key }.sortedBy { it.title.lowercase() }
-        GroupType.FAVORITES -> tracks.filter { it.id in favoriteIds }
-        GroupType.RECENT -> tracks.sortedByDescending { it.dateAdded }.take(50)
+        GroupType.MARK -> {
+            val m = Mark.entries.firstOrNull { it.name == key }
+            tracks.filter { m != null && m in marksOf(it.id) }
+        }
+        GroupType.NEW -> newTracks()
         GroupType.TOP -> {
             val counts = Core.playCounts ?: prefs.playCounts().toMutableMap().also { Core.playCounts = it }
             tracks.filter { (counts[it.id] ?: 0) > 0 }.sortedByDescending { counts[it.id] ?: 0 }.take(50)
@@ -603,22 +702,55 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     fun playGroup(g: TrackGroup, start: Int = 0, shuffle: Boolean = false): Boolean {
         val list = groupTracks(g.type, g.key)
         if (list.isEmpty()) return false
-        if (shuffle) playTracks(list.shuffled(), 0) else playTracks(list, start.coerceIn(0, list.lastIndex))
+        if (shuffle) playShuffled(list) else playTracks(list, start.coerceIn(0, list.lastIndex))
         return true
+    }
+
+    /** Gra listę losowo; wyłączenie losowania przywróci jej pierwotną kolejność. */
+    fun playShuffled(list: List<Track>) {
+        val ordered = orderShuffled(list)
+        playTracks(ordered, 0)
+        unshuffledIds = list.map { it.id.toString() }
+        queueShuffled = true
     }
 
     // ---------------------------------------------------------------- Wyszukiwanie
 
+    /**
+     * Szuka wszędzie: wykonawcy, albumy, utwory, audiobooki, playlisty i ulubione stacje.
+     * Bez polskich znaków („burza” znajdzie „burzą”), każde słowo zapytania musi pasować.
+     */
     fun search(query: String): List<SearchResult> {
-        val q = query.trim().lowercase()
+        val q = query.trim()
         if (q.length < 2) return emptyList()
-        val artistHits = groups(GroupType.ARTIST).filter { it.title.lowercase().contains(q) }.take(10)
+        val artistHits = groups(GroupType.ARTIST).filter { matchesQuery(it.title, q) }.take(10)
             .map { SearchResult(it.title, tr("wykonawca", "artist"), group = it) }
-        val albumHits = groups(GroupType.ALBUM).filter { it.title.lowercase().contains(q) }.take(10)
+        val albumHits = groups(GroupType.ALBUM).filter { matchesQuery(it.title, q) }.take(10)
             .map { SearchResult(it.title, tr("album", "album"), group = it) }
-        val trackHits = tracks.filter { it.title.lowercase().contains(q) || it.artist.lowercase().contains(q) || it.album.lowercase().contains(q) }
-            .take(100).map { SearchResult(it.title, it.artist.take(20), track = it) }
-        return artistHits + albumHits + trackHits
+        val bookHits = books.filter { matchesQuery(it.title + " " + it.author, q) }.take(10)
+            .map { SearchResult(it.title, tr("audiobook", "audiobook"), book = it) }
+        val playlistHits = playlists.filter { matchesQuery(it.name, q) }.take(10)
+            .map { SearchResult(it.name, tr("playlista", "playlist"), playlist = it) }
+        val stationHits = (radioFavorites + radioResults).distinctBy { it.url }.filter { matchesQuery(it.name, q) }.take(10)
+            .map { SearchResult(it.name, "radio", station = it) }
+        val trackHits = tracks.filter { matchesQuery("${it.title} ${it.artist} ${it.album}", q) }
+            .take(100).map { SearchResult(it.title, (marksGlyphs(marks[it.id]) + " " + it.artist).trim().take(22), track = it) }
+        return artistHits + albumHits + bookHits + playlistHits + stationHits + trackHits
+    }
+
+    var recentSearches by mutableStateOf(prefs.recentSearches()); private set
+
+    /** Zapamiętuje zapytanie, po którym coś wybrano (najnowsze na górze). */
+    fun rememberSearch(q: String) {
+        val t = q.trim()
+        if (t.length < 2) return
+        recentSearches = (listOf(t) + recentSearches.filter { !it.equals(t, ignoreCase = true) }).take(8)
+        prefs.setRecentSearches(recentSearches)
+    }
+
+    fun clearRecentSearches() {
+        recentSearches = emptyList()
+        prefs.setRecentSearches(emptyList())
     }
 
     // ---------------------------------------------------------------- Wznawianie ostatniej sesji
@@ -661,7 +793,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun shuffleAll(): Boolean {
         if (tracks.isEmpty()) return false
-        playTracks(tracks.shuffled(), 0)
+        playShuffled(tracks)
         return true
     }
 
@@ -671,6 +803,9 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         Core.kind = Kind.MUSIC
         Core.bookKey = null
         playerError = null
+        queueShuffled = false
+        unshuffledIds = null
+        c.shuffleModeEnabled = false
         c.setMediaItems(list.map { it.toMediaItem() }, start, 0L)
         c.setPlaybackSpeed(1f)
         c.prepare()
@@ -1007,7 +1142,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 speed = c.playbackParameters.speed,
                 error = playerError,
                 chapter = chapterLabel,
-                shuffle = c.shuffleModeEnabled,
+                shuffle = queueShuffled || c.shuffleModeEnabled,
                 repeat = c.repeatMode,
                 trackId = if (Core.kind == Kind.MUSIC || Core.kind == null) item?.mediaId?.toLongOrNull() else null,
             )

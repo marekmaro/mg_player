@@ -45,6 +45,9 @@ object Core {
     var playCounts: MutableMap<Long, Int>? = null
     var playCountsDirty = false
 
+    /** Ostatnio odtworzone utwory (najnowszy pierwszy) – do mądrego losowania. */
+    var recentPlayed: ArrayDeque<Long>? = null
+
     /** Minuty audiobooka jeszcze niezapisane na dysk (zapis co kilka sekund). */
     var pendingListenMs: Long = 0L
 }
