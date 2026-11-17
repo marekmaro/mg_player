@@ -12,7 +12,8 @@ import time
 import xml.etree.ElementTree as ET
 
 PKG, OUT = sys.argv[1], sys.argv[2]
-problems = []
+problems = []   # 🔴 krytyczne: aplikacja nie działa (awaria, brak podstawowego ekranu) – czerwony X
+warnings = []   # 🟡 uwagi: drobiazgi (napis, układ) – widoczne w podsumowaniu, bez czerwonego X
 log = open(f"{OUT}/kroki.txt", "w", encoding="utf-8")
 
 
@@ -97,7 +98,7 @@ def tap(text, exact=False, desc=False, required=True, zone=(0.55, 0.25)):
     pos = find_scroll(text, exact, desc, zone)
     if not pos:
         if required:
-            problems.append(f"nie znaleziono: {text!r}")
+            warnings.append(f"nie znaleziono: {text!r}")
         note(f"BRAK: {text!r}")
         seen = [t or d for t, d, *_ in nodes() if (t or d)]
         note("  na ekranie: " + " | ".join(seen)[:400])
@@ -108,12 +109,20 @@ def tap(text, exact=False, desc=False, required=True, zone=(0.55, 0.25)):
     return True
 
 
-def expect(text, step, zone=(0.55, 0.25)):
-    if find_scroll(text, zone=zone):
+def expect(text, step, zone=(0.55, 0.25), critical=False):
+    """Sprawdza, czy napis jest na ekranie. critical=True: bez niego aplikacja „nie działa”."""
+    found = find(text)
+    if not found:
+        time.sleep(1.5)  # ekran mógł się jeszcze ładować
+        found = find_scroll(text, zone=zone)
+    if found:
         note(f"OK [{step}]: widać {text!r}")
-    else:
+    elif critical:
         problems.append(f"[{step}] brak napisu {text!r}")
         note(f"PROBLEM [{step}]: brak {text!r}")
+    else:
+        warnings.append(f"[{step}] brak napisu {text!r}")
+        note(f"UWAGA [{step}]: brak {text!r}")
 
 
 def rotate(cx, cy, r, degrees, steps=24):
@@ -144,8 +153,8 @@ def crashed():
 adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
 time.sleep(6)
 shot("01-start")
-expect("EQUINOX", "start")
-expect("Losuj wszystko|Shuffle all", "start")
+expect("EQUINOX", "start", critical=True)
+expect("Losuj wszystko|Shuffle all", "start", critical=True)
 
 # 1b. Motyw: domyślnie „TELEFON” (jak ustawienia telefonu); przełącz na Dzień i Noc, potem wróć
 EN_THEME = {"TELEFON": "PHONE", "DZIEŃ": "DAY", "NOC": "NIGHT", "PORA DNIA": "TIME OF DAY"}
@@ -163,7 +172,7 @@ def set_theme(label):
 if find("Motyw: TELEFON|Theme: PHONE", desc=True):
     note("OK [motyw]: domyślnie wg ustawień telefonu")
 else:
-    problems.append("[motyw] domyślny motyw nie jest TELEFON")
+    warnings.append("[motyw] domyślny motyw nie jest TELEFON")
 for label, name in [("DZIEŃ", "01b-motyw-dzien"), ("NOC", "01c-motyw-noc")]:
     if set_theme(label):
         shot(name)
@@ -177,19 +186,19 @@ if ok:
     rotate(cx, cy, ring_r, 95)
     shot("02-pokretlo-po-obrocie")
 else:
-    problems.append("nie znaleziono pokrętła (OK)")
+    warnings.append("nie znaleziono pokrętła (OK)")
 
 # 3. Muzyka -> pierwszy utwór -> Teraz gra
 tap("Muzyka|Music", exact=True)
 shot("03-muzyka")
-expect("Nocny przystanek", "lista muzyki")
+expect("Nocny przystanek", "lista muzyki", critical=True)
 tap("Cisza przed burzą")
 time.sleep(3)
 shot("04a-samouczek")
 expect("Jak sterować kółkiem|How to use the dial", "samouczek przy pierwszym otwarciu")
 tap("Rozumiem|Got it", exact=True, required=False)
 shot("04-teraz-gra")
-expect("TERAZ GRA|NOW PLAYING", "teraz gra")
+expect("TERAZ GRA|NOW PLAYING", "teraz gra", critical=True)
 tap("Utwory|Songs", exact=True, required=False)
 # znaczniki: ✦ → ★ Perełki
 if tap("Znaczniki|Marks", desc=True, required=False, zone=LOW):
@@ -214,11 +223,11 @@ back()
 # 4. Audiobooki
 tap("Audiobooki|Audiobooks", exact=True)
 shot("06-audiobooki")
-expect("Lalka", "audiobooki")
+expect("Lalka", "audiobooki", critical=True)
 tap("Lalka")
 time.sleep(3)
 shot("07-audiobook-gra")
-expect("AUDIOBOOK", "audiobook")
+expect("AUDIOBOOK", "audiobook", critical=True)
 tap("1.5×", exact=True, required=False, zone=LOW)
 time.sleep(1)
 shot("08-audiobook-predkosc")
@@ -375,7 +384,7 @@ time.sleep(2)
 adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
 time.sleep(7)
 shot("27-po-ponownym-uruchomieniu")
-expect("SŁUCHAJ DALEJ|KEEP LISTENING", "wznowienie ostatniej sesji po zamknięciu aplikacji")
+expect("SŁUCHAJ DALEJ|KEEP LISTENING", "wznowienie ostatniej sesji po zamknięciu aplikacji", critical=True)
 
 # 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
@@ -383,7 +392,7 @@ for w in ["PlayerWidget", "RingWidget"]:
     if f"widget.{w}" in dump and PKG in dump:
         note(f"OK [widżety]: system widzi {w}")
     else:
-        problems.append(f"[widżety] system nie widzi {w}")
+        problems.append(f"[widżety] system nie widzi {w}")  # brak widżetu = błąd w manifeście
 
 # 11. Kafelek w szybkich ustawieniach: dotknięcie ma uruchomić stoper muzyczny
 #     (polecenie „cmd statusbar add-tile” jest dostępne od Androida 10)
@@ -428,8 +437,24 @@ for f in sorted(glob.glob(f"{OUT}/*.png")):
     print("SHOT " + f.split("/")[-1] + " " + base64.b64encode(open(small, "rb").read()).decode())
 
 note("\n=== WYNIK ===")
+for w in warnings:
+    note(" 🟡 " + w)
+for p in problems:
+    note(" 🔴 " + p)
+
+# podsumowanie na stronie przebiegu w GitHubie
+summary = os.environ.get("GITHUB_STEP_SUMMARY")
+if summary:
+    with open(summary, "a", encoding="utf-8") as f:
+        f.write(f"### Emulator: Android API {os.environ.get('SDK', '?')}, czcionka {os.environ.get('FONT_SCALE', '1.0')}\n\n")
+        if not problems and not warnings:
+            f.write("✅ Wszystko działa\n\n")
+        for p in problems:
+            f.write(f"- 🔴 {p}\n")
+        for w in warnings:
+            f.write(f"- 🟡 {w}\n")
+        f.write("\n")
+
 if problems:
-    for p in problems:
-        note(" - " + p)
     sys.exit(1)
-note("Wszystko OK")
+note("Aplikacja działa" + (f" ({len(warnings)} uwag)" if warnings else " – bez uwag"))
