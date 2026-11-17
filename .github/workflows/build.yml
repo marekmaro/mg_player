@@ -40,24 +40,32 @@ jobs:
               print(f'LINT {i.get("severity")} {i.get("id")} {where} :: {i.get("message")}')
           PY
 
+      # Artefakty kasują się same po kilku dniach (limit miejsca w prywatnym repozytorium),
+      # a brak miejsca nie przerywa budowania.
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: equinox-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
 
-      # wersja release (R8) podpisana kluczem testowym – do testu na emulatorze
+      # wersja release (R8) podpisana kluczem testowym
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: equinox-release-test-apk
           path: app/build/outputs/apk/release/*.apk
+          retention-days: 3
 
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: reports
           path: |
             app/build/reports/
             app/build/test-results/
+          retention-days: 3
 
   # Test na prawdziwym emulatorze Androida: instalacja, pliki testowe,
   # przejście po ekranach, zrzuty ekranu i sprawdzenie, czy nic się nie wywraca.
@@ -82,10 +90,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      # każdy emulator buduje APK sam (nie zależy od miejsca na artefakty)
+      - uses: actions/setup-java@v5
         with:
-          name: equinox-release-test-apk
-          path: apk
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Build release APK (R8)
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          mkdir -p apk && cp app/build/outputs/apk/release/*.apk apk/
 
       - name: Enable KVM
         run: |
@@ -105,6 +124,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true
         with:
           name: smoke-screenshots-${{ matrix.name }}
           path: smoke/
+          retention-days: 3

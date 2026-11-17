@@ -191,6 +191,11 @@ tap("Rozumiem|Got it", exact=True, required=False)
 shot("04-teraz-gra")
 expect("TERAZ GRA|NOW PLAYING", "teraz gra")
 tap("Utwory|Songs", exact=True, required=False)
+# znaczniki: ✦ → ★ Perełki
+if tap("Znaczniki|Marks", desc=True, required=False, zone=LOW):
+    expect("Perełki|Gems", "okno znaczników")
+    tap("Perełki|Gems", exact=True, required=False)
+    tap("Gotowe|Done", exact=True, required=False)
 shot("05-tryb-utwory")
 # Klocki: włącz „Następne” i „Zegar” w edytorze układu
 if tap("Ułóż ekran|Arrange screen", required=False, zone=LOW):
@@ -292,6 +297,7 @@ tap("Utwórz|Create", exact=True)
 time.sleep(1)
 shot("20-playlista-pusta")
 expect("Wieczorna", "playlista utworzona")
+expect("Perełki|Gems", "playlista automatyczna ze znacznika")
 tap("+ Dodaj|+ Add")
 shot("21-dodawanie-utworow")
 tap("+", exact=True)          # pierwszy utwór na liście
@@ -336,6 +342,13 @@ adb("shell", "input", "text", "Nocny")
 time.sleep(1.5)
 shot("26-szukaj")
 expect("Nocny przystanek", "wyszukiwarka")
+go_home()
+# bez polskich znaków: „burza” ma znaleźć „Cisza przed burzą”
+tap("Szukaj|Search", exact=True)
+time.sleep(1)
+adb("shell", "input", "text", "burza")
+time.sleep(1.5)
+expect("Cisza przed burzą", "wyszukiwanie bez polskich znaków")
 go_home()
 
 # 9f. Statystyki i ustawienia („wschód słońca”)

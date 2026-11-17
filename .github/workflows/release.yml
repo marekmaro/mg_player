@@ -45,6 +45,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: equinox-release
+          retention-days: 30
           path: |
             app/build/outputs/bundle/release/*.aab
             app/build/outputs/apk/release/*.apk
