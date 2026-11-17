@@ -1,10 +1,28 @@
 name: Build APK
 
+# Oszczędzanie minut GitHub Actions (prywatne repozytorium = limit miesięczny):
+# - zmiany w samych dokumentach nie uruchamiają budowania,
+# - przy każdej zmianie: build, testy jednostkowe, lint i JEDEN emulator (Android 14),
+# - pełny zestaw emulatorów (Android 8, 11 z dużą czcionką, 14): raz w tygodniu
+#   albo ręcznie (Actions → Build APK → Run workflow → full: true),
+# - nowy przebieg przerywa starszy dla tej samej gałęzi.
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
   pull_request:
+  schedule:
+    - cron: '17 3 * * 1'   # poniedziałek 3:17 UTC – pełny zestaw
   workflow_dispatch:
+    inputs:
+      full:
+        description: 'Wszystkie emulatory (8, 11, 14)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -76,16 +94,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: android8        # najstarszy obsługiwany Android (minSdk 26)
-            api: 26
-            font: "1.0"
-          - name: android11-duza-czcionka   # ułatwienia dostępu: tekst 130%
-            api: 30
-            font: "1.3"
-          - name: android14
-            api: 34
-            font: "1.0"
+        # zwykła zmiana: tylko Android 14; tygodniowo i na żądanie: wszystkie trzy
+        include: ${{ fromJSON((github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.full)) && '[{"name":"android8","api":26,"font":"1.0"},{"name":"android11-duza-czcionka","api":30,"font":"1.3"},{"name":"android14","api":34,"font":"1.0"}]' || '[{"name":"android14","api":34,"font":"1.0"}]') }}
     name: smoke-test (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v4
