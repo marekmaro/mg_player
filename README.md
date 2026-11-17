@@ -6,10 +6,14 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.10)
+## Co już działa (wersja 0.11)
 
 - **Wznawianie**: aplikacja pamięta, co i gdzie grało (muzyka, audiobook, radio), także po zamknięciu aplikacji lub restarcie telefonu. Słuchawki Bluetooth i systemowe kontrolki multimediów mogą wznowić odtwarzanie.
-- **Jak w każdym dobrym odtwarzaczu**: powtarzanie (wszystko / jeden), losowo, ulubione ♥, wykonawcy, albumy, foldery, wyszukiwarka, „zagraj jako następny” i „do kolejki”, playlisty automatyczne (Ulubione, Ostatnio dodane, Najczęściej słuchane).
+- **Znaczniki**: ♥ Ulubione, ★ Perełki, ☼ Na dzień, ☾ Na noc – każdy z własną playlistą automatyczną; znaczki widać na listach.
+- **Mądre losowanie**: bez tego samego wykonawcy pod rząd, niedawno słuchane na koniec, ♥ i ★ częściej; włączenie w trakcie nie przerywa utworu, wyłączenie przywraca kolejność (można przełączyć na zwykłe).
+- **Wyszukiwanie**: bez polskich znaków („burza” znajdzie „burzą”), utwory, wykonawcy, albumy, audiobooki, playlisty i stacje, ostatnie wyszukiwania, przycisk ⌕ na listach.
+- **Nowości**: wiersz w menu z utworami z ostatnich 30 dni i znacznik „nowe” na liście.
+- **Jak w każdym dobrym odtwarzaczu**: powtarzanie (wszystko / jeden), losowo, wykonawcy, albumy, foldery, wyszukiwarka, „zagraj jako następny” i „do kolejki”, playlisty automatyczne (Ulubione, Ostatnio dodane, Najczęściej słuchane).
 - **Brzmienie**: korektor z 10 ustawieniami o ludzkich nazwach (Ciepły wieczór, Bas w kościach, Klub o północy, Czysty głos…), schowany pod napisem ♪ na ekranie odtwarzania.
 - **Okładki**: okładka zapisana w pliku w środku pierścienia (albo ciekawostka o wykonawcy).
 - **Statystyki** (tylko na telefonie, do ukrycia): zegar słuchania w ciągu doby, wykonawca tygodnia, odkrycia z przyciskiem „Zagraj coś nieodkrytego”.
