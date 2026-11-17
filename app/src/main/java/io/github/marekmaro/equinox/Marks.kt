@@ -52,21 +52,34 @@ data class ShuffleItem(val id: Long, val artist: String, val album: String, val 
  */
 fun smartShuffle(items: List<ShuffleItem>, random: Random = Random.Default): List<ShuffleItem> {
     if (items.size < 3) return items.shuffled(random)
-    // losowanie z wagami (Efraimidis–Spirakis): klucz = u^(1/w), sortowanie malejąco
-    val ordered = items.sortedByDescending { ln(random.nextDouble().coerceAtLeast(1e-12)) / it.weight.coerceAtLeast(0.05) }
-    // rozkład wykonawców: zawsze bierz pierwszy z kolejki, który nie powtarza poprzedniego
-    val pool = ordered.toMutableList()
+    // 1. losowanie z wagami (Efraimidis–Spirakis): klucz ln(u)/w liczony RAZ na utwór
+    val ordered = items
+        .map { it to ln(random.nextDouble().coerceAtLeast(1e-12)) / it.weight.coerceAtLeast(0.05) }
+        .sortedByDescending { it.second }
+        .map { it.first }
+        .toMutableList()
+
+    // 2. rozkład wykonawców z patrzeniem w przód: jeśli któryś wykonawca ma tyle
+    //    pozostałych utworów, że inaczej musiałby grać pod rząd – wplatamy go teraz
+    val left = ordered.groupingBy { it.artist }.eachCount().toMutableMap()
     val out = ArrayList<ShuffleItem>(items.size)
-    while (pool.isNotEmpty()) {
+    while (ordered.isNotEmpty()) {
         val prev = out.lastOrNull()
+        val remaining = ordered.size
+        val (busiest, busyCount) = left.maxBy { it.value }
+        val mustTake = busyCount * 2 > remaining && busiest != prev?.artist
         val i = when {
             prev == null -> 0
-            else -> pool.indexOfFirst { it.artist != prev.artist && (it.album.isBlank() || it.album != prev.album) }
+            mustTake -> ordered.indexOfFirst { it.artist == busiest }
+            else -> ordered.indexOfFirst { it.artist != prev.artist && (it.album.isBlank() || it.album != prev.album) }
                 .takeIf { it >= 0 }
-                ?: pool.indexOfFirst { it.artist != prev.artist }.takeIf { it >= 0 }
+                ?: ordered.indexOfFirst { it.artist != prev.artist }.takeIf { it >= 0 }
                 ?: 0
         }
-        out += pool.removeAt(i)
+        val pick = ordered.removeAt(i)
+        out += pick
+        left[pick.artist] = (left[pick.artist] ?: 1) - 1
+        if (left[pick.artist] == 0) left.remove(pick.artist)
     }
     return out
 }
