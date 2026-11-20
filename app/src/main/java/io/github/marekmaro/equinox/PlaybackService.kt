@@ -10,8 +10,16 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
+import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.SettableFuture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import io.github.marekmaro.equinox.data.Prefs
 import io.github.marekmaro.equinox.data.SessionStore
 import com.google.common.util.concurrent.Futures
@@ -28,15 +36,17 @@ import java.time.LocalDate
 
 /**
  * Serwis odtwarzania w tle. Media3 sam pokazuje powiadomienie z kontrolkami
- * i obsługuje ekran blokady, słuchawki Bluetooth i Android Auto.
+ * i obsługuje ekran blokady i słuchawki Bluetooth. Jako MediaLibraryService udostępnia
+ * też bibliotekę do przeglądania w samochodzie (Android Auto) – zob. [AutoLibrary].
  *
  * Tu działają też sesje (timer snu, stoper, wyzwanie, zapis pozycji
  * audiobooka), żeby nie zależały od tego, czy aplikacja jest otwarta.
  */
 @OptIn(UnstableApi::class)
-class PlaybackService : MediaSessionService() {
+class PlaybackService : MediaLibraryService() {
 
-    private var session: MediaSession? = null
+    private var session: MediaLibrarySession? = null
+    private val auto by lazy { AutoLibrary(this) }
     private val scope = MainScope()
     private lateinit var prefs: Prefs
     private var radioRetries = 0
@@ -143,8 +153,7 @@ class PlaybackService : MediaSessionService() {
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider.Builder(this).build().also { it.setSmallIcon(R.drawable.ic_notification) }
         )
-        session = MediaSession.Builder(this, player)
-            .setCallback(object : MediaSession.Callback {
+        session = MediaLibrarySession.Builder(this, player, object : MediaLibrarySession.Callback {
                 /**
                  * Wznowienie „z zewnątrz”: przycisk odtwarzania na słuchawkach Bluetooth
                  * albo karta „Wznów” w systemowych kontrolkach multimediów, gdy aplikacja
@@ -162,7 +171,87 @@ class PlaybackService : MediaSessionService() {
                         MediaSession.MediaItemsWithStartPosition(SessionStore.toMediaItems(saved), saved.index, saved.positionMs)
                     )
                 }
+
+                // ---------------- Android Auto: przeglądanie biblioteki
+
+                override fun onGetLibraryRoot(
+                    session: MediaLibrarySession,
+                    browser: MediaSession.ControllerInfo,
+                    params: LibraryParams?,
+                ): ListenableFuture<LibraryResult<MediaItem>> = Futures.immediateFuture(LibraryResult.ofItem(auto.root(), params))
+
+                override fun onGetChildren(
+                    session: MediaLibrarySession,
+                    browser: MediaSession.ControllerInfo,
+                    parentId: String,
+                    page: Int,
+                    pageSize: Int,
+                    params: LibraryParams?,
+                ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = background {
+                    val all = auto.children(parentId)
+                    val from = (page.toLong() * pageSize).coerceAtMost(all.size.toLong()).toInt()
+                    val to = (from.toLong() + pageSize).coerceAtMost(all.size.toLong()).toInt()
+                    LibraryResult.ofItemList(all.subList(from, to), params)
+                }
+
+                override fun onGetItem(
+                    session: MediaLibrarySession,
+                    browser: MediaSession.ControllerInfo,
+                    mediaId: String,
+                ): ListenableFuture<LibraryResult<MediaItem>> = background {
+                    auto.item(mediaId)?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                }
+
+                /** Dodanie do kolejki z samochodu: pozycje bez adresu zamieniamy na pliki. */
+                override fun onAddMediaItems(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                    mediaItems: MutableList<MediaItem>,
+                ): ListenableFuture<MutableList<MediaItem>> {
+                    if (mediaItems.all { it.localConfiguration != null }) return Futures.immediateFuture(mediaItems)
+                    return background {
+                        mediaItems.flatMap { item ->
+                            when {
+                                item.localConfiguration != null -> listOf(item)
+                                else -> auto.plan(item)?.let { p ->
+                                    if (p.kind == Kind.MUSIC && item.requestMetadata.searchQuery == null) listOf(p.items[p.index]) else p.items
+                                }.orEmpty()
+                            }
+                        }.toMutableList()
+                    }
+                }
+
+                /** Wybór w samochodzie: cały album / playlista od dotkniętego utworu, audiobook od zapamiętanego miejsca. */
+                override fun onSetMediaItems(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                    mediaItems: MutableList<MediaItem>,
+                    startIndex: Int,
+                    startPositionMs: Long,
+                ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                    if (mediaItems.all { it.localConfiguration != null }) {
+                        return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
+                    }
+                    val first = mediaItems.getOrNull(startIndex.coerceAtLeast(0)) ?: mediaItems.firstOrNull()
+                        ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
+                    return background {
+                        val plan = auto.plan(first) ?: throw UnsupportedOperationException("Nie znaleziono: ${first.mediaId}")
+                        withContext(Dispatchers.Main) {
+                            Core.stopwatchDurations = null
+                            Core.kind = plan.kind
+                            Core.bookKey = plan.bookKey
+                            mediaSession.player.setPlaybackSpeed(if (plan.kind == Kind.BOOK) prefs.bookSpeed else 1f)
+                        }
+                        MediaSession.MediaItemsWithStartPosition(plan.items, plan.index, plan.positionMs)
+                    }
+                }
             })
+            .setSessionActivity(
+                android.app.PendingIntent.getActivity(
+                    this, 0, Intent(this, MainActivity::class.java),
+                    android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            )
             .build()
         Companion.player = player
         instance = this
@@ -338,7 +427,20 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
+
+    /** Praca w tle (wczytanie biblioteki) z wynikiem dla Media3; błąd = nieudana przyszłość. */
+    private fun <T> background(block: suspend CoroutineScope.() -> T): ListenableFuture<T> {
+        val f = SettableFuture.create<T>()
+        scope.launch {
+            try {
+                f.set(withContext(Dispatchers.IO) { block() })
+            } catch (e: Exception) {
+                f.setException(e)
+            }
+        }
+        return f
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = session?.player

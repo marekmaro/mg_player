@@ -407,6 +407,15 @@ else:
     note("pomijam: nie znalazłem pliku testowego w bibliotece systemu")
 go_home()
 
+# 9h. Android Auto: serwis przeglądania biblioteki widoczny dla systemu
+browsers = adb("shell", "cmd", "package", "query-services", "-a", "android.media.browse.MediaBrowserService")
+if PKG in browsers:
+    note("OK [Android Auto]: Equinox udostępnia bibliotekę przeglądarkom multimediów")
+elif "Unknown command" in browsers or "query-services" in browsers:
+    note("pomijam: ten Android nie ma polecenia query-services")
+else:
+    problems.append("[Android Auto] system nie widzi serwisu MediaBrowserService Equinox")
+
 # 10. Widżety: system musi widzieć oba widżety Equinox
 dump = adb("shell", "dumpsys", "appwidget")
 for w in ["PlayerWidget", "RingWidget"]:
