@@ -205,7 +205,7 @@ class LogicTest {
         fun moovFor(mdatStart: Long): ByteArray {
             val off1 = mdatStart + 8
             val off2 = off1 + samples[0].size + samples[1].size
-            val stbl = box("stts", ints(0, 2, 1, 60_000, 1, 1_200_000)) +             // timescale 1000: 0 s, 60 s, 1260 s
+            val stbl = box("stts", ints(0, 3, 1, 60_000, 1, 1_200_000, 1, 100_000)) + // timescale 1000: 0 s, 60 s, 1260 s
                 box("stsc", ints(0, 2, 1, 2, 1, 2, 1, 1)) +
                 box("stsz", ints(0, 0, 3, samples[0].size.toLong(), samples[1].size.toLong(), samples[2].size.toLong())) +
                 box("stco", ints(0, 2, off1, off2))
