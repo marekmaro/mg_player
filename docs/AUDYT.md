@@ -50,6 +50,8 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 - ✅ Połączenia z internetem: tylko **radio-browser.info** (lista stacji), **Wikipedia** (ciekawostki, tylko nazwa wykonawcy lub autora; można wyłączyć) i same strumienie radiowe.
 - ✅ Klucz podpisu tylko w sekretach GitHuba i u właściciela, nigdy w repozytorium.
 - ✅ Komponenty eksportowane tylko tam, gdzie wymaga ich system (usługa odtwarzania dla słuchawek i Android Auto, kafelek z uprawnieniem systemowym). Przyciski widżetów są wewnętrzne.
+- 🔧 (0.13) Android Auto: bibliotekę (tytuły, playlisty, stacje) serwis pokazuje tylko zaufanym klientom – samej aplikacji, systemowi i Android Auto. Inne aplikacje bez uprawnień do multimediów dostają odmowę.
+- 🔧 (0.13) Kopia zapasowa trafia tylko tam, gdzie wskaże użytkownik (systemowy wybór pliku); bez dostępu do muzyki aplikacja nie zapisze ani nie odtworzy kopii, żeby nie wyczyścić playlist.
 - ⚠️ `usesCleartextTraffic=true`: część stacji radiowych nadaje tylko przez http, więc to celowe. Dotyczy wyłącznie strumieni i nie przesyła danych użytkownika.
 - 🔧 **Polityka prywatności** napisana (`docs/polityka-prywatnosci.md`), a w aplikacji jest ekran „Prywatność” (Biblioteka → Prywatność). ⚠️ Google Play wymaga **publicznego adresu**, a repozytorium jest prywatne, więc trzeba ją opublikować (np. GitHub Pages, Gist, Google Sites).
 
@@ -61,9 +63,26 @@ Legenda: ✅ działa / sprawdzone · 🔧 poprawione w tym audycie · ⚠️ ogr
 - ✅ Duża czcionka sprawdzana w teście.
 - ⚠️ Pokrętło jest gestem. Zawsze jest jednak alternatywa: dotknięcie wiersza, przyciski na tarczy i „Duże przyciski” w „Ułóż ekran”.
 
+## 5a. Przegląd kodu (wersja 0.13)
+
+Przegląd nowych funkcji (rozdziały Apple, płynne przejścia, kopia zapasowa, Android Auto) i całego serwisu odtwarzania. Znalezione i poprawione:
+
+| Problem | Poprawka |
+|---|---|
+| Rozdziały Apple: przy plikach z obrazkami rozdziałów mogła zostać wybrana ścieżka obrazków zamiast tytułów | wybierana jest ścieżka tekstowa |
+| Kopia zapasowa bez dostępu do muzyki czyściłaby playlisty i znaczniki | zapis i odtworzenie wstrzymane z komunikatem |
+| Biblioteka dla Android Auto widoczna dla każdej aplikacji | tylko zaufani klienci |
+| Zapis kopii na Dysk Google mógł się nie udać (tryb „wt”) | tryb „w” |
+| Dopasowanie utworu po samej nazwie pliku (np. „CD1/01.mp3”) mogło trafić na inny album | musi się zgadzać też tytuł |
+| Po krótkim utworze bez wyciszenia następny zaczynał się od ciszy | łagodne wejście tylko po wyciszeniu |
+| Android Auto po polsku/angielsku wg telefonu, a nie wg ustawienia aplikacji | serwis wczytuje wybrany język |
+| Android Auto: brak opisu folderów (playlista, wykonawca, album) przy zapytaniu o pozycję | uzupełnione |
+| Audiobook lub radio dodane z samochodu do kolejki nie zmieniało trybu (zapis miejsca, rozdziały) | tryb ustawiany; audiobook nie dokleja się do muzyki |
+| Utwór grany w kółko („powtórz jeden”) liczył się tylko raz | liczy się każde odtworzenie |
+
 ## 6. Znane ograniczenia (do kolejnych wersji)
 
-- 🔧 Rozdziały wewnątrz plików M4B/M4A (znacznik „chpl”, zapisywany m.in. przez ffmpeg): numer i tytuł, przeskakiwanie, „sen po rozdziale”. ⚠️ Rozdziały zapisane jako osobna ścieżka tekstowa (format Apple) nie są jeszcze odczytywane.
+- 🔧 Rozdziały wewnątrz plików M4B/M4A w obu formatach: Nero „chpl” (ffmpeg) i Apple (osobna ścieżka tekstowa, iTunes/Audible; ścieżka z obrazkami rozdziałów jest pomijana) – numer i tytuł, przeskakiwanie, „sen po rozdziale”.
 - 🔧 Widżety są jasne lub ciemne zgodnie z motywem telefonu.
 - 🔧 Zależności zaktualizowane do najnowszych stabilnych wersji: AGP 9.5.1, Gradle 9.9, Kotlin 2.4.21, Compose BOM 2026.09, Media3 1.11.1; compileSdk 37, targetSdk 36 (wymóg Google Play dla nowych aplikacji). Lint: 40 ostrzeżeń stylu, 0 błędów.
 - ⚠️ Testy na prawdziwych telefonach: jak dotąd jeden (Samsung, uwagi o płynności pokrętła wprowadzone w 0.6). Przed publikacją warto przetestować w grupie testerów, czego i tak wymaga Google Play (12 osób przez 14 dni).

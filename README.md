@@ -6,8 +6,12 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.11)
+## Co już działa (wersja 0.13)
 
+- **Android Auto**: w samochodzie przeglądasz ♥ Ulubione, Ostatnio grane, playlisty, wykonawców, albumy, audiobooki (wznawiane w zapamiętanym miejscu) i ulubione stacje radia; działa też „Odtwórz … w Equinox” głosem. Bibliotekę widzą tylko zaufane aplikacje (Android Auto, system).
+- **Płynne przejścia** (3 / 6 / 10 s, tylko muzyka): koniec utworu cichnie, a następny łagodnie się pojawia; działa razem z wyciszaniem timera snu.
+- **Kopia zapasowa do pliku**: playlisty, znaczniki, liczba odtworzeń, ulubione stacje, reguły folderów, miejsca w audiobookach, statystyki i ustawienia w jednym pliku JSON (np. na Dysku Google). Na nowym telefonie utwory są odnajdywane po ścieżce albo po tytule i wykonawcy.
+- **Rozdziały audiobooków M4B** w obu formatach: Nero (`chpl`, np. z ffmpeg) i Apple (osobna ścieżka tekstowa, np. z iTunes, Audible) – nawigacja po rozdziałach i „sen po rozdziale”.
 - **Wznawianie**: aplikacja pamięta, co i gdzie grało (muzyka, audiobook, radio), także po zamknięciu aplikacji lub restarcie telefonu. Słuchawki Bluetooth i systemowe kontrolki multimediów mogą wznowić odtwarzanie.
 - **Znaczniki**: ♥ Ulubione, ★ Perełki, ☼ Na dzień, ☾ Na noc – każdy z własną playlistą automatyczną; znaczki widać na listach.
 - **Mądre losowanie**: bez tego samego wykonawcy pod rząd, niedawno słuchane na koniec, ♥ i ★ częściej; włączenie w trakcie nie przerywa utworu, wyłączenie przywraca kolejność (można przełączyć na zwykłe).
@@ -103,8 +107,6 @@ app/src/main/java/io/github/marekmaro/equinox/
 
 ## Plan dalszy
 
-- [ ] Korektor: „Bas ↔ Głos” + „Czysty głos” dla audiobooków
-- [ ] Okładki albumów
 - [ ] Premium (Google Play Billing) i reklama w miejscu okładki (AdMob, tylko przy otwartej aplikacji)
 - [ ] Opublikować politykę prywatności pod publicznym adresem (tekst: docs/polityka-prywatnosci.md)
 - [ ] Publikacja w Google Play (wersja z podpisem jest gotowa, zobacz docs/BUDOWANIE.md)
