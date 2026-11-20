@@ -41,6 +41,9 @@ object Core {
     var soundPreset: SoundPreset = SoundPreset.PURE
     var voiceForBooks: Boolean = true
 
+    /** Płynne przejścia między utworami (tylko muzyka): długość w sekundach, 0 = wyłączone. */
+    var crossfadeSec: Int = 0
+
     /** Liczba odtworzeń utworów (id -> ile razy); wczytywana raz, zapisywana co kilka sekund. */
     var playCounts: MutableMap<Long, Int>? = null
     var playCountsDirty = false
@@ -50,6 +53,18 @@ object Core {
 
     /** Minuty audiobooka jeszcze niezapisane na dysk (zapis co kilka sekund). */
     var pendingListenMs: Long = 0L
+}
+
+/**
+ * Głośność przy płynnych przejściach (0..1): ostatnie [crossfadeMs] utworu cichnie,
+ * a utwór, który zaczął się sam po poprzednim, wchodzi przez połowę tego czasu.
+ * Krótkie utwory (krótsze niż 3× przejście) grają bez zmian.
+ */
+fun fadeGainFor(kind: Kind?, crossfadeMs: Long, positionMs: Long, durationMs: Long, hasNext: Boolean, fadeIn: Boolean): Float {
+    if (kind != Kind.MUSIC || crossfadeMs <= 0 || durationMs <= 0 || durationMs < crossfadeMs * 3) return 1f
+    val out = if (hasNext) ((durationMs - positionMs).toFloat() / crossfadeMs).coerceIn(0f, 1f) else 1f
+    val inn = if (fadeIn) (positionMs.toFloat() / (crossfadeMs / 2)).coerceIn(0f, 1f) else 1f
+    return minOf(out, inn)
 }
 
 /** Formatuje czas jako mm:ss albo h:mm:ss. */

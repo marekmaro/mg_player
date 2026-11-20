@@ -155,6 +155,22 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    Section(tr("Płynne przejścia", "Crossfade")) {
+                        ChoiceRow(
+                            listOf(tr("Wył.", "Off") to 0, "3 s" to 3, "6 s" to 6, "10 s" to 10),
+                            vm.crossfadeSec,
+                        ) { vm.changeCrossfade(it) }
+                        Text(
+                            tr(
+                                "Koniec utworu cichnie, a następny łagodnie się pojawia. Tylko muzyka – audiobooki i radio grają bez zmian.",
+                                "The end of a song fades out and the next one fades in. Music only – audiobooks and radio are untouched.",
+                            ),
+                            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+                        )
+                    }
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Losowanie", "Shuffle")) {
                         ChoiceRow(
                             listOf(tr("Mądre", "Smart") to true, tr("Zwykłe", "Plain") to false),

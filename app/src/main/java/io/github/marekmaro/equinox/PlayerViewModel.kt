@@ -693,6 +693,16 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleFavorite(id: Long) = toggleMark(id, Mark.HEART)
 
+    // ---------------------------------------------------------------- Płynne przejścia
+
+    var crossfadeSec by mutableStateOf(prefs.crossfadeSec); private set
+
+    fun changeCrossfade(sec: Int) {
+        crossfadeSec = sec
+        Core.crossfadeSec = sec
+        prefs.crossfadeSec = sec
+    }
+
     // ---------------------------------------------------------------- Mądre losowanie
 
     /** true = mądre losowanie (domyślnie), false = zwykłe. */

@@ -45,10 +45,17 @@ class PlaybackService : MediaSessionService() {
     private var itemPlayedMs = 0L
     private val sound = SoundEngine()
     private var countedFor: String? = null
+    /** Głośność z timera snu (0..1) i z płynnych przejść (0..1) – mnożone razem. */
+    private var sleepGain = 1f
+    private var fadeGain = 1f
+    /** Bieżący utwór zaczął się sam po poprzednim (a nie po przeskoku) – wtedy wchodzi łagodnie. */
+    private var fadeInItem = false
 
     private val listener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             itemPlayedMs = 0
+            fadeInItem = reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+                reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT
             applySound() // audiobook ↔ muzyka mogą mieć inne brzmienie
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Core.sleepAfterItem) {
                 session?.player?.pause()
@@ -117,6 +124,7 @@ class PlaybackService : MediaSessionService() {
         if (Core.playCounts == null) Core.playCounts = prefs.playCounts().toMutableMap()
         Core.soundPreset = SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE
         Core.voiceForBooks = prefs.voiceForBooks
+        Core.crossfadeSec = prefs.crossfadeSec
 
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -161,6 +169,7 @@ class PlaybackService : MediaSessionService() {
         sound.attach(player.audioSessionId)
         applySound()
         startTicker()
+        startFader()
         pushWidget()
     }
 
@@ -261,12 +270,51 @@ class PlaybackService : MediaSessionService() {
                     val rem = end - System.currentTimeMillis()
                     if (rem <= 0) {
                         player.pause()
-                        player.volume = 1f
                         Core.sleepEndAt = null
-                    } else if (rem < 15_000) {
-                        player.volume = rem / 15_000f
+                        sleepGain = 1f
+                    } else {
+                        sleepGain = if (rem < 15_000) rem / 15_000f else 1f
+                    }
+                    updateVolume(player)
+                } ?: run {
+                    // timer anulowany w trakcie ściszania – wróć do pełnej głośności
+                    if (sleepGain != 1f) {
+                        sleepGain = 1f
+                        updateVolume(player)
                     }
                 }
+            }
+        }
+    }
+
+    private fun updateVolume(player: Player) {
+        val v = (sleepGain * fadeGain).coerceIn(0f, 1f)
+        if (player.volume != v) player.volume = v
+    }
+
+    /**
+     * Płynne przejścia: w ostatnich sekundach utworu głośność spada do zera,
+     * a następny utwór (jeśli zaczął się sam) wchodzi łagodnie przez pół tego czasu.
+     * Jeden odtwarzacz, więc to „przenikanie przez ciszę” – bez nakładania dwóch utworów.
+     * Pętla działa często tylko wtedy, gdy gra muzyka z włączoną funkcją.
+     */
+    private fun startFader() {
+        scope.launch {
+            while (isActive) {
+                val player = session?.player
+                val cf = Core.crossfadeSec * 1000L
+                val active = player != null && player.isPlaying && cf > 0 && Core.kind == Kind.MUSIC
+                if (player != null) {
+                    val dur = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+                    val g = if (active) fadeGainFor(Core.kind, cf, player.currentPosition, dur, player.hasNextMediaItem(), fadeInItem) else 1f
+                    // po pauzie lub przeskoku w środek utworu wracamy do pełnej głośności
+                    if (g >= 1f && player.currentPosition > cf) fadeInItem = false
+                    if (g != fadeGain) {
+                        fadeGain = g
+                        updateVolume(player)
+                    }
+                }
+                delay(if (active) 50 else 1_000)
             }
         }
     }

@@ -177,6 +177,53 @@ class LogicTest {
         assertEquals(60_000L, ch[1].startMs)
     }
 
+    private fun ints(vararg v: Long): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        val d = java.io.DataOutputStream(out)
+        v.forEach { d.writeInt(it.toInt()) }
+        return out.toByteArray()
+    }
+
+    private fun quickTimeTrak(id: Long, handler: String, timescale: Long, extra: ByteArray = ByteArray(0), stbl: ByteArray = ByteArray(0)): ByteArray {
+        val tkhd = box("tkhd", ints(0, 0, 0, id, 0, 0))       // wersja 0: … track_id na pozycji 12
+        val mdhd = box("mdhd", ints(0, 0, 0, timescale, 0, 0)) // timescale na pozycji 12
+        val hdlr = box("hdlr", ints(0, 0) + handler.toByteArray(Charsets.ISO_8859_1) + ints(0, 0, 0))
+        val minf = box("minf", box("stbl", stbl))
+        return box("trak", tkhd + extra + box("mdia", mdhd + hdlr + minf))
+    }
+
+    @Test
+    fun chapters_appleChapterTrack() {
+        // Plik jak z iTunes: brak „chpl”, za to ścieżka tekstowa (id 2) wskazana z dźwięku przez tref/chap.
+        fun sample(t: String, utf16: Boolean = false): ByteArray {
+            val body = if (utf16) byteArrayOf(0xFE.toByte(), 0xFF.toByte()) + t.toByteArray(Charsets.UTF_16BE) else t.toByteArray(Charsets.UTF_8)
+            return byteArrayOf((body.size shr 8).toByte(), body.size.toByte()) + body
+        }
+        val samples = listOf(sample("Prolog"), sample("Część pierwsza"), sample("Epilog", utf16 = true))
+        val ftyp = box("ftyp", "M4B ".toByteArray())
+        // dwa kawałki: [0,1] i [2] – sprawdza stsc
+        fun moovFor(mdatStart: Long): ByteArray {
+            val off1 = mdatStart + 8
+            val off2 = off1 + samples[0].size + samples[1].size
+            val stbl = box("stts", ints(0, 2, 1, 60_000, 1, 1_200_000)) +             // timescale 1000: 0 s, 60 s, 1260 s
+                box("stsc", ints(0, 2, 1, 2, 1, 2, 1, 1)) +
+                box("stsz", ints(0, 0, 3, samples[0].size.toLong(), samples[1].size.toLong(), samples[2].size.toLong())) +
+                box("stco", ints(0, 2, off1, off2))
+            val audio = quickTimeTrak(1, "soun", 44_100, extra = box("tref", box("chap", ints(2))))
+            val text = quickTimeTrak(2, "text", 1_000, stbl = stbl)
+            return box("moov", box("mvhd", ByteArray(100)) + audio + text)
+        }
+        val moovLen = moovFor(0).size
+        val moov = moovFor((ftyp.size + moovLen).toLong())
+        val file = ftyp + moov + box("mdat", samples.reduce { a, b -> a + b } + ByteArray(2000))
+        val tmp = java.io.File.createTempFile("apple", ".m4b")
+        tmp.writeBytes(file)
+        val ch = java.io.RandomAccessFile(tmp, "r").channel.use { io.github.marekmaro.equinox.data.Chapters.parse(it) }
+        tmp.delete()
+        assertEquals(listOf("Prolog", "Część pierwsza", "Epilog"), ch.map { it.title })
+        assertEquals(listOf(0L, 60_000L, 1_260_000L), ch.map { it.startMs })
+    }
+
     @Test
     fun chapters_ignoreBrokenData() {
         val C = io.github.marekmaro.equinox.data.Chapters
@@ -187,6 +234,27 @@ class LogicTest {
         val ch = java.io.RandomAccessFile(tmp, "r").channel.use { C.parse(it) }
         tmp.delete()
         assertTrue(ch.isEmpty())
+    }
+
+    // ---------- płynne przejścia ----------
+
+    @Test
+    fun crossfade_gain() {
+        val cf = 6_000L
+        val dur = 200_000L
+        // środek utworu – pełna głośność
+        assertEquals(1f, fadeGainFor(Kind.MUSIC, cf, 100_000, dur, hasNext = true, fadeIn = true), 0.001f)
+        // 3 s przed końcem – połowa
+        assertEquals(0.5f, fadeGainFor(Kind.MUSIC, cf, dur - 3_000, dur, hasNext = true, fadeIn = false), 0.001f)
+        // ostatni utwór w kolejce nie cichnie
+        assertEquals(1f, fadeGainFor(Kind.MUSIC, cf, dur - 1_000, dur, hasNext = false, fadeIn = false), 0.001f)
+        // wejście: 1,5 s z 3 s
+        assertEquals(0.5f, fadeGainFor(Kind.MUSIC, cf, 1_500, dur, hasNext = true, fadeIn = true), 0.001f)
+        // audiobook, radio, wyłączone, krótki utwór – bez zmian
+        assertEquals(1f, fadeGainFor(Kind.BOOK, cf, dur - 1_000, dur, true, true), 0.001f)
+        assertEquals(1f, fadeGainFor(Kind.RADIO, cf, 0, 0, true, true), 0.001f)
+        assertEquals(1f, fadeGainFor(Kind.MUSIC, 0, dur - 1_000, dur, true, true), 0.001f)
+        assertEquals(1f, fadeGainFor(Kind.MUSIC, cf, 10_000, 15_000, true, false), 0.001f)
     }
 
     // ---------- duże biblioteki ----------

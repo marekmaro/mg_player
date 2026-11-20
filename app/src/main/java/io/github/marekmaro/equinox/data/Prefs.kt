@@ -146,6 +146,11 @@ class Prefs(context: Context) {
         sp.edit().putString("recent_played", JSONArray(ids.take(100)).toString()).apply()
     }
 
+    // --- Płynne przejścia między utworami (sekundy, 0 = wyłączone) ---
+    var crossfadeSec: Int
+        get() = sp.getInt("crossfade_sec", 0)
+        set(v) = sp.edit().putInt("crossfade_sec", v).apply()
+
     // --- Losowanie: mądre (domyślnie) albo zwykłe ---
     var smartShuffle: Boolean
         get() = sp.getBoolean("smart_shuffle", true)
