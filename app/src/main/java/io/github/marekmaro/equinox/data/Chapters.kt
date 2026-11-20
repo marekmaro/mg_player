@@ -64,8 +64,10 @@ object Chapters {
         val traks = findAllBoxes(ch, moov.first, moov.second, "trak").mapNotNull { readTrak(ch, it) }
         if (traks.isEmpty()) return emptyList()
         val audio = traks.firstOrNull { it.handler == "soun" }
-        val chapId = audio?.chapRefs?.firstOrNull()
-            ?: traks.firstOrNull { it.handler == "text" || it.handler == "sbtl" }?.id
+        fun isText(t: Trak) = t.handler == "text" || t.handler == "sbtl"
+        // tref/chap często wskazuje dwie ścieżki: tytuły (text) i obrazki rozdziałów (vide) – bierzemy tekstową
+        val chapId = audio?.chapRefs?.firstOrNull { ref -> traks.any { it.id == ref && isText(it) } }
+            ?: traks.firstOrNull { isText(it) }?.id
             ?: return emptyList()
         val t = traks.firstOrNull { it.id == chapId && it.id != audio?.id } ?: return emptyList()
         if (t.timescale <= 0 || t.sizes.isEmpty() || t.chunkOffsets.isEmpty()) return emptyList()

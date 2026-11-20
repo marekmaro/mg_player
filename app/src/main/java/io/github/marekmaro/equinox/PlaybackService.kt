@@ -64,8 +64,10 @@ class PlaybackService : MediaLibraryService() {
     private val listener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             itemPlayedMs = 0
-            fadeInItem = reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
-                reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT
+            countedFor = null // powtarzany utwór liczy się znowu (po kolejnych 30 s)
+            // łagodne wejście tylko wtedy, gdy poprzedni utwór faktycznie wyciszył się na końcu
+            fadeInItem = (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+                reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) && fadeGain < 0.5f
             applySound() // audiobook ↔ muzyka mogą mieć inne brzmienie
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Core.sleepAfterItem) {
                 session?.player?.pause()
@@ -135,6 +137,8 @@ class PlaybackService : MediaLibraryService() {
         Core.soundPreset = SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE
         Core.voiceForBooks = prefs.voiceForBooks
         Core.crossfadeSec = prefs.crossfadeSec
+        // język wybrany w aplikacji także wtedy, gdy serwis startuje bez niej (Android Auto, słuchawki)
+        Lang.mode = LangMode.entries.firstOrNull { it.name == prefs.language } ?: LangMode.SYSTEM
 
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
@@ -174,11 +178,23 @@ class PlaybackService : MediaLibraryService() {
 
                 // ---------------- Android Auto: przeglądanie biblioteki
 
+                /**
+                 * Bibliotekę (tytuły, playlisty, stacje) pokazujemy tylko zaufanym: samej aplikacji,
+                 * systemowi, Android Auto i aplikacjom z uprawnieniem do multimediów – nie każdej
+                 * aplikacji, która połączy się z serwisem.
+                 */
+                private fun mayBrowse(browser: MediaSession.ControllerInfo): Boolean =
+                    browser.isTrusted || browser.packageName == packageName || browser.packageName in AUTO_PACKAGES
+
+
                 override fun onGetLibraryRoot(
                     session: MediaLibrarySession,
                     browser: MediaSession.ControllerInfo,
                     params: LibraryParams?,
-                ): ListenableFuture<LibraryResult<MediaItem>> = Futures.immediateFuture(LibraryResult.ofItem(auto.root(), params))
+                ): ListenableFuture<LibraryResult<MediaItem>> = Futures.immediateFuture(
+                    if (mayBrowse(browser)) LibraryResult.ofItem(auto.root(), params)
+                    else LibraryResult.ofError(LibraryResult.RESULT_ERROR_PERMISSION_DENIED)
+                )
 
                 override fun onGetChildren(
                     session: MediaLibrarySession,
@@ -187,7 +203,9 @@ class PlaybackService : MediaLibraryService() {
                     page: Int,
                     pageSize: Int,
                     params: LibraryParams?,
-                ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = background {
+                ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = if (!mayBrowse(browser)) {
+                    Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_PERMISSION_DENIED))
+                } else background {
                     val all = auto.children(parentId)
                     val from = (page.toLong() * pageSize).coerceAtMost(all.size.toLong()).toInt()
                     val to = (from.toLong() + pageSize).coerceAtMost(all.size.toLong()).toInt()
@@ -198,7 +216,9 @@ class PlaybackService : MediaLibraryService() {
                     session: MediaLibrarySession,
                     browser: MediaSession.ControllerInfo,
                     mediaId: String,
-                ): ListenableFuture<LibraryResult<MediaItem>> = background {
+                ): ListenableFuture<LibraryResult<MediaItem>> = if (!mayBrowse(browser)) {
+                    Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_PERMISSION_DENIED))
+                } else background {
                     auto.item(mediaId)?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
                 }
 
@@ -210,12 +230,21 @@ class PlaybackService : MediaLibraryService() {
                 ): ListenableFuture<MutableList<MediaItem>> {
                     if (mediaItems.all { it.localConfiguration != null }) return Futures.immediateFuture(mediaItems)
                     return background {
-                        mediaItems.flatMap { item ->
+                        val wasEmpty = withContext(Dispatchers.Main) { mediaSession.player.mediaItemCount == 0 }
+                        val plans = mediaItems.map { item -> item to (if (item.localConfiguration != null) null else auto.plan(item)) }
+                        // audiobook albo radio do pustego odtwarzacza: ustaw rodzaj, żeby działał zapis miejsca, rozdziały itd.
+                        val special = plans.firstNotNullOfOrNull { it.second?.takeIf { p -> p.kind != Kind.MUSIC } }
+                        if (special != null && wasEmpty) withContext(Dispatchers.Main) {
+                            Core.kind = special.kind
+                            Core.bookKey = special.bookKey
+                        }
+                        plans.flatMap { (item, p) ->
                             when {
-                                item.localConfiguration != null -> listOf(item)
-                                else -> auto.plan(item)?.let { p ->
-                                    if (p.kind == Kind.MUSIC && item.requestMetadata.searchQuery == null) listOf(p.items[p.index]) else p.items
-                                }.orEmpty()
+                                p == null -> if (item.localConfiguration != null) listOf(item) else emptyList()
+                                p.kind == Kind.MUSIC && item.requestMetadata.searchQuery == null -> listOf(p.items[p.index])
+                                // audiobooka ani radia nie doklejamy do muzyki grającej w kolejce
+                                p.kind != Kind.MUSIC && !wasEmpty -> emptyList()
+                                else -> p.items
                             }
                         }.toMutableList()
                     }
@@ -474,6 +503,14 @@ class PlaybackService : MediaLibraryService() {
     }
 
     companion object {
+        /** Android Auto (telefon) i Android Automotive – ich przeglądarki multimediów. */
+        private val AUTO_PACKAGES = setOf(
+            "com.google.android.projection.gearhead",
+            "com.google.android.carassistant",
+            "com.android.car.media",
+            "com.google.android.googlequicksearchbox",
+        )
+
         /** Odtwarzacz serwisu (ten sam proces) – dla widżetów i kafelka. Tylko wątek główny. */
         var player: Player? = null
             private set

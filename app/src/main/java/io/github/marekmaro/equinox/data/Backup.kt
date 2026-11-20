@@ -58,6 +58,11 @@ object Backup {
             .toString(1)
     }
 
+    /** Czy kopia zawiera utwory (playlisty, znaczniki…), które trzeba odnaleźć w bibliotece. */
+    fun hasTracks(text: String): Boolean = try {
+        (JSONObject(text).optJSONObject("tracks")?.length() ?: 0) > 0
+    } catch (e: Exception) { false }
+
     /** Czyta kopię i dopasowuje utwory do biblioteki na tym telefonie. Rzuca wyjątek, gdy plik nie jest kopią Equinox. */
     fun restore(text: String, library: List<TrackRef>): RestoreResult {
         val root = JSONObject(text)
@@ -76,10 +81,13 @@ object Backup {
             val o = saved.optJSONObject(k) ?: return@forEach
             val path = o.optString("path")
             val dur = o.optLong("dur")
+            val name = nameKey(o.optString("title"), o.optString("artist"))
+            val title = normalizeForSearch(o.optString("title"))
             fun closest(list: List<TrackRef>?) = list?.minByOrNull { kotlin.math.abs(it.durationMs - dur) }
             val found = (if (path.isNotBlank()) byPath[path.lowercase()] else null)
-                ?: (if (path.isNotBlank()) closest(byTail[tail(path)]) else null)
-                ?: closest(byName[nameKey(o.optString("title"), o.optString("artist"))])
+                // ten sam folder i plik (np. inna karta SD) – ale „CD1/01.mp3” bywa w wielu albumach, więc tytuł też musi się zgadzać
+                ?: (if (path.isNotBlank()) closest(byTail[tail(path)]?.filter { normalizeForSearch(it.title) == title }) else null)
+                ?: closest(byName[name])
             if (found != null) map[old] = found.id else missing++
         }
 

@@ -711,9 +711,17 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             backupMessage = try {
                 val refs = libraryRefs()
+                if (refs.isEmpty() && (playlists.isNotEmpty() || marks.isNotEmpty())) {
+                    backupMessage = tr(
+                        "Najpierw zezwól na dostęp do muzyki – bez niego kopia nie zapamięta utworów z playlist.",
+                        "Allow access to music first – without it the backup can't remember the songs in your playlists.",
+                    )
+                    return@launch
+                }
                 val text = io.github.marekmaro.equinox.data.Backup.export(prefs.all(), refs, java.time.LocalDateTime.now().toString())
                 withContext(Dispatchers.IO) {
-                    getApplication<Application>().contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
+                    // „w”, nie „wt”: plik jest świeżo utworzony, a np. Dysk Google nie obsługuje trybu „wt”
+                    getApplication<Application>().contentResolver.openOutputStream(uri, "w")?.use { it.write(text.toByteArray()) }
                         ?: error("no stream")
                 }
                 tr("Kopia zapisana ✓", "Backup saved ✓")
@@ -734,6 +742,13 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                     } ?: error("no stream")
                 }
                 val refs = libraryRefs()
+                if (refs.isEmpty() && io.github.marekmaro.equinox.data.Backup.hasTracks(text)) {
+                    backupMessage = tr(
+                        "Najpierw zezwól na dostęp do muzyki – inaczej playlisty i znaczniki wróciłyby puste.",
+                        "Allow access to music first – otherwise playlists and marks would come back empty.",
+                    )
+                    return@launch
+                }
                 val r = withContext(Dispatchers.Default) { io.github.marekmaro.equinox.data.Backup.restore(text, refs) }
                 prefs.restore(r.values)
                 reloadFromPrefs()

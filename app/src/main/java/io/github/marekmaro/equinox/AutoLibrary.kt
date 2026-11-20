@@ -101,6 +101,11 @@ class AutoLibrary(private val context: Context) {
         id.startsWith("t|") -> id.substringAfterLast('|').toLongOrNull()?.let { tid ->
             tracks().firstOrNull { it.id == tid }?.let { playable(id, it.title, it.artist, MediaMetadata.MEDIA_TYPE_MUSIC) }
         }
+        id.startsWith("pl:") -> children(PLAYLISTS).firstOrNull { it.mediaId == id }
+        id.startsWith("artist:") -> folder(id, id.removePrefix("artist:"), MediaMetadata.MEDIA_TYPE_ARTIST)
+        id.startsWith("album:") -> folder(id, id.removePrefix("album:"), MediaMetadata.MEDIA_TYPE_ALBUM)
+        id.startsWith("b|") -> children(BOOKS).firstOrNull { it.mediaId == id }
+        id.startsWith("r|") -> children(RADIO).firstOrNull { it.mediaId == id }
         else -> children(ROOT).firstOrNull { it.mediaId == id }
     }
 
