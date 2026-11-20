@@ -693,6 +693,93 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleFavorite(id: Long) = toggleMark(id, Mark.HEART)
 
+    // ---------------------------------------------------------------- Kopia zapasowa
+
+    /** Komunikat po zapisie lub odtworzeniu kopii (pokazywany w ustawieniach). */
+    var backupMessage by mutableStateOf<String?>(null)
+
+    private suspend fun libraryRefs(): List<io.github.marekmaro.equinox.data.TrackRef> {
+        if (allTracks.isEmpty() && hasAudioPermission()) {
+            allTracks = withContext(Dispatchers.IO) { MediaRepository.load(getApplication()) }
+            applyLibrary()
+            libraryLoaded = true
+        }
+        return allTracks.map { io.github.marekmaro.equinox.data.TrackRef(it.id, it.path, it.title, it.artist, it.durationMs) }
+    }
+
+    fun exportBackup(uri: android.net.Uri) {
+        viewModelScope.launch {
+            backupMessage = try {
+                val refs = libraryRefs()
+                val text = io.github.marekmaro.equinox.data.Backup.export(prefs.all(), refs, java.time.LocalDateTime.now().toString())
+                withContext(Dispatchers.IO) {
+                    getApplication<Application>().contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray()) }
+                        ?: error("no stream")
+                }
+                tr("Kopia zapisana ✓", "Backup saved ✓")
+            } catch (e: Exception) {
+                tr("Nie udało się zapisać kopii.", "Couldn't save the backup.")
+            }
+        }
+    }
+
+    fun importBackup(uri: android.net.Uri) {
+        viewModelScope.launch {
+            backupMessage = try {
+                val text = withContext(Dispatchers.IO) {
+                    getApplication<Application>().contentResolver.openInputStream(uri)?.use { s ->
+                        // kopia to zwykle kilkadziesiąt–kilkaset KB
+                        val bytes = s.readBytes()
+                        String(bytes, Charsets.UTF_8)
+                    } ?: error("no stream")
+                }
+                val refs = libraryRefs()
+                val r = withContext(Dispatchers.Default) { io.github.marekmaro.equinox.data.Backup.restore(text, refs) }
+                prefs.restore(r.values)
+                reloadFromPrefs()
+                if (r.tracksMissing == 0) tr("Kopia odtworzona ✓", "Backup restored ✓")
+                else tr(
+                    "Kopia odtworzona ✓ – nie znaleziono ${r.tracksMissing} utw. na tym telefonie.",
+                    "Backup restored ✓ – ${r.tracksMissing} songs weren't found on this phone.",
+                )
+            } catch (e: Exception) {
+                tr("To nie jest kopia Equinox albo plik jest uszkodzony.", "This isn't an Equinox backup or the file is damaged.")
+            }
+        }
+    }
+
+    /** Po odtworzeniu kopii: wczytaj od nowa wszystko, co trzymamy w pamięci. */
+    private fun reloadFromPrefs() {
+        io.github.marekmaro.equinox.ui.ThemeState.mode =
+            io.github.marekmaro.equinox.ui.ThemeMode.entries.firstOrNull { it.name == prefs.themeMode } ?: io.github.marekmaro.equinox.ui.ThemeMode.SYSTEM
+        Lang.mode = LangMode.entries.firstOrNull { it.name == prefs.language } ?: LangMode.SYSTEM
+        io.github.marekmaro.equinox.ui.KnobSettings.speed = prefs.knobSpeed
+        io.github.marekmaro.equinox.ui.KnobSettings.haptics = prefs.knobHaptics
+        chime = Chime.entries.firstOrNull { it.name == prefs.chime } ?: Chime.CHIP
+        Core.chime = chime
+        factsEnabled = prefs.factsEnabled
+        layout = Block.parse(prefs.playerLayout)
+        radioFavorites = prefs.favorites()
+        batteryHintHidden = prefs.batteryHintHidden
+        playlists = prefs.playlists()
+        showStats = prefs.showStats
+        showCovers = prefs.showCovers
+        setSound(SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE)
+        changeVoiceForBooks(prefs.voiceForBooks)
+        marks = prefs.marks()
+        changeCrossfade(prefs.crossfadeSec)
+        smartShuffleOn = prefs.smartShuffle
+        recentSearches = prefs.recentSearches()
+        tutorialSeen = prefs.tutorialSeen
+        Core.playCounts = prefs.playCounts().toMutableMap()
+        Core.recentPlayed = ArrayDeque(prefs.recentPlayed())
+        Core.playCountsDirty = false
+        cachedStreak = prefs.streak()
+        folderRules = prefs.folderRules()
+        applyLibrary()
+        tickNow()
+    }
+
     // ---------------------------------------------------------------- Płynne przejścia
 
     var crossfadeSec by mutableStateOf(prefs.crossfadeSec); private set

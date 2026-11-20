@@ -93,4 +93,6 @@ dependencies {
     implementation("androidx.window:window:1.5.1")
 
     testImplementation("junit:junit:4.13.2")
+    // prawdziwe org.json w testach (w android.jar są tylko atrapy)
+    testImplementation("org.json:json:20250517")
 }

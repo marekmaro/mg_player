@@ -22,6 +22,8 @@ data class Track(
     val folder: String = "",
     /** kiedy plik trafił na telefon (sekundy), do „Ostatnio dodane” */
     val dateAdded: Long = 0,
+    /** pełna ścieżka pliku – do odnajdywania utworów przy odtwarzaniu kopii zapasowej */
+    val path: String = "",
 )
 
 /** Audiobook = jeden album / folder. Rozdziały to kolejne pliki. */
@@ -107,6 +109,7 @@ object MediaRepository {
                         isBook = flagged || bookHints.any { path.contains(it) },
                         folder = rawPath.substringBeforeLast('/', ""),
                         dateAdded = c.getLong(iAdded),
+                        path = rawPath,
                     )
                 }
             }

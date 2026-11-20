@@ -208,6 +208,10 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    BackupSection(vm)
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Pomoc", "Help")) {
                         LinkRow(tr("Pokaż samouczek pokrętła", "Show the dial tutorial")) {
                             vm.showTutorialAgain()
@@ -237,6 +241,48 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 drawCircle(accent, radius = r, center = Offset(size.width / 2f, size.height), style = Stroke(3.dp.toPx()), alpha = 1f - progress * 0.6f)
             }
         }
+    }
+}
+
+/** Kopia zapasowa playlist, znaczników i ustawień do jednego pliku (np. na Dysk Google lub kartę SD). */
+@Composable
+private fun BackupSection(vm: PlayerViewModel) {
+    var confirm by remember { mutableStateOf<Uri?>(null) }
+    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) vm.exportBackup(uri)
+    }
+    val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) confirm = uri
+    }
+    Section(tr("Kopia zapasowa", "Backup")) {
+        Text(
+            tr(
+                "Playlisty, znaczniki ♥ ★ ☼ ☾, ulubione stacje, miejsca w audiobookach, statystyki i ustawienia – w jednym pliku. Zapisz go np. na Dysku Google i odtwórz na nowym telefonie.",
+                "Playlists, ♥ ★ ☼ ☾ marks, favourite stations, audiobook positions, stats and settings – in one file. Save it e.g. to Google Drive and restore it on a new phone.",
+            ),
+            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+        )
+        LinkRow(tr("Zapisz kopię do pliku", "Save a backup file")) {
+            save.launch("equinox-${java.time.LocalDate.now()}.json")
+        }
+        LinkRow(tr("Odtwórz z pliku", "Restore from a file")) {
+            open.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
+        }
+        val pending = confirm
+        if (pending != null) {
+            Text(
+                tr("Zastąpić obecne playlisty, znaczniki i ustawienia danymi z kopii?", "Replace current playlists, marks and settings with the backup?"),
+                color = Pal.Text, fontSize = 13.sp, lineHeight = 18.sp,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip(tr("Odtwórz", "Restore")) {
+                    confirm = null
+                    vm.importBackup(pending)
+                }
+                Chip(tr("Anuluj", "Cancel")) { confirm = null }
+            }
+        }
+        vm.backupMessage?.let { Text(it, color = Pal.Accent, fontSize = 13.sp) }
     }
 }
 

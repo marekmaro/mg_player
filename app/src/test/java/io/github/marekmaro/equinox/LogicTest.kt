@@ -257,6 +257,57 @@ class LogicTest {
         assertEquals(1f, fadeGainFor(Kind.MUSIC, cf, 10_000, 15_000, true, false), 0.001f)
     }
 
+    // ---------- kopia zapasowa ----------
+
+    @Test
+    fun backup_roundTripRemapsTracks() {
+        val B = io.github.marekmaro.equinox.data.Backup
+        val old = listOf(
+            io.github.marekmaro.equinox.data.TrackRef(1, "/storage/emulated/0/Music/Rock/a.mp3", "Alfa", "Zespół", 200_000),
+            io.github.marekmaro.equinox.data.TrackRef(2, "/storage/emulated/0/Music/Jazz/b.mp3", "Beta", "Łódź Trio", 180_000),
+            io.github.marekmaro.equinox.data.TrackRef(3, "/storage/emulated/0/Music/c.mp3", "Gamma", "Ktoś", 100_000),
+        )
+        val prefs = mapOf<String, Any>(
+            "playlists" to """[{"id":7,"name":"Wieczór","tracks":[1,2,3]}]""",
+            "track_marks" to """{"1":"HEART","2":"STAR,MOON"}""",
+            "play_counts" to """{"1":5,"3":2}""",
+            "recent_played" to "[3,1]",
+            "theme_mode" to "NIGHT",
+            "crossfade_sec" to 6,
+            "book_p_Hobbit" to 123_456L,
+            "book_speed" to 1.25f,
+            "show_stats" to false,
+            "last_session" to "{}",
+            "facts_x" to "{}",
+        )
+        val json = B.export(prefs, old, "2026-11-20T10:00")
+        // nowy telefon: inne id, karta SD zamiast pamięci wewnętrznej, jednego utworu brak, drugi w innym folderze
+        val now = listOf(
+            io.github.marekmaro.equinox.data.TrackRef(101, "/storage/1234-ABCD/Music/Rock/a.mp3", "Alfa", "Zespół", 200_000),
+            io.github.marekmaro.equinox.data.TrackRef(102, "/storage/emulated/0/Download/inne.mp3", "Beta", "Lodz trio", 181_000),
+        )
+        val r = B.restore(json, now)
+        assertEquals(2, r.tracksFound)
+        assertEquals(1, r.tracksMissing)
+        assertEquals("NIGHT", r.values["theme_mode"])
+        assertEquals(6, r.values["crossfade_sec"])
+        assertEquals(123_456L, r.values["book_p_Hobbit"])
+        assertEquals(1.25f, r.values["book_speed"])
+        assertEquals(false, r.values["show_stats"])
+        assertTrue("last_session" !in r.values && "facts_x" !in r.values)
+        val pl = org.json.JSONArray(r.values["playlists"] as String).getJSONObject(0)
+        assertEquals("Wieczór", pl.getString("name"))
+        assertEquals("[101,102]", pl.getJSONArray("tracks").toString())
+        val marks = org.json.JSONObject(r.values["track_marks"] as String)
+        assertEquals("STAR,MOON", marks.getString("102"))
+        assertEquals("[101]", r.values["recent_played"])
+    }
+
+    @Test(expected = Exception::class)
+    fun backup_rejectsForeignFile() {
+        io.github.marekmaro.equinox.data.Backup.restore("""{"hello":1}""", emptyList())
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

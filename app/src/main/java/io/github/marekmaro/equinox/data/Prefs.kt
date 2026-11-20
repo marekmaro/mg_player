@@ -10,6 +10,25 @@ class Prefs(context: Context) {
 
     private val sp = context.getSharedPreferences("equinox", Context.MODE_PRIVATE)
 
+    // --- Kopia zapasowa: wszystkie ustawienia naraz ---
+    fun all(): Map<String, *> = sp.all
+
+    /** Zastępuje zapisane dane wartościami z kopii (sesja odtwarzania i pamięć podręczna zostają). */
+    fun restore(values: Map<String, Any>) {
+        val e = sp.edit()
+        sp.all.keys.filter { Backup.isBackedUp(it) }.forEach { e.remove(it) }
+        values.forEach { (k, v) ->
+            when (v) {
+                is String -> e.putString(k, v)
+                is Boolean -> e.putBoolean(k, v)
+                is Int -> e.putInt(k, v)
+                is Long -> e.putLong(k, v)
+                is Float -> e.putFloat(k, v)
+            }
+        }
+        e.commit()
+    }
+
     // --- Audiobooki: zapamiętana pozycja dla każdej książki ---
     fun saveBook(key: String, chapterIndex: Int, positionMs: Long) {
         sp.edit()
