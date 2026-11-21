@@ -933,7 +933,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 val pos = original.indexOf(current.mediaId)
                 if (pos >= 0) {
                     val before = original.take(pos).mapNotNull { byId[it] }
-                    val after = original.drop(pos + 1).mapNotNull { byId[it] }
+                    // utwory dodane już po przemieszaniu („zagraj jako następny”, „do kolejki”) zostają – na końcu
+                    val originalSet = original.toSet()
+                    val added = others.filter { it.mediaId !in originalSet }
+                    val after = original.drop(pos + 1).mapNotNull { byId[it] } + added
                     replaceAround(c, cur, n, before, after)
                 }
             }
@@ -966,6 +969,78 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     // ---------------------------------------------------------------- Kolejka
 
     fun track(id: Long): Track? = trackById[id]
+
+    /** Pozycja kolejki do wyświetlenia na ekranie „Kolejka”. */
+    data class QueueEntry(val title: String, val subtitle: String, val current: Boolean)
+
+    /** Cała kolejka – liczona tylko wtedy, gdy ekran kolejki jest otwarty (patrz [queueVisible]). */
+    var queue by mutableStateOf<List<QueueEntry>>(emptyList()); private set
+
+    /** Ustawiane przez ekran kolejki; wtedy odświeżamy listę, gdy zmieni się utwór albo kolejka. */
+    var queueVisible = false
+        set(v) {
+            field = v
+            if (v) refreshQueue() else queue = emptyList()
+        }
+    private var queueSignature = 0L
+
+    private fun refreshQueue() {
+        val c = controller ?: return
+        queueSignature = queueSignatureOf(c)
+        queue = (0 until c.mediaItemCount).map { i ->
+            val md = c.getMediaItemAt(i).mediaMetadata
+            QueueEntry(
+                title = md.title?.toString().orEmpty().ifBlank { tr("Bez tytułu", "Untitled") },
+                subtitle = md.artist?.toString().orEmpty(),
+                current = i == c.currentMediaItemIndex,
+            )
+        }
+    }
+
+    /** Tani „odcisk” kolejki: liczba pozycji, bieżąca pozycja i id pierwszej/ostatniej. */
+    private fun queueSignatureOf(c: MediaController): Long {
+        val n = c.mediaItemCount
+        if (n == 0) return 0
+        val first = c.getMediaItemAt(0).mediaId.hashCode().toLong()
+        val last = c.getMediaItemAt(n - 1).mediaId.hashCode().toLong()
+        return ((n.toLong() * 31 + c.currentMediaItemIndex) * 31 + first) * 31 + last
+    }
+
+    /** Przesuwa pozycję o [delta] (−1 wyżej, +1 niżej); zwraca nowy indeks albo null, gdy się nie da. */
+    fun queueMove(index: Int, delta: Int): Int? {
+        val c = controller ?: return null
+        val to = index + delta
+        if (index !in 0 until c.mediaItemCount || to !in 0 until c.mediaItemCount) return null
+        c.moveMediaItem(index, to)
+        refreshQueue()
+        return to
+    }
+
+    fun queueRemove(index: Int) {
+        val c = controller ?: return
+        if (index !in 0 until c.mediaItemCount) return
+        c.removeMediaItem(index)
+        refreshQueue()
+        tickNow()
+    }
+
+    fun queuePlay(index: Int) {
+        val c = controller ?: return
+        if (index !in 0 until c.mediaItemCount) return
+        c.seekTo(index, 0L)
+        c.play()
+        refreshQueue()
+        tickNow()
+    }
+
+    /** Usuwa wszystko po bieżącym utworze – bieżący gra do końca i odtwarzanie się zatrzyma. */
+    fun queueClearUpcoming() {
+        val c = controller ?: return
+        val from = c.currentMediaItemIndex + 1
+        if (from < c.mediaItemCount) c.removeMediaItems(from, c.mediaItemCount)
+        refreshQueue()
+        tickNow()
+    }
 
     /** „Zagraj jako następny” – wstawia utwór tuż po bieżącym (albo gra od razu, gdy nic nie gra). */
     fun playNext(t: Track) {
@@ -1487,6 +1562,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             if (c.isPlaying) playerError = null
             updateFacts(nowPlaying)
             upNext = if (Block.QUEUE in layout) nextTitles(c) else emptyList()
+            if (queueVisible && queueSignatureOf(c) != queueSignature) refreshQueue()
         }
         // seria dni zmienia się rzadko – liczymy ją co ~10 s zamiast co pół sekundy
         if (tickCount++ % 20 == 0) cachedStreak = prefs.streak()

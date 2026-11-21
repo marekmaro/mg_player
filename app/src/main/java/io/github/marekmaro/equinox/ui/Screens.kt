@@ -333,7 +333,7 @@ fun RadioScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit) 
  * - składak w trybie „namiotu” (zgięty poziomo): pierścień nad zgięciem, sterowanie pod nim.
  */
 @Composable
-fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Unit, onEditLayout: () -> Unit) {
+fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Unit, onEditLayout: () -> Unit, onQueue: () -> Unit) {
     val np = vm.nowPlaying
     val cfg = LocalConfiguration.current
     val posture = LocalPosture.current
@@ -399,7 +399,7 @@ private fun PlayingContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PlayerBlocks(vm, onSessions, onEditLayout)
+                PlayerBlocks(vm, onSessions, onEditLayout, onQueue)
             }
         }
 
@@ -417,7 +417,7 @@ private fun PlayingContent(
                 verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
             ) {
                 Spacer(Modifier.height(8.dp))
-                PlayerBlocks(vm, onSessions, onEditLayout)
+                PlayerBlocks(vm, onSessions, onEditLayout, onQueue)
             }
         }
 
@@ -430,7 +430,7 @@ private fun PlayingContent(
             // po bokach pierścienia zostaje pas, za który można przewijać ekran palcem
             val size = minOf(cfg.screenWidthDp - 100, (cfg.screenHeightDp * 0.45f).toInt()).coerceIn(200, 290).dp
             PlayerRing(vm, size)
-            PlayerBlocks(vm, onSessions, onEditLayout)
+            PlayerBlocks(vm, onSessions, onEditLayout, onQueue)
         }
     }
 }

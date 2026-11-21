@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import io.github.marekmaro.equinox.ui.LocalPosture
 import io.github.marekmaro.equinox.ui.Posture
 import io.github.marekmaro.equinox.ui.LayoutEditorScreen
+import io.github.marekmaro.equinox.ui.QueueScreen
 import io.github.marekmaro.equinox.ui.LibraryScreen
 import io.github.marekmaro.equinox.ui.SettingsPanel
 import io.github.marekmaro.equinox.ui.StatsScreen
@@ -150,7 +151,7 @@ private fun PermissionRequest(onDone: () -> Unit) {
     }
 }
 
-enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library, Privacy, Groups, GroupTracks, Search, Stats }
+enum class Screen { Home, Music, Books, Radio, Sessions, Playing, Layout, Playlists, Playlist, PickTracks, Library, Privacy, Groups, GroupTracks, Search, Stats, Queue }
 
 @Composable
 private fun App(vm: PlayerViewModel) {
@@ -204,7 +205,8 @@ private fun App(vm: PlayerViewModel) {
         Screen.Books -> BooksScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onSearch = { go(Screen.Search) })
         Screen.Radio -> RadioScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
         Screen.Sessions -> SessionsScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) })
-        Screen.Playing -> PlayingScreen(vm, onBack = ::back, onSessions = { go(Screen.Sessions) }, onEditLayout = { go(Screen.Layout) })
+        Screen.Playing -> PlayingScreen(vm, onBack = ::back, onSessions = { go(Screen.Sessions) }, onEditLayout = { go(Screen.Layout) }, onQueue = { go(Screen.Queue) })
+        Screen.Queue -> QueueScreen(vm, onBack = ::back)
         Screen.Layout -> LayoutEditorScreen(vm, onBack = ::back)
         Screen.Playlists -> PlaylistsScreen(vm, onBack = ::back, onOpenPlaylist = { go(Screen.Playlist) }, onOpenGroup = { go(Screen.GroupTracks) }, onSearch = { go(Screen.Search) })
         Screen.Playlist -> PlaylistScreen(vm, onBack = ::back, onPlaying = { go(Screen.Playing) }, onAddTracks = { go(Screen.PickTracks) })

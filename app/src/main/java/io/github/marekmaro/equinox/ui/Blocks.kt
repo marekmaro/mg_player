@@ -51,7 +51,7 @@ import java.time.LocalTime
 
 /** Pod pierścieniem: klocki w kolejności wybranej przez użytkownika. */
 @Composable
-fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -> Unit) {
+fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -> Unit, onQueue: () -> Unit) {
     var addTrackId by remember { mutableStateOf<Long?>(null) }
     addTrackId?.let { id -> AddToPlaylistDialog(vm, id, onDismiss = { addTrackId = null }) }
     var soundOpen by remember { mutableStateOf(false) }
@@ -63,7 +63,7 @@ fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -
             Block.CONTROLS -> ControlsBlock(vm)
             Block.BOOK -> BookBlock(vm)
             Block.FACTS -> FactsBlock(vm)
-            Block.QUEUE -> QueueBlock(vm)
+            Block.QUEUE -> QueueBlock(vm, onQueue)
             Block.TODAY -> TodayBlock(vm)
             Block.CLOCK -> ClockBlock()
             Block.SESSIONS -> SessionsBlock(vm, onSessions)
@@ -83,6 +83,14 @@ fun PlayerBlocks(vm: PlayerViewModel, onSessions: () -> Unit, onEditLayout: () -
     )
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (vm.nowPlaying.kind == Kind.MUSIC) {
+            Text(
+                tr("☰ Kolejka", "☰ Queue"),
+                color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(onClick = onQueue)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            )
             Text(
                 tr("＋ Do playlisty", "＋ To playlist"),
                 color = Pal.Muted, fontFamily = Mono, fontSize = 12.sp,
@@ -275,11 +283,14 @@ private fun FactsBlock(vm: PlayerViewModel) {
 }
 
 @Composable
-private fun QueueBlock(vm: PlayerViewModel) {
+private fun QueueBlock(vm: PlayerViewModel, onQueue: () -> Unit) {
     val next = vm.upNext
     if (next.isEmpty()) return
-    Card {
-        Text(tr("NASTĘPNE", "UP NEXT"), color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+    Card(Modifier.clip(RoundedCornerShape(24.dp)).clickable(onClick = onQueue)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(tr("NASTĘPNE", "UP NEXT"), color = Pal.Muted, fontFamily = Mono, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f))
+            Text(tr("Kolejka ›", "Queue ›"), color = Pal.Accent, fontFamily = Mono, fontSize = 12.sp)
+        }
         next.forEachIndexed { i, title ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("${i + 1}", color = Pal.Accent, fontFamily = Mono, fontSize = 13.sp, modifier = Modifier.width(22.dp))
