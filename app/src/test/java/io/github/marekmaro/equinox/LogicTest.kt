@@ -308,6 +308,40 @@ class LogicTest {
         io.github.marekmaro.equinox.data.Backup.restore("""{"hello":1}""", emptyList())
     }
 
+    // ---------- zakładki w audiobookach ----------
+
+    @Test
+    fun bookmarks_roundTripOrderAndDedupe() {
+        val B = io.github.marekmaro.equinox.data.Bookmarks
+        fun bm(id: Long, book: String, i: Int, pos: Long, note: String = "") =
+            io.github.marekmaro.equinox.data.Bookmark(id, book, i, pos, "Rozdział ${i + 1}", note, id)
+        var all = emptyList<io.github.marekmaro.equinox.data.Bookmark>()
+        all = B.add(all, bm(1, "Lalka", 2, 60_000, "Wokulski w sklepie"))
+        all = B.add(all, bm(2, "Lalka", 0, 5_000))
+        all = B.add(all, bm(3, "Hobbit", 1, 1_000))
+        // drugi raz prawie to samo miejsce – zastępuje, nie dubluje
+        all = B.add(all, bm(4, "Lalka", 2, 61_500, "poprawiona notatka"))
+        val lalka = B.forBook(all, "Lalka")
+        assertEquals(listOf(2L, 4L), lalka.map { it.id })               // kolejność czytania
+        assertEquals("poprawiona notatka", lalka[1].note)
+        assertTrue(B.forBook(all, null).isEmpty())
+        // zapis i odczyt (z polskimi znakami w notatce)
+        val back = B.decode(B.encode(all))
+        assertEquals(all, back)
+        assertTrue(B.decode("nie json").isEmpty())
+    }
+
+    @Test
+    fun bookmarks_limitPerBook() {
+        val B = io.github.marekmaro.equinox.data.Bookmarks
+        var all = emptyList<io.github.marekmaro.equinox.data.Bookmark>()
+        repeat(B.MAX_PER_BOOK + 5) { n ->
+            all = B.add(all, io.github.marekmaro.equinox.data.Bookmark(n.toLong(), "K", 0, n * 10_000L, "", "", n.toLong()))
+        }
+        assertEquals(B.MAX_PER_BOOK, all.size)
+        assertTrue(all.none { it.id < 5 }) // najstarsze wypadły
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

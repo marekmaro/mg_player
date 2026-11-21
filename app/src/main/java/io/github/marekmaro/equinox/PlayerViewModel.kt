@@ -782,6 +782,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         setSound(SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE)
         changeVoiceForBooks(prefs.voiceForBooks)
         marks = prefs.marks()
+        bookmarks = prefs.bookmarks()
         changeCrossfade(prefs.crossfadeSec)
         smartShuffleOn = prefs.smartShuffle
         recentSearches = prefs.recentSearches()
@@ -792,6 +793,50 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         cachedStreak = prefs.streak()
         folderRules = prefs.folderRules()
         applyLibrary()
+        tickNow()
+    }
+
+    // ---------------------------------------------------------------- Zakładki w audiobookach
+
+    var bookmarks by mutableStateOf(prefs.bookmarks()); private set
+
+    /** Zakładki książki, która teraz gra (w kolejności czytania). */
+    val currentBookmarks: List<io.github.marekmaro.equinox.data.Bookmark>
+        get() = if (nowPlaying.kind == Kind.BOOK) io.github.marekmaro.equinox.data.Bookmarks.forBook(bookmarks, Core.bookKey) else emptyList()
+
+    /** Miejsce do zapisania w zakładce – pobierane w chwili dotknięcia przycisku, zanim wpiszesz notatkę. */
+    data class BookmarkDraft(val bookKey: String, val itemIndex: Int, val positionMs: Long, val label: String)
+
+    fun bookmarkDraft(): BookmarkDraft? {
+        val c = controller ?: return null
+        val key = Core.bookKey ?: return null
+        if (Core.kind != Kind.BOOK) return null
+        val pos = c.currentPosition.coerceAtLeast(0)
+        val label = nowPlaying.chapter ?: c.currentMediaItem?.mediaMetadata?.title?.toString().orEmpty()
+        return BookmarkDraft(key, c.currentMediaItemIndex, pos, label)
+    }
+
+    fun addBookmark(d: BookmarkDraft, note: String) {
+        val now = System.currentTimeMillis()
+        val b = io.github.marekmaro.equinox.data.Bookmark(now, d.bookKey, d.itemIndex, d.positionMs, d.label, note.trim().take(200), now)
+        bookmarks = io.github.marekmaro.equinox.data.Bookmarks.add(bookmarks, b)
+        prefs.setBookmarks(bookmarks)
+    }
+
+    fun removeBookmark(id: Long) {
+        bookmarks = bookmarks.filterNot { it.id == id }
+        prefs.setBookmarks(bookmarks)
+    }
+
+    /** Skok do zakładki: w grającej książce przewija, inną książkę włącza od tego miejsca. */
+    fun openBookmark(b: io.github.marekmaro.equinox.data.Bookmark) {
+        val c = controller ?: return
+        if (Core.kind == Kind.BOOK && Core.bookKey == b.bookKey && b.itemIndex < c.mediaItemCount) {
+            c.seekTo(b.itemIndex, b.positionMs)
+            if (!c.isPlaying) c.play()
+        } else {
+            books.firstOrNull { it.key == b.bookKey }?.let { playBook(it, b.itemIndex, b.positionMs) }
+        }
         tickNow()
     }
 
@@ -1069,15 +1114,18 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         c.play()
     }
 
-    fun playBook(book: Book) {
+    /**
+     * Gra audiobooka od zapamiętanego miejsca (cofniętego o 5 s, żeby łatwiej złapać wątek)
+     * albo od wskazanego – np. z zakładki.
+     */
+    fun playBook(book: Book, startIndex: Int? = null, startMs: Long? = null) {
         val c = controller ?: return
         Core.stopwatchDurations = null
         Core.kind = Kind.BOOK
         Core.bookKey = book.key
         playerError = null
-        val idx = prefs.bookChapter(book.key).coerceIn(0, book.chapters.lastIndex)
-        // cofamy o 5 s, żeby łatwiej złapać wątek
-        val pos = (prefs.bookPosition(book.key) - 5_000).coerceAtLeast(0)
+        val idx = (startIndex ?: prefs.bookChapter(book.key)).coerceIn(0, book.chapters.lastIndex)
+        val pos = startMs ?: (prefs.bookPosition(book.key) - 5_000).coerceAtLeast(0)
         c.setMediaItems(book.chapters.map { it.toMediaItem() }, idx, pos)
         c.setPlaybackSpeed(prefs.bookSpeed)
         c.prepare()

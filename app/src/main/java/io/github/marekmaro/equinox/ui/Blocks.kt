@@ -235,10 +235,24 @@ private fun ControlsBlock(vm: PlayerViewModel) {
 private fun BookBlock(vm: PlayerViewModel) {
     val np = vm.nowPlaying
     if (np.kind != Kind.BOOK) return
+    var draft by remember { mutableStateOf<PlayerViewModel.BookmarkDraft?>(null) }
+    var listOpen by remember { mutableStateOf(false) }
+    draft?.let { d ->
+        AddBookmarkDialog(d, onDismiss = { draft = null }) { note ->
+            vm.addBookmark(d, note)
+            draft = null
+        }
+    }
+    if (listOpen) BookmarksDialog(vm, onDismiss = { listOpen = false })
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("−30 s", modifier = Modifier.weight(1f)) { vm.seekBy(-30_000) }
-            Chip("+30 s", modifier = Modifier.weight(1f)) { vm.seekBy(30_000) }
+        // cztery okrągłe przyciski jak godziny na tarczy: cofnij · zakładka · zakładki · dalej
+        Row(Modifier.fillMaxWidth()) {
+            val cell = Modifier.weight(1f)
+            RingAction("−30", tr("30 s wstecz", "Back 30 s"), cell, size = 52.dp) { vm.seekBy(-30_000) }
+            RingAction("⚑", tr("Zakładka", "Bookmark"), cell, size = 52.dp) { draft = vm.bookmarkDraft() }
+            val n = vm.currentBookmarks.size
+            RingAction("☰", if (n > 0) tr("Zakładki · $n", "Bookmarks · $n") else tr("Zakładki", "Bookmarks"), cell, size = 52.dp) { listOpen = true }
+            RingAction("+30", tr("30 s dalej", "Forward 30 s"), cell, size = 52.dp) { vm.seekBy(30_000) }
         }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),

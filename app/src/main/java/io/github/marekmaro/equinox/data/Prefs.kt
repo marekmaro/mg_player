@@ -37,6 +37,13 @@ class Prefs(context: Context) {
             .apply()
     }
 
+    // --- Zakładki w audiobookach ---
+    fun bookmarks(): List<Bookmark> = Bookmarks.decode(sp.getString("bookmarks", null))
+
+    fun setBookmarks(list: List<Bookmark>) {
+        sp.edit().putString("bookmarks", Bookmarks.encode(list)).apply()
+    }
+
     fun bookChapter(key: String): Int = sp.getInt("book_i_$key", 0)
     fun bookPosition(key: String): Long = sp.getLong("book_p_$key", 0L)
 
