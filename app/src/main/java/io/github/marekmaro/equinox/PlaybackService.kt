@@ -11,6 +11,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
+import androidx.media3.session.SessionError
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
@@ -227,7 +228,7 @@ class PlaybackService : MediaLibraryService() {
                     params: LibraryParams?,
                 ): ListenableFuture<LibraryResult<MediaItem>> = Futures.immediateFuture(
                     if (mayBrowse(browser)) LibraryResult.ofItem(auto.root(), params)
-                    else LibraryResult.ofError(LibraryResult.RESULT_ERROR_PERMISSION_DENIED)
+                    else LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED)
                 )
 
                 override fun onGetChildren(
@@ -238,7 +239,7 @@ class PlaybackService : MediaLibraryService() {
                     pageSize: Int,
                     params: LibraryParams?,
                 ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = if (!mayBrowse(browser)) {
-                    Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_PERMISSION_DENIED))
+                    Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
                 } else background {
                     val all = auto.children(parentId)
                     val from = (page.toLong() * pageSize).coerceAtMost(all.size.toLong()).toInt()
@@ -251,9 +252,9 @@ class PlaybackService : MediaLibraryService() {
                     browser: MediaSession.ControllerInfo,
                     mediaId: String,
                 ): ListenableFuture<LibraryResult<MediaItem>> = if (!mayBrowse(browser)) {
-                    Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_PERMISSION_DENIED))
+                    Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
                 } else background {
-                    auto.item(mediaId)?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                    auto.item(mediaId)?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
                 }
 
                 /** Dodanie do kolejki z samochodu: pozycje bez adresu zamieniamy na pliki. */

@@ -12,6 +12,9 @@ data class PlaylistEntry(val path: String, val title: String = "", val artist: S
  */
 object M3u {
 
+    /** Znacznik kolejności bajtów, który Notatnik w Windows dopisuje na początku pliku. */
+    private const val BOM = "\uFEFF"
+
     fun export(name: String, tracks: List<TrackRef>): String = buildString {
         append("#EXTM3U\n")
         if (name.isNotBlank()) append("#PLAYLIST:").append(oneLine(name)).append('\n')
@@ -25,13 +28,13 @@ object M3u {
 
     /** Nazwa playlisty zapisana w pliku (#PLAYLIST albo nagłówek .pls), jeśli jest. */
     fun nameIn(text: String): String? = text.lineSequence()
-        .map { it.trim().removePrefix("﻿") }
+        .map { it.trim().removePrefix(BOM) }
         .firstOrNull { it.startsWith("#PLAYLIST:", ignoreCase = true) }
         ?.substringAfter(':')?.trim()?.ifBlank { null }
 
     /** Czyta .m3u / .m3u8 albo .pls; adresy internetowe (radio) pomija – to playlisty plików. */
     fun parse(text: String): List<PlaylistEntry> {
-        val lines = text.lines().map { it.trim().removePrefix("﻿") }
+        val lines = text.lines().map { it.trim().removePrefix(BOM) }
         return if (lines.any { it.equals("[playlist]", ignoreCase = true) }) parsePls(lines) else parseM3u(lines)
     }
 

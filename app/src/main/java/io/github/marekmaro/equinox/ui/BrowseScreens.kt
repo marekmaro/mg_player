@@ -120,36 +120,36 @@ fun SearchScreen(
 
     fun openResult(i: Int) {
         val r = results[i]
-            vm.rememberSearch(query)
-            val t = r.track
-            val g = r.group
-            val b = r.book
-            val p = r.playlist
-            val st = r.station
-            when {
-                t != null -> {
-                    // gra cały wynik wyszukiwania, zaczynając od wybranego utworu
-                    val list = results.mapNotNull { it.track }
-                    vm.playTracks(list, list.indexOf(t).coerceAtLeast(0))
-                    onPlaying()
-                }
-                g != null -> {
-                    vm.openGroup = g
-                    onOpenGroup()
-                }
-                b != null -> {
-                    vm.playBook(b)
-                    onPlaying()
-                }
-                p != null -> {
-                    vm.openPlaylistId = p.id
-                    onOpenPlaylist()
-                }
-                st != null -> {
-                    vm.playStation(st)
-                    onPlaying()
-                }
+        vm.rememberSearch(query)
+        val t = r.track
+        val g = r.group
+        val b = r.book
+        val p = r.playlist
+        val st = r.station
+        when {
+            t != null -> {
+                // gra cały wynik wyszukiwania, zaczynając od wybranego utworu
+                val list = results.mapNotNull { it.track }
+                vm.playTracks(list, list.indexOf(t).coerceAtLeast(0))
+                onPlaying()
             }
+            g != null -> {
+                vm.openGroup = g
+                onOpenGroup()
+            }
+            b != null -> {
+                vm.playBook(b)
+                onPlaying()
+            }
+            p != null -> {
+                vm.openPlaylistId = p.id
+                onOpenPlaylist()
+            }
+            st != null -> {
+                vm.playStation(st)
+                onPlaying()
+            }
+        }
     }
 
     KnobListScreen(

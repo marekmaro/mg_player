@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -192,13 +193,13 @@ fun <T> ScaleSelector(
 fun RingAction(
     glyph: String,
     label: String,
-    modifier: Modifier = Modifier.width(96.dp),
+    modifier: Modifier = Modifier,
     size: Dp = 60.dp,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val tick = Pal.Tick
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier.widthIn(min = size, max = 120.dp)) {
         Box(
             Modifier
                 .size(size)

@@ -13,7 +13,11 @@ class Prefs(context: Context) {
     // --- Kopia zapasowa: wszystkie ustawienia naraz ---
     fun all(): Map<String, *> = sp.all
 
-    /** Zastępuje zapisane dane wartościami z kopii (sesja odtwarzania i pamięć podręczna zostają). */
+    /**
+     * Zastępuje zapisane dane wartościami z kopii (sesja odtwarzania i pamięć podręczna zostają).
+     * commit() celowo: zaraz potem wszystko wczytujemy od nowa, więc zapis musi być już na dysku.
+     */
+    @android.annotation.SuppressLint("ApplySharedPref")
     fun restore(values: Map<String, Any>) {
         val e = sp.edit()
         sp.all.keys.filter { Backup.isBackedUp(it) }.forEach { e.remove(it) }
