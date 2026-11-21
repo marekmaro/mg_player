@@ -356,7 +356,7 @@ fun PlayingScreen(vm: PlayerViewModel, onBack: () -> Unit, onSessions: () -> Uni
         .padding(horizontal = 20.dp, vertical = 12.dp)
 
     Box(Modifier.fillMaxSize()) {
-        PlayingContent(vm, np, title, base, cfg, posture, wide, onBack, onSessions, onEditLayout) { showTutorial = true }
+        PlayingContent(vm, np, title, base, cfg, posture, wide, onBack, onSessions, onEditLayout, onQueue) { showTutorial = true }
         if (showTutorial && np.kind != null) {
             DialTutorial(onDone = {
                 showTutorial = false
@@ -378,6 +378,7 @@ private fun PlayingContent(
     onBack: () -> Unit,
     onSessions: () -> Unit,
     onEditLayout: () -> Unit,
+    onQueue: () -> Unit,
     onHelp: () -> Unit,
 ) {
     if (np.kind == null) {
