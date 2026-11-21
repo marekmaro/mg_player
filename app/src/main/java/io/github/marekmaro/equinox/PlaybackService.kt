@@ -68,6 +68,8 @@ class PlaybackService : MediaLibraryService() {
     /** Znaczniki ReplayGain bieżącego utworu i podbicie cichych nagrań. */
     private var gainTags = ReplayGainTags.NONE
     private val booster = Booster()
+    /** Akcelerometr – tylko w ostatniej minucie timera snu. */
+    private val shake by lazy { ShakeListener(this) { extendSleepByShake() } }
     /** Bieżący utwór zaczął się sam po poprzednim (a nie po przeskoku) – wtedy wchodzi łagodnie. */
     private var fadeInItem = false
 
@@ -167,6 +169,7 @@ class PlaybackService : MediaLibraryService() {
         Core.voiceForBooks = prefs.voiceForBooks
         Core.crossfadeSec = prefs.crossfadeSec
         Core.skipSilence = prefs.skipSilence
+        Core.shakeToExtend = prefs.shakeToExtend
         Core.replayGain = ReplayGainMode.entries.firstOrNull { it.name == prefs.replayGain } ?: ReplayGainMode.AUTO
         // język wybrany w aplikacji także wtedy, gdy serwis startuje bez niej (Android Auto, słuchawki)
         Lang.mode = LangMode.entries.firstOrNull { it.name == prefs.language } ?: LangMode.SYSTEM
@@ -417,6 +420,10 @@ class PlaybackService : MediaLibraryService() {
                 lastChapterPos = pos
 
                 // Timer snu z płynnym ściszaniem w ostatnich 15 s
+                // potrząśnięcie nasłuchujemy tylko wtedy, gdy ma sens (ostatnia minuta snu)
+                val sleepRem = Core.sleepEndAt?.let { it - System.currentTimeMillis() }
+                if (Core.shakeToExtend && sleepRem != null && sleepRem in 1..60_000) shake.start() else if (shake.active) shake.stop()
+
                 Core.sleepEndAt?.let { end ->
                     val rem = end - System.currentTimeMillis()
                     if (rem <= 0) {
@@ -436,6 +443,16 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
         }
+    }
+
+    /** Potrząśnięcie w ostatniej minucie: +5 min snu, pełna głośność i krótka wibracja. */
+    private fun extendSleepByShake() {
+        val end = Core.sleepEndAt ?: return
+        Core.sleepEndAt = maxOf(end, System.currentTimeMillis()) + Core.SHAKE_EXTEND_MS
+        sleepGain = 1f
+        session?.player?.let { updateVolume(it) }
+        shake.stop()
+        vibrateTick(this)
     }
 
     /** Głośność odtwarzacza = timer snu × płynne przejście × wyrównanie głośności. */
@@ -553,6 +570,7 @@ class PlaybackService : MediaLibraryService() {
         persist()
         sound.release()
         booster.release()
+        shake.stop()
         instance = null
         val lastTitle = session?.player?.mediaMetadata?.title?.toString()
         Companion.player = null

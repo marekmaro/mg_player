@@ -337,6 +337,9 @@ private fun ClockBlock() {
 private fun SessionsBlock(vm: PlayerViewModel, onSessions: () -> Unit) {
     val s = vm.sessions
     val text = when {
+        // w ostatniej minucie podpowiedź: potrząśnięcie dodaje 5 minut
+        s.sleepRemainingMs != null && s.sleepRemainingMs <= 60_000 && vm.shakeToExtend ->
+            tr("Sen ${fmt(s.sleepRemainingMs)} · potrząśnij: +5 min", "Sleep ${fmt(s.sleepRemainingMs)} · shake: +5 min")
         s.sleepRemainingMs != null -> tr("Sen ${fmt(s.sleepRemainingMs)}", "Sleep ${fmt(s.sleepRemainingMs)}")
         s.sleepAfterItem -> tr("Sen: po rozdziale", "Sleep: after chapter")
         s.stopwatchRemainingMs != null -> tr("Stoper ${fmt(s.stopwatchRemainingMs)}", "Timer ${fmt(s.stopwatchRemainingMs)}")

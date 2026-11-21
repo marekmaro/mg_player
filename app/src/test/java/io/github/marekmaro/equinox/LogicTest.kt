@@ -394,6 +394,32 @@ class LogicTest {
         assertEquals(0, T.decadeOf(0))
     }
 
+    // ---------- potrząśnij, aby przedłużyć sen ----------
+
+    @Test
+    fun shake_needsThreeDistinctJolts() {
+        val strong = 30f // ≈ 3 g
+        val calm = 9.8f  // telefon leży
+        // jedno szarpnięcie = kilka odczytów pod rząd (50 Hz) – to jeszcze nie potrząśnięcie
+        val a = ShakeLogic()
+        assertTrue((0 until 5).none { a.onSample(strong, 0f, 0f, 1_000L + it * 20) })
+        // spokojne leżenie nigdy
+        val b = ShakeLogic()
+        assertTrue((0 until 200).none { b.onSample(0f, 0f, calm, it * 20L) })
+        // trzy wyraźne ruchy w niecałą sekundę – tak
+        val c = ShakeLogic()
+        assertTrue(!c.onSample(strong, 0f, 0f, 0))
+        assertTrue(!c.onSample(-strong, 0f, 0f, 250))
+        assertTrue(c.onSample(strong, 0f, 0f, 500))
+        // zaraz potem przerwa – drugie potrząśnięcie liczy się dopiero po 2 s
+        assertTrue(!c.onSample(strong, 0f, 0f, 800))
+        assertTrue(!c.onSample(strong, 0f, 0f, 1_000))
+        assertTrue(!c.onSample(strong, 0f, 0f, 1_200))
+        // zbyt wolno (ruchy co sekundę) – nie
+        val d = ShakeLogic()
+        assertTrue(listOf(0L, 1_000L, 2_000L, 3_000L).none { d.onSample(strong, 0f, 0f, it) })
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

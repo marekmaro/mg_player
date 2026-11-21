@@ -179,6 +179,19 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    Section(tr("Timer snu", "Sleep timer")) {
+                        SwitchRow(tr("Potrząśnij, aby przedłużyć", "Shake to extend"), vm.shakeToExtend) { vm.changeShakeToExtend(!vm.shakeToExtend) }
+                        Text(
+                            tr(
+                                "W ostatniej minucie przed wyłączeniem potrząśnij telefonem – muzyka zagra jeszcze 5 minut, a telefon krótko zawibruje. Nie trzeba otwierać oczu.",
+                                "In the last minute before it stops, shake the phone – playback continues for 5 more minutes and the phone buzzes briefly. No need to open your eyes.",
+                            ),
+                            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+                        )
+                    }
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Audiobooki", "Audiobooks")) {
                         SwitchRow(tr("Pomijaj ciszę", "Skip silence"), vm.skipSilence) { vm.changeSkipSilence(!vm.skipSilence) }
                         Text(

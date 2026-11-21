@@ -177,6 +177,11 @@ class Prefs(context: Context) {
         get() = sp.getString("replay_gain", "AUTO") ?: "AUTO"
         set(v) = sp.edit().putString("replay_gain", v).apply()
 
+    // --- Sen: potrząśnij, aby przedłużyć ---
+    var shakeToExtend: Boolean
+        get() = sp.getBoolean("shake_extend", true)
+        set(v) = sp.edit().putBoolean("shake_extend", v).apply()
+
     // --- Audiobooki: pomijanie ciszy ---
     var skipSilence: Boolean
         get() = sp.getBoolean("skip_silence", false)

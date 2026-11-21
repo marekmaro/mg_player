@@ -785,6 +785,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         marks = prefs.marks()
         bookmarks = prefs.bookmarks()
         changeSkipSilence(prefs.skipSilence)
+        changeShakeToExtend(prefs.shakeToExtend)
         changeReplayGain(ReplayGainMode.entries.firstOrNull { it.name == prefs.replayGain } ?: ReplayGainMode.AUTO)
         changeCrossfade(prefs.crossfadeSec)
         smartShuffleOn = prefs.smartShuffle
@@ -852,6 +853,16 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         Core.replayGain = m
         prefs.replayGain = m.name
         PlaybackService.refreshSound()
+    }
+
+    // ---------------------------------------------------------------- Sen: potrząśnij, aby przedłużyć
+
+    var shakeToExtend by mutableStateOf(prefs.shakeToExtend); private set
+
+    fun changeShakeToExtend(on: Boolean) {
+        shakeToExtend = on
+        Core.shakeToExtend = on
+        prefs.shakeToExtend = on
     }
 
     // ---------------------------------------------------------------- Audiobooki: pomijanie ciszy

@@ -47,6 +47,10 @@ object Core {
     /** Wyrównanie głośności (ReplayGain). */
     var replayGain: ReplayGainMode = ReplayGainMode.AUTO
 
+    /** Potrząśnięcie telefonem w ostatniej minucie timera snu dodaje [SHAKE_EXTEND_MS]. */
+    var shakeToExtend: Boolean = true
+    const val SHAKE_EXTEND_MS = 5 * 60_000L
+
     /** Audiobooki: pomijanie dłuższej ciszy (przerwy lektora są krótsze, słucha się szybciej). */
     var skipSilence: Boolean = false
 
@@ -139,6 +143,16 @@ fun CoroutineScope.playChime(chime: Chime) {
         } finally {
             try { track?.release() } catch (e: Exception) {}
         }
+    }
+}
+
+/** Krótkie „puknięcie” – potwierdzenie bez patrzenia na ekran (np. sen przedłużony). */
+fun vibrateTick(context: Context) {
+    try {
+        @Suppress("DEPRECATION")
+        val v = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        v?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 60, 80, 60), -1))
+    } catch (e: Exception) {
     }
 }
 
