@@ -312,11 +312,15 @@ private fun BackupSection(vm: PlayerViewModel) {
             ),
             color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
         )
-        LinkRow(tr("Zapisz kopię do pliku", "Save a backup file")) {
-            save.launch("equinox-${java.time.LocalDate.now()}.json")
-        }
-        LinkRow(tr("Odtwórz z pliku", "Restore from a file")) {
-            open.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            RingAction("↓", tr("Zapisz kopię", "Save backup")) {
+                vm.backupMessage = null
+                save.launch("equinox-${java.time.LocalDate.now()}.json")
+            }
+            RingAction("↺", tr("Odtwórz z pliku", "Restore")) {
+                vm.backupMessage = null
+                open.launch(arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
+            }
         }
         val pending = confirm
         if (pending != null) {
