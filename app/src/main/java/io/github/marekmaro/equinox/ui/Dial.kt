@@ -126,6 +126,9 @@ fun <T> ScaleSelector(
     val tick = Pal.Tick
     val major = Pal.Muted
     val accent = Pal.Accent
+    // długie podpisy (np. „Time of day” przy czterech opcjach) – mniejsza czcionka, żeby się zmieściły
+    val longest = options.maxOf { it.first.length }
+    val fontSize = if (longest * n > 34) 10.sp else 12.sp
     Column(modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(18.dp)) {
             val y = this.size.height - 2.dp.toPx()
@@ -172,7 +175,7 @@ fun <T> ScaleSelector(
                         label,
                         color = if (on) Pal.Accent else Pal.Muted,
                         fontFamily = Mono,
-                        fontSize = 12.sp,
+                        fontSize = fontSize,
                         fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                         textAlign = TextAlign.Center,
                         maxLines = 1,

@@ -119,7 +119,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
 
                 Staggered(progress, next()) {
                     Section(tr("Język", "Language")) {
-                        ChoiceRow(
+                        ScaleSelector(
                             listOf(tr("Telefon", "Phone") to LangMode.SYSTEM, "Polski" to LangMode.PL, "English" to LangMode.EN),
                             Lang.mode,
                         ) { vm.changeLanguage(it) }
@@ -128,7 +128,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
 
                 Staggered(progress, next()) {
                     Section(tr("Wygląd", "Look")) {
-                        ChoiceRow(
+                        ScaleSelector(
                             listOf(
                                 tr("Telefon", "Phone") to ThemeMode.SYSTEM,
                                 tr("Pora dnia", "Time of day") to ThemeMode.AUTO,
@@ -138,7 +138,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                             ThemeState.mode,
                         ) { vm.changeTheme(it) }
                         Text(tr("Środek pierścienia", "Centre of the ring"), color = Pal.Muted, fontSize = 12.sp)
-                        ChoiceRow(
+                        ScaleSelector(
                             listOf(tr("Okładka", "Cover") to true, tr("Ciekawostka", "Fun fact") to false),
                             vm.showCovers,
                         ) { vm.changeShowCovers(it) }
@@ -206,7 +206,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
 
                 Staggered(progress, next()) {
                     Section(tr("Płynne przejścia", "Crossfade")) {
-                        ChoiceRow(
+                        ScaleSelector(
                             listOf(tr("Wył.", "Off") to 0, "3 s" to 3, "6 s" to 6, "10 s" to 10),
                             vm.crossfadeSec,
                         ) { vm.changeCrossfade(it) }
@@ -222,7 +222,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
 
                 Staggered(progress, next()) {
                     Section(tr("Losowanie", "Shuffle")) {
-                        ChoiceRow(
+                        ScaleSelector(
                             listOf(tr("Mądre", "Smart") to true, tr("Zwykłe", "Plain") to false),
                             vm.smartShuffleOn,
                         ) { vm.changeSmartShuffle(it) }
@@ -238,7 +238,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
 
                 Staggered(progress, next()) {
                     Section(tr("Pokrętło", "Dial")) {
-                        ChoiceRow(
+                        ScaleSelector(
                             listOf(tr("Spokojne", "Calm") to 0, tr("Zwykłe", "Normal") to 1, tr("Szybkie", "Fast") to 2),
                             KnobSettings.speed,
                         ) { vm.changeKnobSpeed(it) }
@@ -403,20 +403,6 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
     }
 }
 
-@Composable
-private fun <T> ChoiceRow(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Unit) {
-    // więcej niż 3 opcje = dwa rzędy, żeby napisy mieściły się także na małych telefonach
-    val rows = if (options.size > 3) options.chunked(2) else listOf(options)
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        rows.forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEach { (label, value) ->
-                    Chip(label, modifier = Modifier.weight(1f), selected = value == selected) { onSelect(value) }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun SwitchRow(label: String, on: Boolean, onToggle: () -> Unit) {

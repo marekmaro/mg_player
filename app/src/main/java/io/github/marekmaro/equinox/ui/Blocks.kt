@@ -3,7 +3,6 @@ package io.github.marekmaro.equinox.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -134,31 +133,31 @@ private fun TitleBlock(vm: PlayerViewModel) {
 private fun PlayModeRow(vm: PlayerViewModel) {
     val np = vm.nowPlaying
     if (np.kind == Kind.RADIO) return
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(vertical = 6.dp)) {
         np.trackId?.let { id ->
             val fav = id in vm.favoriteIds
-            ToggleGlyph(if (fav) "♥" else "♡", fav, if (fav) tr("Usuń z ulubionych", "Remove from favourites") else tr("Dodaj do ulubionych", "Add to favourites")) {
+            RingToggle(if (fav) "♥" else "♡", fav, if (fav) tr("Usuń z ulubionych", "Remove from favourites") else tr("Dodaj do ulubionych", "Add to favourites")) {
                 vm.toggleFavorite(id)
             }
             // ✦ pozostałe znaczniki: ★ Perełki, ☼ Na dzień, ☾ Na noc
             val others = vm.marksOf(id) - io.github.marekmaro.equinox.Mark.HEART
             var picking by remember { mutableStateOf(false) }
             if (picking) MarksDialog(vm, id, onDismiss = { picking = false })
-            ToggleGlyph(
+            RingToggle(
                 if (others.isEmpty()) "✦" else io.github.marekmaro.equinox.marksGlyphs(others),
                 others.isNotEmpty(),
                 tr("Znaczniki", "Marks"),
             ) { picking = true }
         }
         if (np.kind == Kind.MUSIC) {
-            ToggleGlyph("⤨", np.shuffle, if (np.shuffle) tr("Losowo: włączone", "Shuffle: on") else tr("Losowo: wyłączone", "Shuffle: off")) { vm.toggleShuffle() }
+            RingToggle("⤨", np.shuffle, if (np.shuffle) tr("Losowo: włączone", "Shuffle: on") else tr("Losowo: wyłączone", "Shuffle: off")) { vm.toggleShuffle() }
         }
         val (glyph, label) = when (np.repeat) {
             Player.REPEAT_MODE_ALL -> "↻" to tr("Powtarzaj wszystko", "Repeat all")
             Player.REPEAT_MODE_ONE -> "↻1" to tr("Powtarzaj jeden", "Repeat one")
             else -> "↻" to tr("Powtarzanie wyłączone", "Repeat off")
         }
-        ToggleGlyph(glyph, np.repeat != Player.REPEAT_MODE_OFF, label) { vm.cycleRepeat() }
+        RingToggle(glyph, np.repeat != Player.REPEAT_MODE_OFF, label) { vm.cycleRepeat() }
     }
 }
 
@@ -198,33 +197,12 @@ fun MarksDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Unit) {
     )
 }
 
-@Composable
-private fun ToggleGlyph(text: String, active: Boolean, description: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (active) Pal.AccentDim else Pal.Bg)
-            .border(1.dp, if (active) Pal.Accent else Pal.Line, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = if (active) Pal.Accent else Pal.Muted, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
 
 @Composable
 private fun ModesBlock(vm: PlayerViewModel) {
-    val isRadio = vm.nowPlaying.kind == Kind.RADIO
-    val mode = vm.effectiveRingMode
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        RingMode.entries.forEach { m ->
-            if (!(isRadio && m != RingMode.VOLUME)) {
-                Chip(m.label, modifier = Modifier.weight(1f), selected = m == mode) { vm.ringMode = m }
-            }
-        }
-    }
+    // radio da się tylko ściszać i pogłaśniać – wybór trybu nie ma wtedy sensu
+    if (vm.nowPlaying.kind == Kind.RADIO) return
+    ScaleSelector(RingMode.entries.map { it.label to it }, vm.effectiveRingMode) { vm.ringMode = it }
 }
 
 @Composable
@@ -262,17 +240,13 @@ private fun BookBlock(vm: PlayerViewModel) {
             RingAction("☰", if (n > 0) tr("Zakładki · $n", "Bookmarks · $n") else tr("Zakładki", "Bookmarks"), cell, size = 52.dp) { listOpen = true }
             RingAction("+30", tr("30 s dalej", "Forward 30 s"), cell, size = 52.dp) { vm.seekBy(30_000) }
         }
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            listOf(0.8f, 1f, 1.25f, 1.5f, 2f).forEach { v ->
-                Chip(
-                    text = "${if (v % 1f == 0f) v.toInt().toString() else v.toString()}×",
-                    selected = kotlin.math.abs(np.speed - v) < 0.01f,
-                ) { vm.setSpeed(v) }
-            }
-        }
+        // prędkość jako skala: znacznik przesuwa się jak wskazówka
+        val speeds = listOf(0.8f, 1f, 1.25f, 1.5f, 2f)
+        val current = speeds.minByOrNull { kotlin.math.abs(np.speed - it) } ?: 1f
+        ScaleSelector(
+            speeds.map { v -> "${if (v % 1f == 0f) v.toInt().toString() else v.toString()}×" to v },
+            current,
+        ) { vm.setSpeed(it) }
     }
 }
 
