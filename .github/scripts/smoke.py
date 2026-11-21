@@ -217,6 +217,17 @@ if tap("Ułóż ekran|Arrange screen", required=False, zone=LOW):
     shot("05d-teraz-gra-z-klockami")
     expect("NASTĘPNE|UP NEXT", "klocek Następne na ekranie", zone=LOW)
 
+# Kolejka: ekran z całą kolejką i okno przesuwania utworu
+if tap("Kolejka ›|Queue ›", required=False, zone=LOW) or tap("☰ Kolejka|☰ Queue", required=False, zone=LOW):
+    time.sleep(1)
+    shot("05e-kolejka")
+    expect("Wyczyść dalsze|Clear upcoming", "ekran kolejki")
+    if tap("Szum miasta", required=False):
+        expect("Wyżej|Up", "okno pozycji kolejki")
+        tap("Gotowe|Done", exact=True, required=False)
+    back()
+    time.sleep(1)
+
 back()
 back()
 
@@ -231,6 +242,17 @@ expect("AUDIOBOOK", "audiobook", critical=True)
 tap("1.5×", exact=True, required=False, zone=LOW)
 time.sleep(1)
 shot("08-audiobook-predkosc")
+# Zakładka z notatką i lista zakładek
+if tap("Zakładka|Bookmark", desc=True, required=False, zone=LOW):
+    expect("Notatka|Note", "okno nowej zakładki")
+    tap("Zapisz|Save", exact=True, required=False)
+    if tap("Zakładki|Bookmarks", desc=True, required=False, zone=LOW):
+        shot("08b-zakladki")
+        if find("Usuń zakładkę|Delete bookmark", desc=True):
+            note("OK [zakładki]: zapisana zakładka jest na liście")
+        else:
+            warnings.append("[zakładki] zapisanej zakładki nie ma na liście")
+        tap("Gotowe|Done", exact=True, required=False)
 back()
 back()
 
@@ -342,6 +364,11 @@ tap("Muzyka|Music", exact=True)
 tap("Wykonawcy|Artists", exact=True)
 shot("25-wykonawcy")
 expect("Nieznany wykonawca|Unknown artist", "lista wykonawców")
+back()
+time.sleep(1)
+# pliki testowe nie mają gatunku – ekran ma to uczciwie powiedzieć, a nie być pusty
+tap("Gatunki|Genres", exact=True, required=False)
+expect("nie mają zapisanych gatunków|have no genre tags", "lista gatunków")
 go_home()
 tap("Szukaj|Search", exact=True)
 time.sleep(1)
