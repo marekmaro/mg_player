@@ -80,6 +80,14 @@ Przegląd nowych funkcji (rozdziały Apple, płynne przejścia, kopia zapasowa, 
 | Audiobook lub radio dodane z samochodu do kolejki nie zmieniało trybu (zapis miejsca, rozdziały) | tryb ustawiany; audiobook nie dokleja się do muzyki |
 | Utwór grany w kółko („powtórz jeden”) liczył się tylko raz | liczy się każde odtworzenie |
 
+## 5b. Wersja 0.14 – nowe funkcje i testy
+
+Zakładki w audiobookach, pomijanie ciszy, wyrównanie głośności (ReplayGain), edycja kolejki, gatunki i lata, „potrząśnij, aby przedłużyć sen”, udostępnianie i dzwonek, playlisty .m3u oraz styl „Podziałka”. Każda funkcja ma testy jednostkowe logiki (zakładki, ReplayGain dla ID3/Vorbis/Opus/MP4, rozpoznawanie potrząśnięcia, gatunki i lata, M3U/PLS z plikami z Windowsa, dopasowanie utworów bez zgadywania), a test na emulatorze przechodzi przez kolejkę, zakładki i gatunki.
+
+- ✅ Czujnik ruchu działa tylko w ostatniej minucie timera snu (bateria, prywatność).
+- ✅ Zgoda na zmianę dzwonka jest prośbą systemową, o którą aplikacja pyta dopiero po wybraniu „Jako dzwonek”.
+- ⚠️ Podbicie cichych nagrań (ReplayGain > 0 dB) korzysta z systemowego efektu LoudnessEnhancer – na nielicznych telefonach bez niego ciche nagrania zostają ciche.
+
 ## 6. Znane ograniczenia (do kolejnych wersji)
 
 - 🔧 Rozdziały wewnątrz plików M4B/M4A w obu formatach: Nero „chpl” (ffmpeg) i Apple (osobna ścieżka tekstowa, iTunes/Audible; ścieżka z obrazkami rozdziałów jest pomijana) – numer i tytuł, przeskakiwanie, „sen po rozdziale”.

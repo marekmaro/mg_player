@@ -131,7 +131,7 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                         ScaleSelector(
                             listOf(
                                 tr("Telefon", "Phone") to ThemeMode.SYSTEM,
-                                tr("Pora dnia", "Time of day") to ThemeMode.AUTO,
+                                tr("Pora dnia", "By hour") to ThemeMode.AUTO,
                                 tr("Dzień", "Day") to ThemeMode.DAY,
                                 tr("Noc", "Night") to ThemeMode.NIGHT,
                             ),
