@@ -51,6 +51,12 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
     // na górze trzy playlisty automatyczne: Ulubione, Ostatnio dodane, Najczęściej słuchane
     val smart = remember(vm.tracks, vm.marks) { vm.smartGroups() }
 
+    val importer = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.importPlaylist(uri) { id ->
+            vm.openPlaylistId = id
+            onOpenPlaylist()
+        }
+    }
     if (creating) {
         NameDialog(
             title = tr("Nowa playlista", "New playlist"),
@@ -82,7 +88,14 @@ fun PlaylistsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenPlaylist: () 
         },
         emptyText = tr("Nie masz jeszcze playlist.\nUtwórz pierwszą przyciskiem powyżej.", "No playlists yet.\nCreate your first one with the button above."),
     ) {
-        Chip(tr("+ Nowa playlista", "+ New playlist"), modifier = Modifier.fillMaxWidth(), selected = true) { creating = true }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Chip(tr("+ Nowa playlista", "+ New playlist"), modifier = Modifier.weight(1f), selected = true) { creating = true }
+            Chip(tr("Wczytaj .m3u", "Import .m3u"), modifier = Modifier.weight(1f)) {
+                vm.playlistFileMessage = null
+                importer.launch(arrayOf("audio/x-mpegurl", "audio/mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", "audio/x-scpls", "text/plain", "application/octet-stream", "*/*"))
+            }
+        }
+        vm.playlistFileMessage?.let { Text(it, color = Pal.Accent, fontSize = 13.sp) }
     }
 }
 
@@ -97,6 +110,9 @@ fun PlaylistScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         return
     }
     val tracks = vm.playlistTracks(p)
+    val exporter = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("audio/x-mpegurl")
+    ) { uri -> if (uri != null) vm.exportPlaylist(p, uri) }
     var renaming by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
 
@@ -141,8 +157,13 @@ fun PlaylistScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Uni
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Chip(tr("Zmień nazwę", "Rename"), modifier = Modifier.weight(1f)) { renaming = true }
-            Chip(tr("Usuń playlistę", "Delete playlist"), modifier = Modifier.weight(1f)) { deleting = true }
+            Chip(tr("Zapisz .m3u", "Save .m3u"), modifier = Modifier.weight(1f)) {
+                vm.playlistFileMessage = null
+                exporter.launch(p.name.replace(Regex("[\\\\/:*?\"<>|]"), "_") + ".m3u8")
+            }
+            Chip(tr("Usuń", "Delete"), modifier = Modifier.weight(1f)) { deleting = true }
         }
+        vm.playlistFileMessage?.let { Text(it, color = Pal.Accent, fontSize = 13.sp) }
     }
 }
 

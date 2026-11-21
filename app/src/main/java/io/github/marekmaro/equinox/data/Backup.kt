@@ -1,6 +1,5 @@
 package io.github.marekmaro.equinox.data
 
-import io.github.marekmaro.equinox.normalizeForSearch
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -15,8 +14,7 @@ data class RestoreResult(val values: Map<String, Any>, val tracksFound: Int, val
  * ulubione stacje, reguły folderów, pozycje audiobooków, statystyki i ustawienia.
  *
  * Utwory są zapisane z opisem (ścieżka, tytuł, wykonawca, długość), więc po przeniesieniu
- * na nowy telefon lub po ponownej instalacji odnajdujemy je po ścieżce, a gdy pliki leżą
- * gdzie indziej – po tytule i wykonawcy.
+ * na nowy telefon lub po ponownej instalacji odnajdujemy je przez [TrackMatcher].
  */
 object Backup {
 
@@ -70,24 +68,14 @@ object Backup {
         require(root.optInt("format", 0) in 1..FORMAT) { "unsupported format" }
 
         // stare id -> nowe id
-        val byPath = library.associateBy { it.path.lowercase() }
-        val byTail = library.groupBy { tail(it.path) }
-        val byName = library.groupBy { nameKey(it.title, it.artist) }
+        val matcher = TrackMatcher(library)
         val saved = root.optJSONObject("tracks") ?: JSONObject()
         val map = HashMap<Long, Long>()
         var missing = 0
         saved.keys().forEach { k ->
             val old = k.toLongOrNull() ?: return@forEach
             val o = saved.optJSONObject(k) ?: return@forEach
-            val path = o.optString("path")
-            val dur = o.optLong("dur")
-            val name = nameKey(o.optString("title"), o.optString("artist"))
-            val title = normalizeForSearch(o.optString("title"))
-            fun closest(list: List<TrackRef>?) = list?.minByOrNull { kotlin.math.abs(it.durationMs - dur) }
-            val found = (if (path.isNotBlank()) byPath[path.lowercase()] else null)
-                // ten sam folder i plik (np. inna karta SD) – ale „CD1/01.mp3” bywa w wielu albumach, więc tytuł też musi się zgadzać
-                ?: (if (path.isNotBlank()) closest(byTail[tail(path)]?.filter { normalizeForSearch(it.title) == title }) else null)
-                ?: closest(byName[name])
+            val found = matcher.find(o.optString("path"), o.optString("title"), o.optString("artist"), o.optLong("dur"))
             if (found != null) map[old] = found.id else missing++
         }
 
@@ -110,11 +98,6 @@ object Backup {
     }
 
     // ---------------------------------------------------------------- pomocnicze
-
-    /** Ostatni folder + nazwa pliku – zwykle taka sama na każdym telefonie i karcie SD. */
-    private fun tail(path: String): String = path.lowercase().split('/').filter { it.isNotEmpty() }.takeLast(2).joinToString("/")
-
-    private fun nameKey(title: String, artist: String) = normalizeForSearch(title) + "|" + normalizeForSearch(artist)
 
     private fun idsIn(key: String, json: String): List<Long> = try {
         when (key) {

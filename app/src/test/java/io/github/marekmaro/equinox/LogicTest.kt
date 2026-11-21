@@ -420,6 +420,57 @@ class LogicTest {
         assertTrue(listOf(0L, 1_000L, 2_000L, 3_000L).none { d.onSample(strong, 0f, 0f, it) })
     }
 
+    // ---------- playlisty .m3u ----------
+
+    @Test
+    fun m3u_roundTripAndForeignFiles() {
+        val M = io.github.marekmaro.equinox.data.M3u
+        val lib = listOf(
+            io.github.marekmaro.equinox.data.TrackRef(1, "/storage/emulated/0/Music/Kult/Spokojnie/01 Arahja.mp3", "Arahja", "Kult", 245_000),
+            io.github.marekmaro.equinox.data.TrackRef(2, "/storage/emulated/0/Music/Dżem/Najemnik/02 List do M.mp3", "List do M.", "Dżem", 300_000),
+            io.github.marekmaro.equinox.data.TrackRef(3, "/storage/emulated/0/Download/x.mp3", "Bez opisu", "", 60_000),
+        )
+        // zapis i odczyt naszego pliku
+        val text = M.export("Wieczór", lib.take(2))
+        assertTrue(text.startsWith("#EXTM3U\n#PLAYLIST:Wieczór\n#EXTINF:245,Kult - Arahja\n"))
+        assertEquals("Wieczór", M.nameIn(text))
+        val back = M.parse(text)
+        assertEquals(listOf("Arahja", "List do M."), back.map { it.title })
+        assertEquals("Dżem", back[1].artist)
+        assertEquals(300_000L, back[1].durationMs)
+
+        // plik z Windowsa (foobar2000): ścieżki z ukośnikami wstecz, BOM, adres radia do pominięcia
+        val win = "\uFEFF#EXTM3U\r\n#EXTINF:245,Kult - Arahja\r\nD:\\Muzyka\\Spokojnie\\01 Arahja.mp3\r\n" +
+            "http://radio.example/stream\r\nE:\\Inne\\Najemnik\\02 List do M.mp3\r\n"
+        val entries = M.parse(win)
+        assertEquals(2, entries.size)
+        val matcher = io.github.marekmaro.equinox.data.TrackMatcher(lib)
+        val ids = entries.mapNotNull { matcher.find(it.path, it.title, it.artist, it.durationMs)?.id }
+        assertEquals(listOf(1L, 2L), ids)
+
+        // .pls z file:// i opisem
+        val pls = "[playlist]\nFile1=file:///sdcard/Download/x.mp3\nTitle1=Bez opisu\nLength1=60\nNumberOfEntries=1\n"
+        val p = M.parse(pls).single()
+        assertEquals("/sdcard/Download/x.mp3", p.path)
+        assertEquals(3L, matcher.find(p.path, p.title, p.artist, p.durationMs)?.id)
+    }
+
+    @Test
+    fun trackMatcher_doesNotGuess() {
+        val lib = listOf(
+            io.github.marekmaro.equinox.data.TrackRef(1, "/m/AlbumA/CD1/01.mp3", "Intro", "A", 60_000),
+            io.github.marekmaro.equinox.data.TrackRef(2, "/m/AlbumB/CD1/01.mp3", "Overture", "B", 90_000),
+            io.github.marekmaro.equinox.data.TrackRef(3, "/m/x/Intro.mp3", "Intro", "C", 61_000),
+        )
+        val m = io.github.marekmaro.equinox.data.TrackMatcher(lib)
+        // ten sam „CD1/01.mp3”, ale znany tytuł wskazuje właściwy album
+        assertEquals(2L, m.find("/sd/AlbumB/CD1/01.mp3", "Overture", "", 0)?.id)
+        // sam tytuł bez wykonawcy, a pasuje do dwóch utworów – nie zgadujemy
+        assertEquals(null, m.find("", "Intro", "", 0))
+        // tytuł + wykonawca – jednoznacznie
+        assertEquals(3L, m.find("", "intro", "c", 0)?.id)
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

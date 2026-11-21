@@ -499,6 +499,69 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         return id
     }
 
+    // ---------------- Playlisty jako pliki .m3u (do komputera i innych odtwarzaczy)
+
+    /** Komunikat po zapisie lub wczytaniu playlisty z pliku. */
+    var playlistFileMessage by mutableStateOf<String?>(null)
+
+    fun exportPlaylist(p: Playlist, uri: android.net.Uri) {
+        viewModelScope.launch {
+            playlistFileMessage = try {
+                val refs = playlistTracks(p).map { io.github.marekmaro.equinox.data.TrackRef(it.id, it.path, it.title, it.artist, it.durationMs) }
+                val text = io.github.marekmaro.equinox.data.M3u.export(p.name, refs)
+                withContext(Dispatchers.IO) {
+                    getApplication<Application>().contentResolver.openOutputStream(uri, "w")?.use { it.write(text.toByteArray()) }
+                        ?: error("no stream")
+                }
+                tr("Zapisano ${refs.size} utw. ✓", "Saved ${refs.size} songs ✓")
+            } catch (e: Exception) {
+                tr("Nie udało się zapisać playlisty.", "Couldn't save the playlist.")
+            }
+        }
+    }
+
+    /**
+     * Wczytuje .m3u / .m3u8 / .pls jako nową playlistę: utwory odnajdujemy w bibliotece
+     * (ścieżka, folder + plik, tytuł i wykonawca). Zwraca przez [onCreated] id nowej playlisty.
+     */
+    fun importPlaylist(uri: android.net.Uri, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            try {
+                val text = withContext(Dispatchers.IO) {
+                    app.contentResolver.openInputStream(uri)?.use { String(it.readBytes(), Charsets.UTF_8) } ?: error("no stream")
+                }
+                val entries = io.github.marekmaro.equinox.data.M3u.parse(text)
+                if (entries.isEmpty()) {
+                    playlistFileMessage = tr("W tym pliku nie ma utworów z telefonu.", "This file has no songs from the phone.")
+                    return@launch
+                }
+                val ids = withContext(Dispatchers.Default) {
+                    val matcher = io.github.marekmaro.equinox.data.TrackMatcher(
+                        allTracks.map { io.github.marekmaro.equinox.data.TrackRef(it.id, it.path, it.title, it.artist, it.durationMs) }
+                    )
+                    entries.mapNotNull { e -> matcher.find(e.path, e.title, e.artist, e.durationMs)?.id }.distinct()
+                }
+                val name = io.github.marekmaro.equinox.data.M3u.nameIn(text)
+                    ?: displayName(uri)?.substringBeforeLast('.')
+                    ?: tr("Wczytana playlista", "Imported playlist")
+                val id = createPlaylist(name)
+                savePlaylists(playlists.map { if (it.id == id) it.copy(trackIds = ids) else it })
+                val missing = entries.size - ids.size
+                playlistFileMessage = if (missing <= 0) tr("Wczytano ${ids.size} utw. ✓", "Imported ${ids.size} songs ✓")
+                else tr("Wczytano ${ids.size} utw., nie znaleziono $missing.", "Imported ${ids.size} songs, $missing not found.")
+                onCreated(id)
+            } catch (e: Exception) {
+                playlistFileMessage = tr("Nie udało się wczytać tego pliku.", "Couldn't read this file.")
+            }
+        }
+    }
+
+    private fun displayName(uri: android.net.Uri): String? = try {
+        getApplication<Application>().contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+    } catch (e: Exception) { null }
+
     fun renamePlaylist(id: Long, name: String) =
         savePlaylists(playlists.map { if (it.id == id) it.copy(name = name.trim().ifBlank { it.name }) else it })
 
