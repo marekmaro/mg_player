@@ -37,7 +37,11 @@ Serwery tych usług, jak każda strona internetowa, widzą adres IP Twojego poł
 | Powiadomienia | Powiadomienie z przyciskami odtwarzania |
 | Internet | Radio i ciekawostki (punkt 3) |
 | Działanie w tle (odtwarzanie) | Muzyka gra przy zgaszonym ekranie |
-| Wibracje | Delikatne „kliknięcia” pokrętła i sygnał końca stopera |
+| Wibracje | Delikatne „kliknięcia” pokrętła, sygnał końca stopera i potwierdzenie przedłużenia snu |
+| Modyfikowanie ustawień systemu (włączasz je sam, tylko jeśli chcesz) | Wyłącznie „Ustaw jako dzwonek” – zmiana dzwonka telefonu na wybrany utwór |
+| Czujnik ruchu (bez osobnej zgody) | Tylko w ostatniej minucie timera snu, żeby potrząśnięcie mogło go przedłużyć. Dane z czujnika nie są zapisywane ani wysyłane |
+
+Pliki, które sam zapisujesz – kopia zapasowa (.json) i playlisty (.m3u) – trafiają wyłącznie tam, gdzie wskażesz w systemowym oknie wyboru pliku. Aplikacja nigdzie ich nie wysyła.
 
 ## 5. Płatności
 Jeśli w przyszłości pojawi się wersja Pro albo „Postaw kawę”, płatności obsłuży **Google Play**. Twórca nie widzi danych karty ani danych płatnika. Dostaje tylko informację, że zakup się odbył.

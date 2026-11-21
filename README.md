@@ -6,8 +6,17 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.13)
+## Co już działa (wersja 0.14)
 
+- **Zakładki w audiobookach**: ⚑ zapamiętuje miejsce (z notatką, np. „ważny cytat”), ☰ pokazuje listę zakładek książki; dotknięcie przenosi w to miejsce, także z innej książki.
+- **Pomijanie ciszy w audiobookach** (w ustawieniach): dłuższe przerwy lektora są skracane, muzyka gra bez zmian.
+- **Wyrównanie głośności (ReplayGain)**: odczyt znaczników z MP3 (ID3), FLAC/OGG/Opus i M4A; tryby Wył. / Auto (losowo – utwór, po kolei – album) / Utwór / Album. Ciche nagrania są podbijane najwyżej o 6 dB.
+- **Kolejka**: ekran z całą kolejką – przesuwanie wyżej i niżej, „graj teraz”, usuwanie i „wyczyść dalsze”.
+- **Gatunki i lata**: przeglądanie muzyki po gatunku (także „Rock; Blues” jako dwa gatunki) i po dekadach; gatunki w wyszukiwarce i w Android Auto.
+- **Potrząśnij, aby przedłużyć sen**: w ostatniej minucie timera potrząśnięcie dodaje 5 minut i krótko wibruje; czujnik działa tylko wtedy.
+- **Udostępnij i dzwonek**: w oknie utworu (przycisk „+”) – „↗ Udostępnij” i „☏ Jako dzwonek” (za zgodą systemu).
+- **Playlisty .m3u**: zapis playlisty do pliku .m3u8 i wczytywanie .m3u / .m3u8 / .pls, także z komputera (foobar2000, VLC, Winamp) – utwory są odnajdywane po ścieżce, folderze i nazwie pliku albo po tytule i wykonawcy.
+- **Styl „Podziałka”**: przyciski nawiązują do tarczy – okrągłe przełączniki z łukiem, wybory jako skala ze znacznikiem.
 - **Android Auto**: w samochodzie przeglądasz ♥ Ulubione, Ostatnio grane, playlisty, wykonawców, albumy, audiobooki (wznawiane w zapamiętanym miejscu) i ulubione stacje radia; działa też „Odtwórz … w Equinox” głosem. Bibliotekę widzą tylko zaufane aplikacje (Android Auto, system).
 - **Płynne przejścia** (3 / 6 / 10 s, tylko muzyka): koniec utworu cichnie, a następny łagodnie się pojawia; działa razem z wyciszaniem timera snu.
 - **Kopia zapasowa do pliku**: playlisty, znaczniki, liczba odtworzeń, ulubione stacje, reguły folderów, miejsca w audiobookach, statystyki i ustawienia w jednym pliku JSON (np. na Dysku Google). Na nowym telefonie utwory są odnajdywane po ścieżce albo po tytule i wykonawcy.

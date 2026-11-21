@@ -460,7 +460,10 @@ fun PrivacyScreen(onBack: () -> Unit) {
         PrivacySection(tr("Czego tu nie ma", "What's not here"), tr("Kont, reklam, analityki, śledzenia i sprzedawania danych.", "Accounts, ads, analytics, tracking or selling data."))
         PrivacySection(
             tr("Uprawnienia", "Permissions"),
-            tr("Pliki audio – żeby je odtwarzać. Powiadomienia – przyciski odtwarzania. Internet – radio i ciekawostki. Wibracje – pokrętło i sygnał stopera.", "Audio files – to play them. Notifications – playback buttons. Internet – radio and fun facts. Vibration – the dial and the timer signal."),
+            tr(
+                "Pliki audio – żeby je odtwarzać. Powiadomienia – przyciski odtwarzania. Internet – radio i ciekawostki. Wibracje – pokrętło i sygnał stopera. Ustawienia systemu (tylko gdy sam włączysz) – „Ustaw jako dzwonek”. Czujnik ruchu – tylko w ostatniej minucie snu, dla „potrząśnij, aby przedłużyć”; nic nie jest zapisywane.",
+                "Audio files – to play them. Notifications – playback buttons. Internet – radio and fun facts. Vibration – the dial and the timer signal. System settings (only if you turn it on) – “Set as ringtone”. Motion sensor – only in the last minute of the sleep timer, for “shake to extend”; nothing is stored.",
+            ),
         )
         PrivacySection(
             tr("Jak usunąć dane", "How to delete your data"),
