@@ -155,6 +155,30 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    Section(tr("Wyrównanie głośności", "Volume levelling")) {
+                        ScaleSelector(
+                            io.github.marekmaro.equinox.ReplayGainMode.entries.map { it.label to it },
+                            vm.replayGain,
+                        ) { vm.changeReplayGain(it) }
+                        Text(
+                            when (vm.replayGain) {
+                                io.github.marekmaro.equinox.ReplayGainMode.OFF -> tr("Każdy plik gra tak głośno, jak został nagrany.", "Every file plays as loud as it was recorded.")
+                                io.github.marekmaro.equinox.ReplayGainMode.AUTO -> tr(
+                                    "Losowo – każdy utwór równo głośno; po kolei – cały album razem, z zachowaniem cichych i głośnych fragmentów.",
+                                    "Shuffled – every song equally loud; in order – the whole album together, keeping its quiet and loud moments.",
+                                )
+                                io.github.marekmaro.equinox.ReplayGainMode.TRACK -> tr("Każdy utwór równo głośno.", "Every song equally loud.")
+                                io.github.marekmaro.equinox.ReplayGainMode.ALBUM -> tr("Albumy równo głośno, utwory w albumie jak na płycie.", "Albums equally loud, songs within an album as on the record.")
+                            } + " " + tr(
+                                "Działa z plikami ze znacznikami ReplayGain (np. z foobar2000, MusicBrainz Picard).",
+                                "Works with files tagged with ReplayGain (e.g. by foobar2000, MusicBrainz Picard).",
+                            ),
+                            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+                        )
+                    }
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Audiobooki", "Audiobooks")) {
                         SwitchRow(tr("Pomijaj ciszę", "Skip silence"), vm.skipSilence) { vm.changeSkipSilence(!vm.skipSilence) }
                         Text(

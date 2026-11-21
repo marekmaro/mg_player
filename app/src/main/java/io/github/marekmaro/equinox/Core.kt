@@ -41,6 +41,12 @@ object Core {
     var soundPreset: SoundPreset = SoundPreset.PURE
     var voiceForBooks: Boolean = true
 
+    /** Kolejka przemieszana przez nas (mądre losowanie przestawia utwory, a nie włącza losowania odtwarzacza). */
+    var queueShuffled: Boolean = false
+
+    /** Wyrównanie głośności (ReplayGain). */
+    var replayGain: ReplayGainMode = ReplayGainMode.AUTO
+
     /** Audiobooki: pomijanie dłuższej ciszy (przerwy lektora są krótsze, słucha się szybciej). */
     var skipSilence: Boolean = false
 

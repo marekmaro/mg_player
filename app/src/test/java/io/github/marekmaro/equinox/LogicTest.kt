@@ -342,6 +342,41 @@ class LogicTest {
         assertTrue(all.none { it.id < 5 }) // najstarsze wypadły
     }
 
+    // ---------- wyrównanie głośności ----------
+
+    @Test
+    fun replayGain_parsesAllFormats() {
+        // ID3 (TXXX), Vorbis (wielkie litery), MP4 (----:com.apple.iTunes:…)
+        val id3 = ReplayGain.parse(listOf("REPLAYGAIN_TRACK_GAIN" to "-6.54 dB", "REPLAYGAIN_ALBUM_GAIN" to "-5.10 dB"))
+        assertEquals(-6.54f, id3.trackDb!!, 0.001f)
+        assertEquals(-5.10f, id3.albumDb!!, 0.001f)
+        val mp4 = ReplayGain.parse(listOf("com.apple.iTunes:replaygain_track_gain" to "+1,5 dB"))
+        assertEquals(1.5f, mp4.trackDb!!, 0.001f)
+        // Opus: R128 w 1/256 dB względem −23 LUFS → +5 dB do skali ReplayGain
+        val opus = ReplayGain.parse(listOf("R128_TRACK_GAIN" to "-2560"))
+        assertEquals(-5f, opus.trackDb!!, 0.001f)
+        // śmieci i brak znaczników
+        assertEquals(ReplayGainTags.NONE, ReplayGain.parse(listOf("REPLAYGAIN_TRACK_GAIN" to "głośno", "ARTIST" to "X")))
+        assertEquals(null, ReplayGain.parseDb("-99 dB"))
+        assertEquals(-3.1f, ReplayGain.parseDb("−3.1")!!, 0.001f)
+    }
+
+    @Test
+    fun replayGain_modesAndLevels() {
+        val t = ReplayGainTags(trackDb = -8f, albumDb = -6f)
+        assertEquals(null, t.gainFor(ReplayGainMode.OFF, shuffled = true))
+        assertEquals(-8f, t.gainFor(ReplayGainMode.AUTO, shuffled = true)!!, 0f)
+        assertEquals(-6f, t.gainFor(ReplayGainMode.AUTO, shuffled = false)!!, 0f)
+        assertEquals(-6f, ReplayGainTags(null, -6f).gainFor(ReplayGainMode.TRACK, false)!!, 0f) // brak utworu → album
+        // −6 dB ≈ połowa amplitudy; dodatnie wzmocnienie nie zmienia głośności odtwarzacza, tylko podbija (maks. +6 dB)
+        assertEquals(0.501f, ReplayGain.volumeFor(-6f), 0.001f)
+        assertEquals(1f, ReplayGain.volumeFor(3f), 0f)
+        assertEquals(1f, ReplayGain.volumeFor(null), 0f)
+        assertEquals(300, ReplayGain.boostMillibelsFor(3f))
+        assertEquals(600, ReplayGain.boostMillibelsFor(12f))
+        assertEquals(0, ReplayGain.boostMillibelsFor(-4f))
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

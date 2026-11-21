@@ -27,6 +27,11 @@ import com.google.common.util.concurrent.ListenableFuture
 import io.github.marekmaro.equinox.widget.WidgetUpdater
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.Metadata
+import androidx.media3.common.Tracks
+import androidx.media3.extractor.metadata.id3.InternalFrame
+import androidx.media3.extractor.metadata.id3.TextInformationFrame
+import androidx.media3.extractor.metadata.vorbis.VorbisComment
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -60,6 +65,9 @@ class PlaybackService : MediaLibraryService() {
     /** Głośność z timera snu (0..1) i z płynnych przejść (0..1) – mnożone razem. */
     private var sleepGain = 1f
     private var fadeGain = 1f
+    /** Znaczniki ReplayGain bieżącego utworu i podbicie cichych nagrań. */
+    private var gainTags = ReplayGainTags.NONE
+    private val booster = Booster()
     /** Bieżący utwór zaczął się sam po poprzednim (a nie po przeskoku) – wtedy wchodzi łagodnie. */
     private var fadeInItem = false
 
@@ -80,7 +88,26 @@ class PlaybackService : MediaLibraryService() {
 
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
             sound.attach(audioSessionId)
+            booster.attach(audioSessionId)
             applySound()
+            applyGain()
+        }
+
+        /** Nowy plik (albo nowe ścieżki w pliku): odczytaj znaczniki ReplayGain. */
+        override fun onTracksChanged(tracks: Tracks) {
+            val entries = ArrayList<Pair<String, String>>()
+            for (group in tracks.groups) {
+                if (group.type != C.TRACK_TYPE_AUDIO || !group.isSelected) continue
+                for (i in 0 until group.length) {
+                    if (group.isTrackSelected(i)) group.getTrackFormat(i).metadata?.let { collectTags(it, entries) }
+                }
+            }
+            gainTags = ReplayGain.parse(entries)
+            applyGain()
+        }
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+            applyGain() // tryb Auto: losowo = utwór, po kolei = album
         }
 
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
@@ -140,6 +167,7 @@ class PlaybackService : MediaLibraryService() {
         Core.voiceForBooks = prefs.voiceForBooks
         Core.crossfadeSec = prefs.crossfadeSec
         Core.skipSilence = prefs.skipSilence
+        Core.replayGain = ReplayGainMode.entries.firstOrNull { it.name == prefs.replayGain } ?: ReplayGainMode.AUTO
         // język wybrany w aplikacji także wtedy, gdy serwis startuje bez niej (Android Auto, słuchawki)
         Lang.mode = LangMode.entries.firstOrNull { it.name == prefs.language } ?: LangMode.SYSTEM
 
@@ -289,6 +317,7 @@ class PlaybackService : MediaLibraryService() {
         exo = player
         instance = this
         sound.attach(player.audioSessionId)
+        booster.attach(player.audioSessionId)
         applySound()
         startTicker()
         startFader()
@@ -409,9 +438,34 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    /** Głośność odtwarzacza = timer snu × płynne przejście × wyrównanie głośności. */
     private fun updateVolume(player: Player) {
-        val v = (sleepGain * fadeGain).coerceIn(0f, 1f)
+        val v = (sleepGain * fadeGain * gainVolume).coerceIn(0f, 1f)
         if (player.volume != v) player.volume = v
+    }
+
+    /** Ściszenie z ReplayGain (0..1); pogłośnienie robi [booster]. */
+    private var gainVolume = 1f
+
+    /** Przelicza wyrównanie głośności dla bieżącego utworu i trybu. */
+    fun applyGain() {
+        val player = session?.player ?: return
+        val shuffled = player.shuffleModeEnabled || Core.queueShuffled
+        val db = if (Core.kind == Kind.RADIO) null else gainTags.gainFor(Core.replayGain, shuffled)
+        gainVolume = ReplayGain.volumeFor(db)
+        booster.set(ReplayGain.boostMillibelsFor(db))
+        updateVolume(player)
+    }
+
+    /** Zbiera pary (nazwa, wartość) ze znaczników ID3, Vorbis/FLAC/Opus i MP4. */
+    private fun collectTags(md: Metadata, out: MutableList<Pair<String, String>>) {
+        for (i in 0 until md.length()) {
+            when (val e = md.get(i)) {
+                is TextInformationFrame -> if (e.id == "TXXX" && e.description != null) e.values.firstOrNull()?.let { out += e.description!! to it }
+                is VorbisComment -> out += e.key to e.value
+                is InternalFrame -> out += e.description to e.text
+            }
+        }
     }
 
     /**
@@ -498,6 +552,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         persist()
         sound.release()
+        booster.release()
         instance = null
         val lastTitle = session?.player?.mediaMetadata?.title?.toString()
         Companion.player = null
@@ -535,6 +590,7 @@ class PlaybackService : MediaLibraryService() {
         /** Wywoływane po zmianie brzmienia w aplikacji. */
         fun refreshSound() {
             instance?.applySound()
+            instance?.applyGain()
         }
     }
 }

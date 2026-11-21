@@ -784,6 +784,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         marks = prefs.marks()
         bookmarks = prefs.bookmarks()
         changeSkipSilence(prefs.skipSilence)
+        changeReplayGain(ReplayGainMode.entries.firstOrNull { it.name == prefs.replayGain } ?: ReplayGainMode.AUTO)
         changeCrossfade(prefs.crossfadeSec)
         smartShuffleOn = prefs.smartShuffle
         recentSearches = prefs.recentSearches()
@@ -841,6 +842,17 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         tickNow()
     }
 
+    // ---------------------------------------------------------------- Wyrównanie głośności
+
+    var replayGain by mutableStateOf(ReplayGainMode.entries.firstOrNull { it.name == prefs.replayGain } ?: ReplayGainMode.AUTO); private set
+
+    fun changeReplayGain(m: ReplayGainMode) {
+        replayGain = m
+        Core.replayGain = m
+        prefs.replayGain = m.name
+        PlaybackService.refreshSound()
+    }
+
     // ---------------------------------------------------------------- Audiobooki: pomijanie ciszy
 
     var skipSilence by mutableStateOf(prefs.skipSilence); private set
@@ -873,7 +885,13 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Czy kolejka jest teraz przemieszana (przez nas – bez przerywania utworu). */
-    private var queueShuffled = false
+    private var queueShuffled: Boolean
+        get() = Core.queueShuffled
+        set(v) {
+            if (Core.queueShuffled == v) return
+            Core.queueShuffled = v
+            PlaybackService.refreshSound() // wyrównanie głośności w trybie Auto zależy od losowania
+        }
     /** Kolejność przed przemieszaniem (id pozycji) – do przywrócenia po wyłączeniu. */
     private var unshuffledIds: List<String>? = null
 

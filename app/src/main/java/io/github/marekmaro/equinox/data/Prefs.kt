@@ -172,6 +172,11 @@ class Prefs(context: Context) {
         sp.edit().putString("recent_played", JSONArray(ids.take(100)).toString()).apply()
     }
 
+    // --- Wyrównanie głośności (ReplayGain): OFF / AUTO / TRACK / ALBUM ---
+    var replayGain: String
+        get() = sp.getString("replay_gain", "AUTO") ?: "AUTO"
+        set(v) = sp.edit().putString("replay_gain", v).apply()
+
     // --- Audiobooki: pomijanie ciszy ---
     var skipSilence: Boolean
         get() = sp.getBoolean("skip_silence", false)
