@@ -543,8 +543,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                     entries.mapNotNull { e -> matcher.find(e.path, e.title, e.artist, e.durationMs)?.id }.distinct()
                 }
                 val name = io.github.marekmaro.equinox.data.M3u.nameIn(text)
-                    ?: displayName(uri)?.substringBeforeLast('.')
-                    ?: tr("Wczytana playlista", "Imported playlist")
+                    ?: displayName(uri) // nazwa pliku bez rozszerzenia
                 val id = createPlaylist(name)
                 savePlaylists(playlists.map { if (it.id == id) it.copy(trackIds = ids) else it })
                 val missing = entries.size - ids.size
@@ -556,11 +555,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-
-    private fun displayName(uri: android.net.Uri): String? = try {
-        getApplication<Application>().contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
-    } catch (e: Exception) { null }
 
     fun renamePlaylist(id: Long, name: String) =
         savePlaylists(playlists.map { if (it.id == id) it.copy(name = name.trim().ifBlank { it.name }) else it })
