@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -13,6 +14,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- korektor dźwięku (efekty audio dla własnego odtwarzania) -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- „Ustaw jako dzwonek”: użytkownik sam włącza tę zgodę w ustawieniach systemu -->
+    <uses-permission
+        android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Chromebooki, telewizory z myszką itp.: dotyk nie jest wymagany (pokrętło działa też kółkiem myszy) -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />

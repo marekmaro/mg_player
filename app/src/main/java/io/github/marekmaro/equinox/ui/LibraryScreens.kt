@@ -184,14 +184,20 @@ fun PickTracksScreen(vm: PlayerViewModel, onBack: () -> Unit) {
 
 // ================================================================== Dialogi
 
-/** „Dodaj do playlisty” – z listy muzyki i z ekranu odtwarzania. */
+/**
+ * Działania na utworze – z listy muzyki i z ekranu odtwarzania: kolejka, znaczniki,
+ * udostępnianie, dzwonek i playlisty.
+ */
 @Composable
 fun AddToPlaylistDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Unit) {
     var newName by remember { mutableStateOf("") }
+    // dzwonek: true = pokazujemy pytanie (albo prośbę o zgodę systemu)
+    var ringtoneAsk by remember { mutableStateOf(false) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Pal.Surface,
-        title = { Text(tr("Dodaj…", "Add…")) },
+        title = { Text(vm.track(trackId)?.title ?: tr("Dodaj…", "Add…"), maxLines = 2, overflow = TextOverflow.Ellipsis) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // kolejka: tuż po bieżącym albo na koniec
@@ -210,6 +216,36 @@ fun AddToPlaylistDialog(vm: PlayerViewModel, trackId: Long, onDismiss: () -> Uni
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         io.github.marekmaro.equinox.Mark.entries.forEach { m ->
                             Chip(m.glyph, modifier = Modifier.weight(1f), selected = m in vm.marksOf(trackId)) { vm.toggleMark(trackId, m) }
+                        }
+                    }
+                    // udostępnij plik albo ustaw go jako dzwonek
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Chip(tr("↗ Udostępnij", "↗ Share"), modifier = Modifier.weight(1f)) {
+                            io.github.marekmaro.equinox.TrackActions.share(ctx, t)
+                        }
+                        Chip(tr("☏ Jako dzwonek", "☏ As ringtone"), modifier = Modifier.weight(1f), selected = ringtoneAsk) { ringtoneAsk = !ringtoneAsk }
+                    }
+                    if (ringtoneAsk) {
+                        val allowed = io.github.marekmaro.equinox.TrackActions.canSetRingtone(ctx)
+                        Text(
+                            if (allowed) tr("Ustawić „${t.title}” jako dzwonek telefonu?", "Set “${t.title}” as your phone's ringtone?")
+                            else tr(
+                                "Android wymaga Twojej zgody: włącz „Modyfikowanie ustawień systemu” dla Equinox, wróć i dotknij jeszcze raz.",
+                                "Android needs your permission: turn on “Modify system settings” for Equinox, come back and tap again.",
+                            ),
+                            color = Pal.Text, fontSize = 13.sp, lineHeight = 18.sp,
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (allowed) {
+                                Chip(tr("Ustaw", "Set"), modifier = Modifier.weight(1f), selected = true) {
+                                    if (io.github.marekmaro.equinox.TrackActions.setRingtone(ctx, t)) ringtoneAsk = false
+                                }
+                            } else {
+                                Chip(tr("Otwórz ustawienia", "Open settings"), modifier = Modifier.weight(1f), selected = true) {
+                                    io.github.marekmaro.equinox.TrackActions.openRingtonePermission(ctx)
+                                }
+                            }
+                            Chip(tr("Anuluj", "Cancel"), modifier = Modifier.weight(1f)) { ringtoneAsk = false }
                         }
                     }
                     Text(tr("Do playlisty:", "To playlist:"), color = Pal.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
