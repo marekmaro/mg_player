@@ -108,4 +108,4 @@ Każdy test przechodzi: ekran główny, motywy (Telefon / Dzień / Noc), pokręt
 ## 8. Jak powtórzyć sprawdzenie
 
 - **GitHub → Actions → Build APK:** testy jednostkowe, lint, release i 3 emulatory.
-- **Lokalnie:** `./gradlew testDebugUnitTest lintDebug assembleRelease`
+- **Lokalnie:** `./gradlew testGithubDebugUnitTest lintGithubDebug assembleGithubRelease`

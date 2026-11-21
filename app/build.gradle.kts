@@ -14,8 +14,27 @@ android {
         applicationId = "io.github.marekmaro.equinox"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.14.0"
+        versionCode = 15
+        versionName = "0.15.0"
+        // repozytorium, z którego wersja „github” pobiera aktualizacje
+        buildConfigField("String", "UPDATE_REPO", "\"marekmaro/mg_player\"")
+    }
+
+    // Dwie wersje do rozpowszechniania:
+    // - github: z wbudowaną aktualizacją z GitHub Releases (instalacja spoza sklepu),
+    // - play:   dla Google Play – bez samodzielnej aktualizacji (zabrania jej regulamin sklepu)
+    //           i bez uprawnienia do instalowania pakietów.
+    flavorDimensions += "store"
+    productFlavors {
+        create("github") {
+            dimension = "store"
+            isDefault = true
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
     }
 
     androidResources {
@@ -56,6 +75,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     lint {

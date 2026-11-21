@@ -177,6 +177,15 @@ class Prefs(context: Context) {
         get() = sp.getString("replay_gain", "AUTO") ?: "AUTO"
         set(v) = sp.edit().putString("replay_gain", v).apply()
 
+    // --- Aktualizacje z GitHuba (tylko wersja „github”) ---
+    var updateAutoCheck: Boolean
+        get() = sp.getBoolean("update_auto", true)
+        set(v) = sp.edit().putBoolean("update_auto", v).apply()
+
+    var updateLastCheck: Long
+        get() = sp.getLong("update_last_check", 0L)
+        set(v) = sp.edit().putLong("update_last_check", v).apply()
+
     // --- Sen: potrząśnij, aby przedłużyć ---
     var shakeToExtend: Boolean
         get() = sp.getBoolean("shake_extend", true)

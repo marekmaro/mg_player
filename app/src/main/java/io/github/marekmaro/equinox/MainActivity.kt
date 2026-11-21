@@ -77,6 +77,8 @@ class MainActivity : ComponentActivity() {
         io.github.marekmaro.equinox.ui.KnobSettings.speed = prefs.knobSpeed
         io.github.marekmaro.equinox.ui.KnobSettings.haptics = prefs.knobHaptics
         watchFold()
+        // wersja „github”: raz na dobę zapytaj GitHuba o nowe wydanie (wyłączane w ustawieniach)
+        if (savedInstanceState == null) io.github.marekmaro.equinox.update.UpdateState.checkDaily(this, BuildConfig.VERSION_NAME)
         // przy odtworzeniu po obrocie nie powtarzamy akcji z widżetu/kafelka
         val openExtra = intent?.getStringExtra(EXTRA_OPEN)
         // plik/link/polecenie głosowe z innej aplikacji, w przeciwnym razie akcja z widżetu/kafelka

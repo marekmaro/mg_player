@@ -471,6 +471,38 @@ class LogicTest {
         assertEquals(3L, m.find("", "intro", "c", 0)?.id)
     }
 
+    // ---------- aktualizacja z GitHuba ----------
+
+    @Test
+    fun update_versionCompare() {
+        val U = io.github.marekmaro.equinox.update.UpdateLogic
+        assertTrue(U.isNewer("v0.15.0", "0.14.0"))
+        assertTrue(U.isNewer("v1.0", "0.99.9"))
+        assertTrue(U.isNewer("0.14.10", "0.14.9"))      // liczby, nie tekst
+        assertTrue(!U.isNewer("v0.14.0", "0.14.0"))
+        assertTrue(!U.isNewer("v0.13.2", "0.14.0"))
+        assertTrue(!U.isNewer("nightly", "0.14.0"))      // bez numeru – nie aktualizujemy
+    }
+
+    @Test
+    fun update_parseRelease() {
+        val U = io.github.marekmaro.equinox.update.UpdateLogic
+        val json = """{"tag_name":"v0.15.0","draft":false,"prerelease":false,"html_url":"https://github.com/x/y/releases/tag/v0.15.0",
+            "body":"- Teksty piosenek\n- Poprawki",
+            "assets":[{"name":"equinox-0.15.0-play.aab","browser_download_url":"https://github.com/a.aab","size":1},
+                      {"name":"equinox-0.15.0.apk","browser_download_url":"https://github.com/x/y/releases/download/v0.15.0/equinox-0.15.0.apk","size":4200000}]}"""
+        val info = U.parseRelease(json, "0.14.0")!!
+        assertEquals("0.15.0", info.version)
+        assertTrue(info.apkUrl.endsWith("equinox-0.15.0.apk"))
+        assertEquals(4_200_000L, info.apkSize)
+        assertTrue(info.notes.contains("Teksty piosenek"))
+        // ta sama wersja, wersja próbna, brak APK albo adres bez https – brak aktualizacji
+        assertEquals(null, U.parseRelease(json, "0.15.0"))
+        assertEquals(null, U.parseRelease(json.replace("\"prerelease\":false", "\"prerelease\":true"), "0.14.0"))
+        assertEquals(null, U.parseRelease("""{"tag_name":"v0.15.0","assets":[]}""", "0.14.0"))
+        assertEquals(null, U.parseRelease("""{"tag_name":"v0.15.0","assets":[{"name":"e.apk","browser_download_url":"http://x/e.apk"}]}""", "0.14.0"))
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

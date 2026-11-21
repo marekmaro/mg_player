@@ -73,10 +73,31 @@ Na GitHubie: **Settings → Secrets and variables → Actions → New repository
 
 ### 3. Zbuduj wersję do sklepu
 
-1. **Actions → Release (Google Play) → Run workflow**.
+Aplikacja ma dwie wersje:
+- **github** – z wbudowaną aktualizacją z GitHub Releases (instalacja spoza sklepu),
+- **play** – dla Google Play, bez samodzielnej aktualizacji (zabrania jej regulamin sklepu).
+
+1. **Actions → Release → Run workflow** – tylko buduje, niczego nie publikuje.
 2. Po kilku minutach pobierz artefakt `equinox-release`. W środku jest:
-   - `app-release.aab`, czyli plik do wysłania do Google Play,
-   - `app-release.apk`, czyli ta sama wersja do zainstalowania na telefonie.
+   - `equinox-X.Y.Z-play.aab`, czyli plik do wysłania do Google Play,
+   - `equinox-X.Y.Z.apk`, czyli wersja „github” do zainstalowania na telefonie.
+
+### 3a. Nowa wersja z aktualizacją dla zainstalowanych aplikacji (GitHub Releases)
+
+Wersja „github” raz na dobę sprawdza najnowsze wydanie w repozytorium i proponuje aktualizację
+(Ustawienia → Aktualizacje, kropka przy ☼). Żeby wydać nową wersję:
+
+1. W `app/build.gradle.kts` zwiększ `versionCode` i `versionName` (np. 0.15.0), zatwierdź i wypchnij.
+2. Utwórz tag z listą zmian – jej treść zobaczą użytkownicy w aplikacji:
+   ```bash
+   git tag -a v0.15.0 -m "- Nowość pierwsza
+   - Poprawka druga"
+   git push origin v0.15.0
+   ```
+3. Workflow **Release** sprawdzi, że tag zgadza się z `versionName`, zbuduje podpisany APK i utworzy wydanie.
+
+⚠️ Repozytorium jest publiczne, więc plik z wydania może pobrać każdy, kto zna adres – to jest publikacja.
+Aktualizacja zainstaluje się tylko wtedy, gdy plik jest podpisany tym samym kluczem co zainstalowana aplikacja.
 
 ### 4. Przed każdą nową wersją w sklepie
 
@@ -89,7 +110,7 @@ W `app/build.gradle.kts` zwiększ `versionCode` (np. 3 → 4) i zmień `versionN
 3. Uzupełnij **zawartość aplikacji**: politykę prywatności (link), kategorię wiekową, bezpieczeństwo danych, reklamy (nie ma).
 4. Wypełnij **wpis w sklepie**: opis z `docs/opis-sklep.md`, ikonę 512×512, grafikę 1024×500 i co najmniej 2 zrzuty ekranu.
 5. **Testy zamknięte:** nowe konta prywatne muszą mieć **co najmniej 12 testerów przez 14 dni**, zanim mogą opublikować aplikację dla wszystkich.
-6. Potem: **Produkcja → Utwórz wersję → wgraj `app-release.aab`**.
+6. Potem: **Produkcja → Utwórz wersję → wgraj `equinox-X.Y.Z-play.aab`**.
 
 ---
 
@@ -109,10 +130,11 @@ Przydatne polecenia (w terminalu, w folderze projektu):
 
 | Polecenie | Co robi |
 |---|---|
-| `./gradlew assembleDebug` | APK do testów → `app/build/outputs/apk/debug/` |
-| `./gradlew testDebugUnitTest` | testy jednostkowe |
-| `./gradlew lintDebug` | analiza kodu (raport w `app/build/reports/`) |
-| `./gradlew bundleRelease` | AAB do sklepu (z kluczem, patrz niżej) |
+| `./gradlew assembleGithubDebug` | APK do testów → `app/build/outputs/apk/github/debug/` |
+| `./gradlew testGithubDebugUnitTest` | testy jednostkowe |
+| `./gradlew lintGithubDebug` | analiza kodu (raport w `app/build/reports/`) |
+| `./gradlew bundlePlayRelease` | AAB do Google Play (z kluczem, patrz niżej) |
+| `./gradlew assembleGithubRelease` | podpisany APK z aktualizacją z GitHuba |
 
 Podpisany build lokalnie (macOS/Linux):
 
@@ -121,7 +143,7 @@ export EQUINOX_KEYSTORE=/ścieżka/do/equinox-upload.jks
 export EQUINOX_KEYSTORE_PASSWORD=...
 export EQUINOX_KEY_ALIAS=equinox
 export EQUINOX_KEY_PASSWORD=...
-./gradlew bundleRelease
+./gradlew bundlePlayRelease assembleGithubRelease
 ```
 
 Na Windowsie zamiast `export` użyj `set` (cmd) albo `$env:NAZWA="..."` (PowerShell), a zamiast `./gradlew` wpisz `gradlew.bat`.

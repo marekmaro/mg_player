@@ -6,8 +6,9 @@ Odtwarzacz na Androida: **muzyka, audiobooki i radio internetowe**, obsługiwany
 
 *Equinox* to równonoc, czyli równowaga dnia i nocy. Za dnia aplikacja pomaga się skupić (stoper muzyczny, wyzwanie), a nocą wycisza (timer snu, audiobooki, radio). Ma jasny motyw **Dzień** i ciemny **Noc**. Domyślnie motyw działa **jak w telefonie** (tryb ciemny systemu). Można też wybrać **wg pory dnia** (7:00 i 19:00) albo jeden motyw na stałe.
 
-## Co już działa (wersja 0.14)
+## Co już działa (wersja 0.15)
 
+- **Aktualizacja z GitHuba** (wersja spoza Google Play): raz na dobę sprawdza nowe wydanie, kropka przy ☼, lista zmian i „Aktualizuj” w ustawieniach; instaluje tylko plik podpisany tym samym kluczem, zawsze po potwierdzeniu. Jak wydać wersję: `docs/BUDOWANIE.md` (3a).
 - **Zakładki w audiobookach**: ⚑ zapamiętuje miejsce (z notatką, np. „ważny cytat”), ☰ pokazuje listę zakładek książki; dotknięcie przenosi w to miejsce, także z innej książki.
 - **Pomijanie ciszy w audiobookach** (w ustawieniach): dłuższe przerwy lektora są skracane, muzyka gra bez zmian.
 - **Wyrównanie głośności (ReplayGain)**: odczyt znaczników z MP3 (ID3), FLAC/OGG/Opus i M4A; tryby Wył. / Auto (losowo – utwór, po kolei – album) / Utwór / Album. Ciche nagrania są podbijane najwyżej o 6 dB.
@@ -95,7 +96,7 @@ Raport zgodności, stabilności, prywatności i dostępności: **[docs/AUDYT.md]
 ## Testy
 
 Każda zmiana w `main` uruchamia w GitHub Actions:
-- **testy jednostkowe** (`./gradlew testDebugUnitTest`): formatowanie czasu, dobór utworów do stopera, rozpoznawanie wykonawców, ciekawostki, sygnały,
+- **testy jednostkowe** (`./gradlew testGithubDebugUnitTest`): formatowanie czasu, dobór utworów do stopera, rozpoznawanie wykonawców, ciekawostki, sygnały,
 - **Android Lint**,
 - **test na emulatorze** wersji release (R8) (`.github/scripts/smoke.py`): instalacja, pliki testowe, przejście po wszystkich ekranach, kręcenie pokrętłem, obrót ekranu, symulacja rozłożonego składaka, widżety, kliknięcie kafelka i sprawdzenie, czy aplikacja się nie wywraca. Zrzuty ekranu są w artefakcie `smoke-screenshots`.
 

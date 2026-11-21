@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import io.github.marekmaro.equinox.update.UpdateStatus
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -116,6 +117,10 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                         }
                     }
                 }
+
+                // czekająca aktualizacja na samej górze, poza tym sekcja jest niżej
+                val updateFirst = io.github.marekmaro.equinox.update.UpdateState.hasUpdate
+                if (updateFirst) Staggered(progress, next()) { UpdateSection() }
 
                 Staggered(progress, next()) {
                     Section(tr("Język", "Language")) {
@@ -261,6 +266,8 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                     BackupSection(vm)
                 }
 
+                if (!updateFirst && io.github.marekmaro.equinox.update.Updater.enabled) Staggered(progress, next()) { UpdateSection() }
+
                 Staggered(progress, next()) {
                     Section(tr("Pomoc", "Help")) {
                         LinkRow(tr("Pokaż samouczek pokrętła", "Show the dial tutorial")) {
@@ -291,6 +298,104 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 drawCircle(accent, radius = r, center = Offset(size.width / 2f, size.height), style = Stroke(3.dp.toPx()), alpha = 1f - progress * 0.6f)
             }
         }
+    }
+}
+
+/**
+ * Aktualizacje z GitHuba (tylko wersja „github”): stan, lista zmian i jeden okrągły przycisk,
+ * który robi to, co w danej chwili ma sens – sprawdź, aktualizuj, zezwól, spróbuj ponownie.
+ */
+@Composable
+private fun UpdateSection() {
+    val ctx = LocalContext.current
+    val version = io.github.marekmaro.equinox.BuildConfig.VERSION_NAME
+    val prefs = remember { io.github.marekmaro.equinox.data.Prefs(ctx) }
+    var auto by remember { mutableStateOf(prefs.updateAutoCheck) }
+    val U = io.github.marekmaro.equinox.update.UpdateState
+    val status = U.status
+    // po powrocie z ekranu zgody systemu spróbuj od razu dokończyć instalację
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            val s = U.status
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME && s is UpdateStatus.Ready && s.needsPermission &&
+                io.github.marekmaro.equinox.update.Updater.canInstall(ctx)
+            ) U.install(ctx, s.info)
+        }
+        lifecycle.lifecycle.addObserver(obs)
+        onDispose { lifecycle.lifecycle.removeObserver(obs) }
+    }
+    Section(tr("Aktualizacje", "Updates")) {
+        val text = when (status) {
+            UpdateStatus.Idle -> tr("Masz wersję $version.", "You have version $version.")
+            UpdateStatus.Checking -> tr("Sprawdzam…", "Checking…")
+            UpdateStatus.UpToDate -> tr("Masz najnowszą wersję ($version) ✓", "You're up to date ($version) ✓")
+            is UpdateStatus.Available -> tr("Dostępna wersja ${status.info.version} (masz $version).", "Version ${status.info.version} is available (you have $version).")
+            is UpdateStatus.Downloading -> tr("Pobieram wersję ${status.info.version}… ${(status.progress * 100).toInt()}%", "Downloading ${status.info.version}… ${(status.progress * 100).toInt()}%")
+            is UpdateStatus.Ready -> if (status.needsPermission) tr(
+                "Android wymaga jednorazowej zgody: włącz „Zezwalaj z tego źródła” dla Equinox i wróć – instalacja ruszy sama.",
+                "Android needs a one-time permission: turn on “Allow from this source” for Equinox and come back – the install will continue.",
+            ) else tr("Potwierdź instalację w oknie systemu.", "Confirm the installation in the system window.")
+            is UpdateStatus.Failed -> status.message
+        }
+        Text(text, color = if (status is UpdateStatus.Available || status is UpdateStatus.Ready) Pal.Accent else Pal.Text, fontSize = 14.sp, lineHeight = 19.sp)
+
+        val info = when (status) {
+            is UpdateStatus.Available -> status.info
+            is UpdateStatus.Downloading -> status.info
+            is UpdateStatus.Ready -> status.info
+            is UpdateStatus.Failed -> status.info
+            else -> null
+        }
+        if (info != null && info.notes.isNotBlank()) {
+            Text(
+                info.notes.lines().filter { it.isNotBlank() }.take(12).joinToString("\n") { it.trim().removePrefix("- ").removePrefix("* ").let { l -> "• $l" } },
+                color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+            )
+        }
+        if (status is UpdateStatus.Downloading) {
+            ScaleProgress(status.progress)
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            when (status) {
+                is UpdateStatus.Available -> RingAction("↓", tr("Aktualizuj do ${status.info.version}", "Update to ${status.info.version}")) { U.install(ctx, status.info) }
+                is UpdateStatus.Ready -> if (status.needsPermission) RingAction("✓", tr("Zezwól", "Allow")) {
+                    io.github.marekmaro.equinox.update.Updater.openInstallPermission(ctx)
+                } else RingAction("↓", tr("Zainstaluj", "Install")) { U.install(ctx, status.info) }
+                is UpdateStatus.Failed -> if (status.info != null) RingAction("↻", tr("Spróbuj ponownie", "Try again")) { U.install(ctx, status.info) }
+                else RingAction("↻", tr("Sprawdź teraz", "Check now")) { U.check(ctx, version) }
+                is UpdateStatus.Downloading, UpdateStatus.Checking -> {}
+                else -> RingAction("↻", tr("Sprawdź teraz", "Check now")) { U.check(ctx, version) }
+            }
+        }
+        SwitchRow(tr("Sprawdzaj raz dziennie", "Check once a day"), auto) {
+            auto = !auto
+            prefs.updateAutoCheck = auto
+        }
+        Text(
+            tr(
+                "Equinox pyta tylko GitHuba (api.github.com) o numer najnowszej wersji – bez żadnych danych o Tobie. Aktualizacja instaluje się dopiero po Twoim potwierdzeniu i tylko wtedy, gdy jest podpisana tym samym kluczem co Equinox.",
+                "Equinox only asks GitHub (api.github.com) for the latest version number – without any data about you. An update installs only after you confirm it, and only if it's signed with the same key as Equinox.",
+            ),
+            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+        )
+    }
+}
+
+/** Postęp pobierania jako pasek-podziałka (ten sam język co tarcza). */
+@Composable
+private fun ScaleProgress(progress: Float) {
+    val tick = Pal.Tick
+    val accent = Pal.Accent
+    Canvas(Modifier.fillMaxWidth().height(14.dp)) {
+        val y = size.height / 2f
+        drawLine(tick, Offset(0f, y), Offset(size.width, y), 2.dp.toPx())
+        for (i in 0..40) {
+            val x = size.width * i / 40
+            drawLine(tick, Offset(x, y - 4.dp.toPx()), Offset(x, y + 4.dp.toPx()), 1.dp.toPx())
+        }
+        drawLine(accent, Offset(0f, y), Offset(size.width * progress.coerceIn(0f, 1f), y), 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
     }
 }
 

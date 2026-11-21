@@ -117,8 +117,24 @@ fun HomeScreen(
         topTrailing = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 DayNightToggle()
-                CircleButton(tr("Ustawienia", "Settings"), { vm.settingsOpen = true }) {
-                    Text("☼", color = Pal.Text, fontSize = 18.sp)
+                // pomarańczowa kropka: czeka aktualizacja (tylko wersja z GitHuba)
+                val update = io.github.marekmaro.equinox.update.UpdateState.hasUpdate
+                Box {
+                    CircleButton(
+                        if (update) tr("Ustawienia – dostępna aktualizacja", "Settings – update available") else tr("Ustawienia", "Settings"),
+                        { vm.settingsOpen = true },
+                    ) {
+                        Text("☼", color = Pal.Text, fontSize = 18.sp)
+                    }
+                    if (update) {
+                        Box(
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .size(10.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(Pal.Accent)
+                        )
+                    }
                 }
             }
         },

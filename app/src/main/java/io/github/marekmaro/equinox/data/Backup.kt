@@ -23,8 +23,8 @@ object Backup {
     /** Klucze, w których zapisane są id utworów (trzeba je przenumerować przy odtwarzaniu). */
     private val TRACK_KEYS = setOf("playlists", "track_marks", "fav_tracks", "play_counts", "recent_played")
 
-    /** Nie przenosimy: chwilowej sesji odtwarzania i pobranych opisów z Wikipedii (pobiorą się same). */
-    fun isBackedUp(key: String): Boolean = key != "last_session" && !key.startsWith("facts_")
+    /** Nie przenosimy: chwilowej sesji odtwarzania, czasu sprawdzenia aktualizacji i opisów z Wikipedii (pobiorą się same). */
+    fun isBackedUp(key: String): Boolean = key != "last_session" && key != "update_last_check" && !key.startsWith("facts_")
 
     fun export(prefs: Map<String, *>, library: List<TrackRef>, createdIso: String): String {
         val values = JSONObject()

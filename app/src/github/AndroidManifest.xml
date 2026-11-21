@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tylko wersja „github”: aktualizacja z GitHub Releases (w wersji dla Google Play tego nie ma). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Instalowanie pobranej aktualizacji; Android i tak za każdym razem pyta o potwierdzenie -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+        <!-- Wynik instalacji z systemowego instalatora (tylko wewnątrz aplikacji) -->
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

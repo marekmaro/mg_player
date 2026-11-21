@@ -1,16 +1,30 @@
-name: Release (Google Play)
+name: Release
 
-# Uruchamiane ręcznie: Actions -> Release (Google Play) -> Run workflow.
+# Dwa sposoby uruchomienia:
+# 1. Ręcznie: Actions -> Release -> Run workflow – tylko buduje podpisane pliki (artefakt na 30 dni),
+#    niczego nie publikuje.
+# 2. Tag wersji, np.:  git tag -a v0.15.0 -m "Lista zmian…" && git push origin v0.15.0
+#    – buduje, sprawdza, że tag zgadza się z versionName, i tworzy GitHub Release z plikiem APK
+#    (wersja „github”). Z tego wydania aktualizują się zainstalowane aplikacje.
+#    Opis wydania = treść tagu (to, co wpiszesz po -m) – pokazuje się w aplikacji jako lista zmian.
+#
 # Wymaga sekretów repozytorium (Settings -> Secrets and variables -> Actions):
 #   EQUINOX_KEYSTORE_BASE64, EQUINOX_KEYSTORE_PASSWORD, EQUINOX_KEY_ALIAS, EQUINOX_KEY_PASSWORD
 on:
   workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # tylko do utworzenia wydania
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # potrzebna treść tagu
 
       - uses: actions/setup-java@v5
         with:
@@ -18,6 +32,15 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v4
+
+      - name: Tag zgadza się z wersją aplikacji
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          if [ "$TAG" != "$NAME" ]; then
+            echo "Tag v$TAG nie zgadza się z versionName $NAME w app/build.gradle.kts"; exit 1
+          fi
 
       - name: Odtwórz klucz z sekretu
         env:
@@ -28,7 +51,7 @@ jobs:
           fi
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
 
-      - name: Zbuduj podpisany pakiet AAB i APK
+      - name: Zbuduj podpisane pliki (APK z GitHuba, AAB dla Google Play)
         env:
           EQUINOX_KEYSTORE: ${{ runner.temp }}/upload.jks
           EQUINOX_KEYSTORE_PASSWORD: ${{ secrets.EQUINOX_KEYSTORE_PASSWORD }}
@@ -36,7 +59,11 @@ jobs:
           EQUINOX_KEY_PASSWORD: ${{ secrets.EQUINOX_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest bundleRelease assembleRelease --no-daemon
+          ./gradlew testGithubDebugUnitTest assembleGithubRelease bundlePlayRelease --no-daemon
+          NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          mkdir -p out
+          cp app/build/outputs/apk/github/release/*.apk "out/equinox-$NAME.apk"
+          cp app/build/outputs/bundle/playRelease/*.aab "out/equinox-$NAME-play.aab"
 
       - name: Usuń klucz
         if: always()
@@ -46,6 +73,14 @@ jobs:
         with:
           name: equinox-release
           retention-days: 30
-          path: |
-            app/build/outputs/bundle/release/*.aab
-            app/build/outputs/apk/release/*.apk
+          path: out/
+
+      - name: Utwórz wydanie na GitHubie (tylko dla tagu)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")
+          [ -z "$NOTES" ] && NOTES="Equinox ${GITHUB_REF_NAME#v}"
+          # do wydania trafia tylko APK (wersja z aktualizacją); AAB jest dla Google Play
+          gh release create "$GITHUB_REF_NAME" out/*.apk --title "Equinox ${GITHUB_REF_NAME#v}" --notes "$NOTES"

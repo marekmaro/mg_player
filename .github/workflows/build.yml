@@ -40,14 +40,15 @@ jobs:
       - name: Unit tests, lint, debug APK
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease --no-daemon --stacktrace
+          # github = wersja z aktualizacją z GitHuba, play = dla Google Play (sprawdzamy, że też się buduje)
+          ./gradlew testGithubDebugUnitTest lintGithubDebug assembleGithubDebug assembleGithubRelease assemblePlayRelease --no-daemon --stacktrace
 
       - name: Lint summary
         if: always()
         run: |
           python3 - <<'PY'
           import xml.etree.ElementTree as ET, collections, os
-          p = "app/build/reports/lint-results-debug.xml"
+          p = "app/build/reports/lint-results-githubDebug.xml"
           if not os.path.exists(p):
               print("brak raportu lint"); raise SystemExit
           issues = ET.parse(p).getroot().findall("issue")
@@ -64,7 +65,7 @@ jobs:
         continue-on-error: true
         with:
           name: equinox-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/github/debug/*.apk
           retention-days: 7
 
       # wersja release (R8) podpisana kluczem testowym
@@ -72,7 +73,7 @@ jobs:
         continue-on-error: true
         with:
           name: equinox-release-test-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/github/release/*.apk
           retention-days: 3
 
       - uses: actions/upload-artifact@v4
@@ -113,8 +114,8 @@ jobs:
       - name: Build release APK (R8)
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
-          mkdir -p apk && cp app/build/outputs/apk/release/*.apk apk/
+          ./gradlew assembleGithubRelease --no-daemon
+          mkdir -p apk && cp app/build/outputs/apk/github/release/*.apk apk/
 
       - name: Enable KVM
         run: |

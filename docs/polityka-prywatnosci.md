@@ -25,6 +25,8 @@ Equinox łączy się z internetem tylko w trzech sytuacjach:
 2. **Ciekawostki o wykonawcach**: aplikacja wysyła do **Wikipedii** (wikipedia.org) **tylko nazwę wykonawcy lub autora** audiobooka, żeby pobrać krótki opis. Funkcję można wyłączyć przyciskiem „Ukryj” na karcie ciekawostek.
 3. **Linki do stron**: po dotknięciu linku (np. „Wikipedia”, porady dotyczące baterii) strona otwiera się w przeglądarce.
 
+Wersja instalowana spoza Google Play (z GitHuba) raz na dobę pyta też **api.github.com** o numer najnowszej wersji aplikacji (można to wyłączyć w Ustawieniach → Aktualizacje), a przy aktualizacji pobiera z GitHuba plik instalacyjny. Nie są przy tym wysyłane żadne dane o Tobie ani o Twojej muzyce. Wersja z Google Play tego nie robi – aktualizuje ją sklep.
+
 Serwery tych usług, jak każda strona internetowa, widzą adres IP Twojego połączenia. Obowiązują tam ich własne zasady prywatności:
 - radio-browser.info: https://www.radio-browser.info
 - Wikipedia: https://foundation.wikimedia.org/wiki/Policy:Privacy_policy
@@ -39,6 +41,7 @@ Serwery tych usług, jak każda strona internetowa, widzą adres IP Twojego poł
 | Działanie w tle (odtwarzanie) | Muzyka gra przy zgaszonym ekranie |
 | Wibracje | Delikatne „kliknięcia” pokrętła, sygnał końca stopera i potwierdzenie przedłużenia snu |
 | Modyfikowanie ustawień systemu (włączasz je sam, tylko jeśli chcesz) | Wyłącznie „Ustaw jako dzwonek” – zmiana dzwonka telefonu na wybrany utwór |
+| Instalowanie aplikacji (tylko wersja z GitHuba; włączasz je sam przy pierwszej aktualizacji) | Zainstalowanie pobranej nowej wersji Equinox – zawsze po Twoim potwierdzeniu |
 | Czujnik ruchu (bez osobnej zgody) | Tylko w ostatniej minucie timera snu, żeby potrząśnięcie mogło go przedłużyć. Dane z czujnika nie są zapisywane ani wysyłane |
 
 Pliki, które sam zapisujesz – kopia zapasowa (.json) i playlisty (.m3u) – trafiają wyłącznie tam, gdzie wskażesz w systemowym oknie wyboru pliku. Aplikacja nigdzie ich nie wysyła.
