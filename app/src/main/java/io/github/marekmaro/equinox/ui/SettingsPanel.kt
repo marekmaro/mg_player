@@ -155,6 +155,19 @@ fun SettingsPanel(vm: PlayerViewModel, onPrivacy: () -> Unit) {
                 }
 
                 Staggered(progress, next()) {
+                    Section(tr("Audiobooki", "Audiobooks")) {
+                        SwitchRow(tr("Pomijaj ciszę", "Skip silence"), vm.skipSilence) { vm.changeSkipSilence(!vm.skipSilence) }
+                        Text(
+                            tr(
+                                "Dłuższe przerwy lektora są skracane – książka trwa krócej, a słowa brzmią naturalnie. Muzyka gra bez zmian.",
+                                "Long pauses in the narration are shortened – the book takes less time and the words sound natural. Music is untouched.",
+                            ),
+                            color = Pal.Muted, fontSize = 12.sp, lineHeight = 17.sp,
+                        )
+                    }
+                }
+
+                Staggered(progress, next()) {
                     Section(tr("Płynne przejścia", "Crossfade")) {
                         ChoiceRow(
                             listOf(tr("Wył.", "Off") to 0, "3 s" to 3, "6 s" to 6, "10 s" to 10),

@@ -172,6 +172,11 @@ class Prefs(context: Context) {
         sp.edit().putString("recent_played", JSONArray(ids.take(100)).toString()).apply()
     }
 
+    // --- Audiobooki: pomijanie ciszy ---
+    var skipSilence: Boolean
+        get() = sp.getBoolean("skip_silence", false)
+        set(v) = sp.edit().putBoolean("skip_silence", v).apply()
+
     // --- Płynne przejścia między utworami (sekundy, 0 = wyłączone) ---
     var crossfadeSec: Int
         get() = sp.getInt("crossfade_sec", 0)

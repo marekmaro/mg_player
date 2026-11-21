@@ -783,6 +783,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         changeVoiceForBooks(prefs.voiceForBooks)
         marks = prefs.marks()
         bookmarks = prefs.bookmarks()
+        changeSkipSilence(prefs.skipSilence)
         changeCrossfade(prefs.crossfadeSec)
         smartShuffleOn = prefs.smartShuffle
         recentSearches = prefs.recentSearches()
@@ -838,6 +839,17 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             books.firstOrNull { it.key == b.bookKey }?.let { playBook(it, b.itemIndex, b.positionMs) }
         }
         tickNow()
+    }
+
+    // ---------------------------------------------------------------- Audiobooki: pomijanie ciszy
+
+    var skipSilence by mutableStateOf(prefs.skipSilence); private set
+
+    fun changeSkipSilence(on: Boolean) {
+        skipSilence = on
+        Core.skipSilence = on
+        prefs.skipSilence = on
+        PlaybackService.refreshSound()
     }
 
     // ---------------------------------------------------------------- Płynne przejścia

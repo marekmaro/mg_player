@@ -46,6 +46,8 @@ import java.time.LocalDate
 class PlaybackService : MediaLibraryService() {
 
     private var session: MediaLibrarySession? = null
+    /** Ten sam odtwarzacz co w sesji – z funkcjami tylko ExoPlayera (pomijanie ciszy). */
+    private var exo: ExoPlayer? = null
     private val auto by lazy { AutoLibrary(this) }
     private val scope = MainScope()
     private lateinit var prefs: Prefs
@@ -137,6 +139,7 @@ class PlaybackService : MediaLibraryService() {
         Core.soundPreset = SoundPreset.entries.firstOrNull { it.name == prefs.soundPreset } ?: SoundPreset.PURE
         Core.voiceForBooks = prefs.voiceForBooks
         Core.crossfadeSec = prefs.crossfadeSec
+        Core.skipSilence = prefs.skipSilence
         // język wybrany w aplikacji także wtedy, gdy serwis startuje bez niej (Android Auto, słuchawki)
         Lang.mode = LangMode.entries.firstOrNull { it.name == prefs.language } ?: LangMode.SYSTEM
 
@@ -283,6 +286,7 @@ class PlaybackService : MediaLibraryService() {
             )
             .build()
         Companion.player = player
+        exo = player
         instance = this
         sound.attach(player.audioSessionId)
         applySound()
@@ -478,11 +482,17 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    /** Ustawia korektor: dla audiobooków (gdy włączone) „Czysty głos”, w innych przypadkach wybrane brzmienie. */
+    /**
+     * Ustawia brzmienie: korektor (dla audiobooków – gdy włączone – „Czysty głos”, poza tym
+     * wybrane ustawienie) i pomijanie ciszy w audiobookach.
+     */
     fun applySound() {
         val preset = if (Core.kind == Kind.BOOK && Core.voiceForBooks) SoundPreset.VOICE else Core.soundPreset
         sound.apply(preset)
         soundAvailable = sound.available
+        // pomijanie ciszy tylko w audiobookach – w muzyce cisza bywa częścią utworu
+        val skip = Core.kind == Kind.BOOK && Core.skipSilence
+        exo?.let { if (it.skipSilenceEnabled != skip) it.skipSilenceEnabled = skip }
     }
 
     override fun onDestroy() {
@@ -491,6 +501,7 @@ class PlaybackService : MediaLibraryService() {
         instance = null
         val lastTitle = session?.player?.mediaMetadata?.title?.toString()
         Companion.player = null
+        exo = null
         WidgetUpdater.push(this, WidgetUpdater.idle(lastTitle?.takeIf { it.isNotBlank() }), force = true)
         scope.cancel()
         session?.run {

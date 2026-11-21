@@ -41,6 +41,9 @@ object Core {
     var soundPreset: SoundPreset = SoundPreset.PURE
     var voiceForBooks: Boolean = true
 
+    /** Audiobooki: pomijanie dłuższej ciszy (przerwy lektora są krótsze, słucha się szybciej). */
+    var skipSilence: Boolean = false
+
     /** Płynne przejścia między utworami (tylko muzyka): długość w sekundach, 0 = wyłączone. */
     var crossfadeSec: Int = 0
 
