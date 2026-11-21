@@ -214,6 +214,10 @@ fun MusicScreen(vm: PlayerViewModel, onBack: () -> Unit, onPlaying: () -> Unit, 
                 Chip(tr("Albumy", "Albums"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.ALBUM) }
                 Chip(tr("Foldery", "Folders"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.FOLDER) }
             }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Chip(tr("Gatunki", "Genres"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.GENRE) }
+                Chip(tr("Lata", "Years"), modifier = Modifier.weight(1f)) { onGroups(io.github.marekmaro.equinox.GroupType.DECADE) }
+            }
         }
     }
 }

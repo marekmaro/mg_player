@@ -34,6 +34,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.marekmaro.equinox.data.Book
+import io.github.marekmaro.equinox.data.TrackTags
 import io.github.marekmaro.equinox.data.SessionStore
 import io.github.marekmaro.equinox.data.Chapters
 import io.github.marekmaro.equinox.data.FolderInfo
@@ -79,7 +80,7 @@ data class NowPlaying(
 )
 
 /** Rodzaj grupy utworów do przeglądania. */
-enum class GroupType { ARTIST, ALBUM, FOLDER, MARK, NEW, TOP }
+enum class GroupType { ARTIST, ALBUM, FOLDER, GENRE, DECADE, MARK, NEW, TOP }
 
 data class TrackGroup(val type: GroupType, val key: String, val title: String, val count: Int)
 
@@ -1061,16 +1062,24 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     var openGroup by mutableStateOf<TrackGroup?>(null)
     var groupListType by mutableStateOf(GroupType.ARTIST)
 
-    fun groups(type: GroupType): List<TrackGroup> = when (type) {
-        GroupType.ARTIST -> tracks.groupBy { it.artist }.map { (a, l) -> TrackGroup(type, a, a, l.size) }
-        GroupType.ALBUM -> tracks.filter { it.album.isNotBlank() }.groupBy { it.album }
-            .map { (a, l) -> TrackGroup(type, a, a, l.size) }
-        GroupType.FOLDER -> tracks.groupBy { it.folder }
-            .map { (f, l) -> TrackGroup(type, f, f.substringAfterLast('/').ifBlank { f }, l.size) }
-        else -> emptyList()
-    }.sortedBy { it.title.lowercase() }
+    fun groups(type: GroupType): List<TrackGroup> {
+        val list = when (type) {
+            GroupType.ARTIST -> tracks.groupBy { it.artist }.map { (a, l) -> TrackGroup(type, a, a, l.size) }
+            GroupType.ALBUM -> tracks.filter { it.album.isNotBlank() }.groupBy { it.album }
+                .map { (a, l) -> TrackGroup(type, a, a, l.size) }
+            GroupType.FOLDER -> tracks.groupBy { it.folder }
+                .map { (f, l) -> TrackGroup(type, f, f.substringAfterLast('/').ifBlank { f }, l.size) }
+            GroupType.GENRE -> tracks.flatMap { t -> t.genres.map { it to t } }
+                .groupBy { it.first.lowercase() }
+                .map { (_, l) -> TrackGroup(type, l.first().first, l.first().first, l.size) }
+            GroupType.DECADE -> tracks.filter { it.year > 0 }.groupBy { TrackTags.decadeOf(it.year) }
+                .map { (d, l) -> TrackGroup(type, d.toString(), TrackTags.decadeLabel(d), l.size) }
+            else -> emptyList()
+        }
+        // dekady od najnowszej (alfabetycznie nie miałoby sensu), reszta alfabetycznie
+        return if (type == GroupType.DECADE) list.sortedByDescending { it.key.toInt() } else list.sortedBy { it.title.lowercase() }
+    }
 
-    /** Playlisty automatyczne: Ulubione, Ostatnio dodane, Najczęściej słuchane. */
     /** Playlisty automatyczne: po jednej na znacznik, Nowości i Najczęściej słuchane. */
     fun smartGroups(): List<TrackGroup> =
         Mark.entries.map { m -> TrackGroup(GroupType.MARK, m.name, "${m.glyph} ${m.label}", groupTracks(GroupType.MARK, m.name).size) } +
@@ -1092,6 +1101,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         GroupType.ARTIST -> tracks.filter { it.artist == key }.sortedWith(compareBy({ it.album.lowercase() }, { it.trackNo }, { it.title.lowercase() }))
         GroupType.ALBUM -> tracks.filter { it.album == key }.sortedWith(compareBy({ it.trackNo }, { it.title.lowercase() }))
         GroupType.FOLDER -> tracks.filter { it.folder == key }.sortedBy { it.title.lowercase() }
+        GroupType.GENRE -> tracks.filter { t -> t.genres.any { it.equals(key, ignoreCase = true) } }
+            .sortedWith(compareBy({ it.artist.lowercase() }, { it.album.lowercase() }, { it.trackNo }))
+        GroupType.DECADE -> key.toIntOrNull()?.let { d ->
+            tracks.filter { TrackTags.decadeOf(it.year) == d }
+                .sortedWith(compareBy({ it.year }, { it.artist.lowercase() }, { it.album.lowercase() }, { it.trackNo }))
+        }.orEmpty()
         GroupType.MARK -> {
             val m = Mark.entries.firstOrNull { it.name == key }
             tracks.filter { m != null && m in marksOf(it.id) }
@@ -1131,6 +1146,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             .map { SearchResult(it.title, tr("wykonawca", "artist"), group = it) }
         val albumHits = groups(GroupType.ALBUM).filter { matchesQuery(it.title, q) }.take(10)
             .map { SearchResult(it.title, tr("album", "album"), group = it) }
+        val genreHits = groups(GroupType.GENRE).filter { matchesQuery(it.title, q) }.take(5)
+            .map { SearchResult(it.title, tr("gatunek", "genre"), group = it) }
         val bookHits = books.filter { matchesQuery(it.title + " " + it.author, q) }.take(10)
             .map { SearchResult(it.title, tr("audiobook", "audiobook"), book = it) }
         val playlistHits = playlists.filter { matchesQuery(it.name, q) }.take(10)
@@ -1139,7 +1156,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             .map { SearchResult(it.name, "radio", station = it) }
         val trackHits = tracks.filter { matchesQuery("${it.title} ${it.artist} ${it.album}", q) }
             .take(100).map { SearchResult(it.title, (marksGlyphs(marks[it.id]) + " " + it.artist).trim().take(22), track = it) }
-        return artistHits + albumHits + bookHits + playlistHits + stationHits + trackHits
+        return artistHits + albumHits + genreHits + bookHits + playlistHits + stationHits + trackHits
     }
 
     var recentSearches by mutableStateOf(prefs.recentSearches()); private set

@@ -377,6 +377,23 @@ class LogicTest {
         assertEquals(0, ReplayGain.boostMillibelsFor(-4f))
     }
 
+    // ---------- gatunki i lata ----------
+
+    @Test
+    fun genresAndYears_cleanup() {
+        val T = io.github.marekmaro.equinox.data.TrackTags
+        assertEquals(listOf("Rock", "Blues"), T.splitGenres("rock; Blues ;ROCK"))
+        assertEquals(listOf("Hip-hop", "Drum And Bass"), T.splitGenres("hip-hop|drum and bass"))
+        assertEquals(emptyList<String>(), T.splitGenres("(17)"))
+        assertEquals(emptyList<String>(), T.splitGenres(null))
+        assertEquals(1987, T.cleanYear(1987))
+        assertEquals(2024, T.cleanYear(20240101))
+        assertEquals(0, T.cleanYear(0))
+        assertEquals(0, T.cleanYear(87))
+        assertEquals(1980, T.decadeOf(1987))
+        assertEquals(0, T.decadeOf(0))
+    }
+
     // ---------- duże biblioteki ----------
 
     @Test

@@ -15,7 +15,7 @@ import io.github.marekmaro.equinox.data.toMediaItem
  * Biblioteka widziana z samochodu (Android Auto) i z innych przeglądarek multimediów.
  *
  * Drzewo:
- *   root → ♥ Ulubione · Ostatnio grane · Playlisty → … · Wykonawcy → … · Albumy → … · Audiobooki · Radio
+ *   root → ♥ Ulubione · Ostatnio grane · Playlisty → … · Wykonawcy → … · Albumy → … · Gatunki → … · Audiobooki · Radio
  *
  * Dotknięcie utworu gra całą listę, z której pochodzi (album, playlistę…), od tego utworu.
  * Dotknięcie audiobooka wznawia go w zapamiętanym miejscu.
@@ -52,6 +52,7 @@ class AutoLibrary(private val context: Context) {
             folder(PLAYLISTS, tr("Playlisty", "Playlists"), MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
             folder(ARTISTS, tr("Wykonawcy", "Artists"), MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS),
             folder(ALBUMS, tr("Albumy", "Albums"), MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
+            folder(GENRES, tr("Gatunki", "Genres"), MediaMetadata.MEDIA_TYPE_FOLDER_GENRES),
             folder(BOOKS, tr("Audiobooki", "Audiobooks"), MediaMetadata.MEDIA_TYPE_FOLDER_AUDIO_BOOKS),
             folder(RADIO, tr("Radio", "Radio"), MediaMetadata.MEDIA_TYPE_FOLDER_RADIO_STATIONS),
         )
@@ -64,6 +65,10 @@ class AutoLibrary(private val context: Context) {
         parentId == ALBUMS -> music().filter { it.album.isNotBlank() }.groupBy { it.album }.toSortedMap(String.CASE_INSENSITIVE_ORDER).map { (name, list) ->
             folder("album:$name", name, MediaMetadata.MEDIA_TYPE_ALBUM, subtitle = list.first().artist)
         }
+        parentId == GENRES -> music().flatMap { t -> t.genres.map { it to t } }.groupBy { it.first.lowercase() }
+            .map { (_, l) -> l.first().first to l.size }
+            .sortedBy { it.first.lowercase() }
+            .map { (name, n) -> folder("genre:$name", name, MediaMetadata.MEDIA_TYPE_GENRE, subtitle = tr("$n utw.", "$n songs")) }
         parentId == BOOKS -> MediaRepository.groupBooks(tracks().filter { it.isBook }).map { b ->
             playable("b|${b.key}", b.title, b.author, MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
         }
@@ -89,6 +94,10 @@ class AutoLibrary(private val context: Context) {
             parentId.startsWith("artist:") -> parentId.removePrefix("artist:").let { a ->
                 music.filter { it.artist == a }.sortedWith(compareBy({ it.album.lowercase() }, { it.trackNo }, { it.title.lowercase() }))
             }
+            parentId.startsWith("genre:") -> parentId.removePrefix("genre:").let { g ->
+                music.filter { t -> t.genres.any { it.equals(g, ignoreCase = true) } }
+                    .sortedWith(compareBy({ it.artist.lowercase() }, { it.album.lowercase() }, { it.trackNo }))
+            }
             parentId.startsWith("album:") -> parentId.removePrefix("album:").let { a ->
                 music.filter { it.album == a }.sortedWith(compareBy({ it.trackNo }, { it.title.lowercase() }))
             }
@@ -104,6 +113,7 @@ class AutoLibrary(private val context: Context) {
         id.startsWith("pl:") -> children(PLAYLISTS).firstOrNull { it.mediaId == id }
         id.startsWith("artist:") -> folder(id, id.removePrefix("artist:"), MediaMetadata.MEDIA_TYPE_ARTIST)
         id.startsWith("album:") -> folder(id, id.removePrefix("album:"), MediaMetadata.MEDIA_TYPE_ALBUM)
+        id.startsWith("genre:") -> folder(id, id.removePrefix("genre:"), MediaMetadata.MEDIA_TYPE_GENRE)
         id.startsWith("b|") -> children(BOOKS).firstOrNull { it.mediaId == id }
         id.startsWith("r|") -> children(RADIO).firstOrNull { it.mediaId == id }
         else -> children(ROOT).firstOrNull { it.mediaId == id }
@@ -200,6 +210,7 @@ class AutoLibrary(private val context: Context) {
         const val PLAYLISTS = "playlists"
         const val ARTISTS = "artists"
         const val ALBUMS = "albums"
+        const val GENRES = "genres"
         const val BOOKS = "books"
         const val RADIO = "radio"
     }

@@ -41,6 +41,8 @@ fun GroupsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenGroup: () -> Uni
     val title = when (type) {
         GroupType.ARTIST -> tr("Wykonawcy", "Artists")
         GroupType.ALBUM -> tr("Albumy", "Albums")
+        GroupType.GENRE -> tr("Gatunki", "Genres")
+        GroupType.DECADE -> tr("Lata", "Years")
         else -> tr("Foldery", "Folders")
     }
     KnobListScreen(
@@ -52,7 +54,11 @@ fun GroupsScreen(vm: PlayerViewModel, onBack: () -> Unit, onOpenGroup: () -> Uni
             vm.openGroup = groups[i]
             onOpenGroup()
         },
-        emptyText = tr("Brak muzyki w bibliotece.", "No music in your library."),
+        emptyText = when (type) {
+            GroupType.GENRE -> tr("Pliki nie mają zapisanych gatunków.", "Your files have no genre tags.")
+            GroupType.DECADE -> tr("Pliki nie mają zapisanego roku.", "Your files have no year tags.")
+            else -> tr("Brak muzyki w bibliotece.", "No music in your library.")
+        },
     )
 }
 
